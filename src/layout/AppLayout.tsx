@@ -4,7 +4,11 @@ import AppHeader from "./AppHeader";
 import Backdrop from "./Backdrop";
 import AppSidebar from "./AppSidebar";
 
-const LayoutContent: React.FC = () => {
+interface LayoutContentProps {
+  children?: React.ReactNode;
+}
+
+const LayoutContent: React.FC<LayoutContentProps> = ({ children }) => {
   const { isExpanded, isMobileOpen } = useSidebar();
 
   return (
@@ -20,17 +24,17 @@ const LayoutContent: React.FC = () => {
       >
         <AppHeader />
         <div className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
-          <Outlet />
+          {children || <Outlet />}
         </div>
       </div>
     </div>
   );
 };
 
-const AppLayout: React.FC = () => {
+const AppLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   return (
     <SidebarProvider>
-      <LayoutContent />
+      <LayoutContent children={children} />
     </SidebarProvider>
   );
 };

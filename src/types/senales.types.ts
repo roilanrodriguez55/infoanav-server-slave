@@ -32,16 +32,17 @@ export interface Equipamiento {
   cantidad: number;
   num_inventario: string;
 }
-
 export interface Senal {
   id_señal?: string;
+  codigo_lsm?: string;
   id_tipo?: string;
   id_categoria?: string;
   nombre: string;
   id_modelo?: string;
   id_empresa?: string;
   id_estacion?: string;
-  lumínica?: boolean;
+  luminica?: boolean;
+  fecha_instalacion?: string;
   secreta?: boolean;
   id_usuario_navegacion?: string;
   monitoreo?: string;
@@ -78,10 +79,11 @@ export interface Senal {
   id_fallas?: string;
   id_mantenimientos?: string;
   equipamientos?: Equipamiento[];
-}
-
-export interface CatalogoResponse {
-  success: boolean;
-  data: CatalogoItem[];
-  message?: string;
+  sistema_fondeo?:string;
+  createat?: Date;
+  createby?: string;
+  updateat?: Date;
+  updateby?: string;
+  deleteat?: Date;
+  deleteby?: string;
 }

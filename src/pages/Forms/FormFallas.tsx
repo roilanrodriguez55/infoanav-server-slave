@@ -1,15 +1,45 @@
-import React, { useState,useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { fallasService } from '../../services/api/fallasApi';
+import { catalogosService } from '../../services/api/catalogApi';
+import { CommandSelectWithAdd } from '../../../@/components/ui/CommandSelectWithAdd';
 import { useAuth } from '../../context/AuthContext';
+
+// Componentes shadcn
+import { Button } from '../../../@/components/ui/button';
+import { Input } from '../../../@/components/ui/input';
+import { Textarea } from '../../../@/components/ui/textarea';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from '../../../@/components/ui/card';
+import { Label } from '../../../@/components/ui/label';
+import { Checkbox } from '../../../@/components/ui/checkbox';
+import { Alert, AlertDescription } from '../../../@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../@/components/ui/tabs';
+import {
+  AlertCircle,
+  Save,
+  X,
+  ArrowLeft,
+  Calendar,
+  User,
+  Clock,
+  Loader2
+} from 'lucide-react';
 
 // Interfaces para tipos de datos
 interface TipoFalla {
-  id: number;
+  id: string;
   nombre: string;
 }
 
 interface OrigenFalla {
-  id: number;
+  id: string;
   nombre: string;
 }
 
@@ -31,16 +61,20 @@ interface FormData {
   rg: string;
 }
 
-interface FormErrors {
-  [key: string]: string;
-}
-
-type FormFieldChangeEvent = 
-  | React.ChangeEvent<HTMLInputElement>
-  | React.ChangeEvent<HTMLTextAreaElement>
-  | React.ChangeEvent<HTMLSelectElement>;
-
 const FormFallas: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { authState } = useAuth();
+  
+  const isEditing = !!id;
+  
+  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(isEditing);
+  const [saving, setSaving] = useState(false);
+  const [tiposFalla, setTiposFalla] = useState<TipoFalla[]>([]);
+  const [origenesFalla, setOrigenesFalla] = useState<OrigenFalla[]>([]);
+  const [activeTab, setActiveTab] = useState('basicos');
+  
   const [formData, setFormData] = useState<FormData>({
     fecha_falla: '',
     fecha_restablecer: '',
@@ -59,521 +93,633 @@ const FormFallas: React.FC = () => {
     rg: ''
   });
 
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Agrega estos estados
-const [tiposFalla, setTiposFalla] = useState<TipoFalla[]>([]);
-const [origenesFalla, setOrigenesFalla] = useState<OrigenFalla[]>([]);
-const [loadingCatalogos, setLoadingCatalogos] = useState(true);
+  // Cargar catálogos
+  useEffect(() => {
+    const loadCatalogos = async () => {
+      setLoading(true);
+      try {
+        const [tiposRes, origenesRes] = await Promise.all([
+          fallasService.getTiposFalla(),
+          fallasService.getOrigenesFalla(),
+        ]);
 
-// Agrega este useEffect después de los estados
-useEffect(() => {
-  const loadCatalogos = async () => {
-    try {
-      const [tiposRes, origenesRes] = await Promise.all([
-        fallasService.getTiposFalla(),
-        fallasService.getOrigenesFalla()
-      ]);
-      
-      if (tiposRes.success) {
-        setTiposFalla(tiposRes.data);
+        if (tiposRes.success) {
+          setTiposFalla(tiposRes.data.map((item: any) => ({
+            id: item.id,
+            nombre: item.nombre
+          })));
+        }
+        
+        if (origenesRes.success) {
+          setOrigenesFalla(origenesRes.data.map((item: any) => ({
+            id: item.id,
+            nombre: item.nombre
+          })));
+        }
+      } catch (error) {
+        console.error('Error cargando catálogos:', error);
+        alert('Error al cargar los catálogos');
+      } finally {
+        setLoading(false);
       }
+    };
+
+    loadCatalogos();
+  }, []);
+
+  // Cargar datos de la falla si estamos editando
+  useEffect(() => {
+    const loadFalla = async () => {
+      if (!id) return;
       
-      if (origenesRes.success) {
-        setOrigenesFalla(origenesRes.data);
+      setLoadingData(true);
+      try {
+        console.log('Cargando falla para edición, ID:', id);
+        const response = await fallasService.getById(id);
+        
+        if (response.success && response.data) {
+          const data = response.data;
+          console.log('Datos recibidos:', data);
+          
+          const formatDateForInput = (dateStr?: string) => {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toISOString().slice(0, 16);
+          };
+
+          setFormData({
+            fecha_falla: formatDateForInput(data.fecha_falla),
+            fecha_restablecer: formatDateForInput(data.fecha_restablecer),
+            fecha_pronost_restablecer: formatDateForInput(data.fecha_pronost_restablecer),
+            id_tipo_falla: data.id_tipo_falla || '',
+            causa_de_falla: data.causa_de_falla || '',
+            medidas: data.medidas || '',
+            reporto: data.reporto || '',
+            rescatada: data.rescatada || false,
+            observaciones: data.observaciones || '',
+            duracion_de_falla: data.duracion_de_falla || '',
+            diferencia_tiempo: data.diferencia_tiempo || '',
+            id_origen_falla: data.id_origen_falla || '',
+            transmite: data.transmite || '',
+            anar: data.anar || '',
+            rg: data.rg || ''
+          });
+        } else {
+          alert('Error al cargar los datos de la falla');
+          navigate('/gestion-fallas');
+        }
+      } catch (error) {
+        console.error('Error cargando falla:', error);
+        alert('Error al conectar con el servidor');
+        navigate('/gestion-fallas');
+      } finally {
+        setLoadingData(false);
       }
-    } catch (error) {
-      console.error('Error cargando catálogos:', error);
-    } finally {
-      setLoadingCatalogos(false);
-    }
-  };
-  
-  loadCatalogos();
-}, []);
+    };
 
-  const handleChange = (e: FormFieldChangeEvent): void => {
-    const { name, value, type } = e.target;
-    
-    if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      setFormData(prev => ({
-        ...prev,
-        [name]: checked
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+    if (isEditing) {
+      loadFalla();
     }
-    
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
-  };
+  }, [id, isEditing, navigate]);
 
-  const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-  const term = e.target.value;
-  setSearchTerm(term);
-  
-  if (term.length > 2) {
-    try {
-      const results = await fallasService.search(term);
-      console.log('Resultados de búsqueda:', results);
-      // Aquí puedes mostrar los resultados en una tabla o lista
-    } catch (error) {
-      console.error('Error en búsqueda:', error);
-    }
-  }
-};
-
-  const handleGoBack = (): void => {
-    // Implementar la navegación de regreso
-    // Si estás usando React Router, usa: navigate('/')
-    // Si es una aplicación simple, puedes usar window.history.back()
-    window.history.back();
-  };
-
-  const validateForm = (): FormErrors => {
-    const newErrors: FormErrors = {};
-    
-    if (!formData.fecha_falla.trim()) {
-      newErrors.fecha_falla = 'La fecha de falla es requerida';
-    }
-    
-    if (!formData.id_tipo_falla) {
-      newErrors.id_tipo_falla = 'El tipo de falla es requerido';
-    }
-    
-    if (!formData.causa_de_falla.trim()) {
-      newErrors.causa_de_falla = 'La causa de falla es requerida';
-    }
-    
+  // Calcular duración automáticamente
+  useEffect(() => {
     if (formData.fecha_falla && formData.fecha_restablecer) {
-      if (new Date(formData.fecha_restablecer) < new Date(formData.fecha_falla)) {
-        newErrors.fecha_restablecer = 'La fecha de restablecimiento no puede ser anterior a la fecha de falla';
+      const inicio = new Date(formData.fecha_falla);
+      const fin = new Date(formData.fecha_restablecer);
+      const diffMs = fin.getTime() - inicio.getTime();
+      
+      if (diffMs > 0) {
+        const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        setFormData(prev => ({
+          ...prev,
+          duracion_de_falla: `${diffHrs}h ${diffMins}m`
+        }));
       }
     }
-    
-    return newErrors;
+  }, [formData.fecha_falla, formData.fecha_restablecer]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  const handleCheckboxChange = (name: string, checked: boolean) => {
+    setFormData(prev => ({ ...prev, [name]: checked }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleGoBack = () => {
+    navigate('/gestion-fallas');
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.fecha_falla) newErrors.fecha_falla = 'La fecha de falla es requerida';
+    if (!formData.id_tipo_falla) newErrors.id_tipo_falla = 'El tipo de falla es requerido';
+    if (!formData.causa_de_falla) newErrors.causa_de_falla = 'La causa de falla es requerida';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newErrors = validateForm();
+    if (!validateForm()) {
+      alert('Por favor complete los campos requeridos');
+      return;
+    }
+
+    setIsSubmitting(true);
     
-    if (Object.keys(newErrors).length === 0) {
-      setIsSubmitting(true);
+    try {
+      const userStr = localStorage.getItem('usuario');
+      const user = userStr ? JSON.parse(userStr) : null;
       
-      try {
-      // Preparar datos para enviar
-      const dataToSend = {
-        ...formData,
-        // Convertir strings vacíos a null para las fechas
-        fecha_falla: formData.fecha_falla || new Date().toISOString().slice(0, 16),
-        fecha_restablecer: formData.fecha_restablecer,
-        fecha_pronost_restablecer: formData.fecha_pronost_restablecer,
-        id_tipo_falla: formData.id_tipo_falla,
-        id_origen_falla: formData.id_origen_falla,
-        rescatada: formData.rescatada || false
+      const dataToSend: any = {
+        fecha_falla: formData.fecha_falla,
+        fecha_restablecer: formData.fecha_restablecer || null,
+        fecha_pronost_restablecer: formData.fecha_pronost_restablecer || null,
+        id_tipo_falla: formData.id_tipo_falla || null,
+        causa_de_falla: formData.causa_de_falla,
+        medidas: formData.medidas || null,
+        reporto: formData.reporto || null,
+        rescatada: formData.rescatada || false,
+        observaciones: formData.observaciones || null,
+        duracion_de_falla: formData.duracion_de_falla || null,
+        diferencia_tiempo: formData.diferencia_tiempo || null,
+        id_origen_falla: formData.id_origen_falla || null,
+        transmite: formData.transmite || null,
+        anar: formData.anar || null,
+        rg: formData.rg || null
       };
 
-      console.log('Enviando datos:', dataToSend);
+      if (isEditing) {
+        dataToSend.updateby = user?.usuario || 'sistema';
+      } else {
+        dataToSend.createby = user?.usuario || 'sistema';
+      }
+
+      console.log('📤 Datos a enviar:', JSON.stringify(dataToSend, null, 2));
       
-      const response = await fallasService.create(dataToSend);
+      let response;
+      if (isEditing) {
+        response = await fallasService.update(id!, dataToSend);
+      } else {
+        response = await fallasService.create(dataToSend);
+      }
+      
+      console.log('🟢 Respuesta del servidor:', response);
       
       if (response.success) {
-        alert('✅ Falla registrada con éxito');
-        handleReset();
+        alert(`✅ Falla ${isEditing ? 'actualizada' : 'registrada'} correctamente`);
+        navigate('/gestion-fallas');
       } else {
-        alert('❌ Error al guardar: ' + response.message);
+        alert('❌ Error al guardar: ' + (response.message || 'Error desconocido'));
       }
-        } catch (error) {
-        console.error('Error al guardar:', error);
-        alert('Error al guardar la falla');
-      } finally {
-        setIsSubmitting(false);
-      }
-    } else {
-      setErrors(newErrors);
-      const firstErrorField = Object.keys(newErrors)[0];
-      const element = document.getElementById(firstErrorField);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+    } catch (error: any) {
+      console.error('🔴 Error:', error);
+      alert('❌ Error al conectar con el servidor: ' + (error.message || 'Error desconocido'));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleReset = (): void => {
-    setFormData({
-      fecha_falla: '',
-      fecha_restablecer: '',
-      fecha_pronost_restablecer: '',
-      id_tipo_falla: '',
-      causa_de_falla: '',
-      medidas: '',
-      reporto: '',
-      rescatada: false,
-      observaciones: '',
-      duracion_de_falla: '',
-      diferencia_tiempo: '',
-      id_origen_falla: '',
-      transmite: '',
-      anar: '',
-      rg: ''
-    });
-    setErrors({});
+  const handleReset = () => {
+    if (isEditing) {
+      window.location.reload();
+    } else {
+      setFormData({
+        fecha_falla: '',
+        fecha_restablecer: '',
+        fecha_pronost_restablecer: '',
+        id_tipo_falla: '',
+        causa_de_falla: '',
+        medidas: '',
+        reporto: '',
+        rescatada: false,
+        observaciones: '',
+        duracion_de_falla: '',
+        diferencia_tiempo: '',
+        id_origen_falla: '',
+        transmite: '',
+        anar: '',
+        rg: ''
+      });
+      setErrors({});
+      navigate('/gestion-fallas');
+    }
   };
 
-  const hasError = (fieldName: string): boolean => {
+  const hasError = (fieldName: keyof FormData): boolean => {
     return !!errors[fieldName];
   };
 
-  const inputClassName = (fieldName: string): string => {
-    const baseClasses = "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors";
+  const inputClassName = (fieldName: keyof FormData): string => {
+    const baseClasses = "w-full";
     return hasError(fieldName)
-      ? `${baseClasses} border-red-500 focus:ring-red-500`
-      : `${baseClasses} border-gray-300`;
+      ? `${baseClasses} border-red-500 focus-visible:ring-red-500`
+      : baseClasses;
   };
 
+  if (loading || loadingData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-gray-900 dark:text-gray-100 mx-auto mb-4" />
+          <p className="mt-4 text-gray-600 dark:text-gray-300">
+            {loadingData ? 'Cargando datos de la falla...' : 'Cargando catálogos...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Barra superior con buscador y botón regresar */}
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <button
+        <div className="mb-6">
+          <Button
+            variant="outline"
             onClick={handleGoBack}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+            className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Regresar
-          </button>
-          
-          <div className="relative flex-1 max-w-lg">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={handleSearch}
-              placeholder="Buscar fallas por ID, tipo, causa..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver
+          </Button>
         </div>
 
-        <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-6 py-5">
-            <h2 className="text-2xl font-bold text-white flex items-center">
-              <svg className="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              Registro de Fallas
-            </h2>
-            <p className="text-blue-100 text-sm mt-1">Complete la información detallada de la falla</p>
-          </div>
+        <Card className="shadow-xl border-gray-200 dark:border-gray-700 dark:bg-gray-800">
+          <CardHeader className="bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+            <CardTitle className="text-2xl flex items-center text-gray-800 dark:text-white">
+              <AlertCircle className="w-8 h-8 mr-3 text-gray-600 dark:text-gray-300" />
+              {isEditing ? 'Editar Falla' : 'Nueva Falla'}
+            </CardTitle>
+            <CardDescription className="text-gray-500 dark:text-gray-400 text-sm mt-2">
+              {isEditing 
+                ? 'Modifique los datos de la falla seleccionada' 
+                : 'Complete la información detallada de la falla'}
+            </CardDescription>
+          </CardHeader>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6 lg:p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              
-              {/* Fechas */}
-              <div className="space-y-2">
-                <label htmlFor="fecha_falla" className="block text-sm font-medium text-gray-700">
-                  Fecha de Falla <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="fecha_falla"
-                  type="datetime-local"
-                  name="fecha_falla"
-                  value={formData.fecha_falla}
-                  onChange={handleChange}
-                  className={inputClassName('fecha_falla')}
-                  aria-invalid={hasError('fecha_falla')}
-                />
-                {errors.fecha_falla && (
-                  <p className="text-red-500 text-xs flex items-center mt-1">
-                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    {errors.fecha_falla}
-                  </p>
-                )}
-              </div>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="p-6 lg:p-8">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+                <TabsList className="grid w-full grid-cols-4 bg-gray-100 dark:bg-gray-700">
+                  <TabsTrigger 
+                    value="basicos"
+                    className="data-[state=active]:bg-gray-800 data-[state=active]:text-white dark:data-[state=active]:bg-gray-600 dark:text-gray-300"
+                  >
+                    Datos Básicos
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="detalles"
+                    className="data-[state=active]:bg-gray-800 data-[state=active]:text-white dark:data-[state=active]:bg-gray-600 dark:text-gray-300"
+                  >
+                    Detalles
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="responsables"
+                    className="data-[state=active]:bg-gray-800 data-[state=active]:text-white dark:data-[state=active]:bg-gray-600 dark:text-gray-300"
+                  >
+                    Responsables
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="tiempos"
+                    className="data-[state=active]:bg-gray-800 data-[state=active]:text-white dark:data-[state=active]:bg-gray-600 dark:text-gray-300"
+                  >
+                    Tiempos
+                  </TabsTrigger>
+                </TabsList>
 
-              <div className="space-y-2">
-                <label htmlFor="fecha_restablecer" className="block text-sm font-medium text-gray-700">
-                  Fecha de Restablecimiento
-                </label>
-                <input
-                  id="fecha_restablecer"
-                  type="datetime-local"
-                  name="fecha_restablecer"
-                  value={formData.fecha_restablecer}
-                  onChange={handleChange}
-                  className={inputClassName('fecha_restablecer')}
-                />
-                {errors.fecha_restablecer && (
-                  <p className="text-red-500 text-xs mt-1">{errors.fecha_restablecer}</p>
-                )}
-              </div>
+                {/* Pestaña Datos Básicos */}
+                <TabsContent value="basicos" className="space-y-6 mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Fecha de Falla */}
+                    <div className="space-y-2">
+                      <Label htmlFor="fecha_falla" className="flex items-center text-gray-700 dark:text-gray-300 font-medium">
+                        Fecha de Falla <span className="text-red-500 ml-1">*</span>
+                      </Label>
+                      <Input
+                        id="fecha_falla"
+                        type="datetime-local"
+                        name="fecha_falla"
+                        value={formData.fecha_falla}
+                        onChange={handleInputChange}
+                        className={`${inputClassName('fecha_falla')} border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white`}
+                      />
+                      {errors.fecha_falla && (
+                        <p className="text-sm text-red-500 flex items-center mt-1">
+                          <AlertCircle className="h-4 w-4 mr-1" />
+                          {errors.fecha_falla}
+                        </p>
+                      )}
+                    </div>
 
-              <div className="space-y-2">
-                <label htmlFor="fecha_pronost_restablecer" className="block text-sm font-medium text-gray-700">
-                  Fecha Pronóstico Restablecimiento
-                </label>
-                <input
-                  id="fecha_pronost_restablecer"
-                  type="datetime-local"
-                  name="fecha_pronost_restablecer"
-                  value={formData.fecha_pronost_restablecer}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+                    {/* Tipo de Falla */}
+                    <div className="space-y-2">
+                      <CommandSelectWithAdd
+                        value={formData.id_tipo_falla}
+                        onValueChange={(value) => handleSelectChange('id_tipo_falla', value)}
+                        placeholder="Seleccionar tipo de falla"
+                        searchPlaceholder="Buscar tipo..."
+                        emptyMessage="No se encontraron tipos de falla"
+                        items={tiposFalla}
+                        onAddItem={async (nombre) => {
+                          const response = await catalogosService.createTipoFalla(nombre);
+                          if (response.success) {
+                            const newItem = { id: response.data.id, nombre };
+                            setTiposFalla(prev => [...prev, newItem]);
+                            return newItem;
+                          }
+                          throw new Error(response.message);
+                        }}
+                        label="Tipo de Falla"
+                        required
+                      />
+                      {errors.id_tipo_falla && (
+                        <p className="text-sm text-red-500 flex items-center mt-1">
+                          <AlertCircle className="h-4 w-4 mr-1" />
+                          {errors.id_tipo_falla}
+                        </p>
+                      )}
+                    </div>
+                  </div>
 
-              {/* Selects */}
-              <div className="space-y-2">
-                <label htmlFor="id_tipo_falla" className="block text-sm font-medium text-gray-700">
-                  Tipo de Falla <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="id_tipo_falla"
-                  name="id_tipo_falla"
-                  value={formData.id_tipo_falla}
-                  onChange={handleChange}
-                  className={inputClassName('FK_id_tipo_falla')}
-                >
-                  <option value="">Seleccione tipo de falla</option>
-                  {tiposFalla.map(tipo => (
-                    <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>
-                  ))}
-                </select>
-                {errors.FK_id_tipo_falla && (
-                  <p className="text-red-500 text-xs mt-1">{errors.FK_id_tipo_falla}</p>
-                )}
-              </div>
+                  {/* Causa de Falla */}
+                  <div className="space-y-2">
+                    <Label htmlFor="causa_de_falla" className="flex items-center text-gray-700 dark:text-gray-300 font-medium">
+                      Causa de Falla <span className="text-red-500 ml-1">*</span>
+                    </Label>
+                    <Textarea
+                      id="causa_de_falla"
+                      name="causa_de_falla"
+                      value={formData.causa_de_falla}
+                      onChange={handleInputChange}
+                      placeholder="Describa la causa de la falla..."
+                      className={`${inputClassName('causa_de_falla')} border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400`}
+                      rows={4}
+                    />
+                    {errors.causa_de_falla && (
+                      <p className="text-sm text-red-500 flex items-center mt-1">
+                        <AlertCircle className="h-4 w-4 mr-1" />
+                        {errors.causa_de_falla}
+                      </p>
+                    )}
+                  </div>
+                </TabsContent>
 
-              <div className="space-y-2">
-                <label htmlFor="id_origen_falla" className="block text-sm font-medium text-gray-700">
-                  Origen de Falla
-                </label>
-                <select
-                  id="id_origen_falla"
-                  name="id_origen_falla"
-                  value={formData.id_origen_falla}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccione origen</option>
-                  {origenesFalla.map(origen => (
-                    <option key={origen.id} value={origen.id}>{origen.nombre}</option>
-                  ))}
-                </select>
-              </div>
+                {/* Pestaña Detalles */}
+                <TabsContent value="detalles" className="space-y-6 mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Fecha Restablecimiento */}
+                    <div className="space-y-2">
+                      <Label htmlFor="fecha_restablecer" className="text-gray-700 dark:text-gray-300 font-medium">
+                        Fecha de Restablecimiento
+                      </Label>
+                      <Input
+                        id="fecha_restablecer"
+                        type="datetime-local"
+                        name="fecha_restablecer"
+                        value={formData.fecha_restablecer}
+                        onChange={handleInputChange}
+                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
 
-              {/* Campos de texto */}
-              <div className="lg:col-span-2 space-y-2">
-                <label htmlFor="causa_de_falla" className="block text-sm font-medium text-gray-700">
-                  Causa de Falla <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  id="causa_de_falla"
-                  name="causa_de_falla"
-                  value={formData.causa_de_falla}
-                  onChange={handleChange}
-                  rows={3}
-                  className={inputClassName('causa_de_falla')}
-                  placeholder="Describa la causa de la falla..."
-                />
-                {errors.causa_de_falla && (
-                  <p className="text-red-500 text-xs mt-1">{errors.causa_de_falla}</p>
-                )}
-              </div>
+                    {/* Fecha Pronóstico */}
+                    <div className="space-y-2">
+                      <Label htmlFor="fecha_pronost_restablecer" className="text-gray-700 dark:text-gray-300 font-medium">
+                        Fecha Pronóstico Restablecimiento
+                      </Label>
+                      <Input
+                        id="fecha_pronost_restablecer"
+                        type="datetime-local"
+                        name="fecha_pronost_restablecer"
+                        value={formData.fecha_pronost_restablecer}
+                        onChange={handleInputChange}
+                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
 
-              <div className="lg:col-span-2 space-y-2">
-                <label htmlFor="medidas" className="block text-sm font-medium text-gray-700">
-                  Medidas Tomadas
-                </label>
-                <textarea
-                  id="medidas"
-                  name="medidas"
-                  value={formData.medidas}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Describa las medidas tomadas..."
-                />
-              </div>
+                    {/* Origen de Falla */}
+                    <div className="space-y-2">
+                      <CommandSelectWithAdd
+                        value={formData.id_origen_falla}
+                        onValueChange={(value) => handleSelectChange('id_origen_falla', value)}
+                        placeholder="Seleccionar origen de falla"
+                        searchPlaceholder="Buscar origen..."
+                        emptyMessage="No se encontraron orígenes de falla"
+                        items={origenesFalla}
+                        onAddItem={async (nombre) => {
+                          const response = await catalogosService.createOrigenFalla(nombre);
+                          if (response.success) {
+                            const newItem = { id: response.data.id, nombre };
+                            setOrigenesFalla(prev => [...prev, newItem]);
+                            return newItem;
+                          }
+                          throw new Error(response.message);
+                        }}
+                        label="Origen de Falla"
+                      />
+                    </div>
 
-              <div className="lg:col-span-2 space-y-2">
-                <label htmlFor="observaciones" className="block text-sm font-medium text-gray-700">
-                  Observaciones
-                </label>
-                <textarea
-                  id="observaciones"
-                  name="observaciones"
-                  value={formData.observaciones}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Observaciones adicionales..."
-                />
-              </div>
+                    {/* Checkbox Rescatada */}
+                    <div className="flex items-center h-full pt-6">
+                      <div className="flex items-center space-x-3">
+                        <Checkbox
+                          id="rescatada"
+                          checked={formData.rescatada}
+                          onCheckedChange={(checked) => handleCheckboxChange('rescatada', checked as boolean)}
+                          className="border-gray-400 text-gray-800 dark:border-gray-500 dark:bg-gray-700"
+                        />
+                        <Label htmlFor="rescatada" className="cursor-pointer text-gray-700 dark:text-gray-300 font-medium">
+                          Falla Rescatada
+                        </Label>
+                      </div>
+                    </div>
+                  </div>
 
-              {/* Campos de texto simples */}
-              <div className="space-y-2">
-                <label htmlFor="reporto" className="block text-sm font-medium text-gray-700">
-                  Reportó
-                </label>
-                <input
-                  id="reporto"
-                  type="text"
-                  name="reporto"
-                  value={formData.reporto}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nombre de quien reporta"
-                />
-              </div>
+                  {/* Medidas */}
+                  <div className="space-y-2">
+                    <Label htmlFor="medidas" className="text-gray-700 dark:text-gray-300 font-medium">
+                      Medidas Tomadas
+                    </Label>
+                    <Textarea
+                      id="medidas"
+                      name="medidas"
+                      value={formData.medidas}
+                      onChange={handleInputChange}
+                      placeholder="Describa las medidas tomadas..."
+                      className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                      rows={3}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <label htmlFor="transmite" className="block text-sm font-medium text-gray-700">
-                  Transmite
-                </label>
-                <input
-                  id="transmite"
-                  type="text"
-                  name="transmite"
-                  value={formData.transmite}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Quién transmite"
-                />
-              </div>
+                  {/* Observaciones */}
+                  <div className="space-y-2">
+                    <Label htmlFor="observaciones" className="text-gray-700 dark:text-gray-300 font-medium">
+                      Observaciones
+                    </Label>
+                    <Textarea
+                      id="observaciones"
+                      name="observaciones"
+                      value={formData.observaciones}
+                      onChange={handleInputChange}
+                      placeholder="Observaciones adicionales..."
+                      className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                      rows={3}
+                    />
+                  </div>
+                </TabsContent>
 
-              <div className="space-y-2">
-                <label htmlFor="anar" className="block text-sm font-medium text-gray-700">
-                  ANAR
-                </label>
-                <input
-                  id="anar"
-                  type="text"
-                  name="anar"
-                  value={formData.anar}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="ANAR"
-                />
-              </div>
+                {/* Pestaña Responsables */}
+                <TabsContent value="responsables" className="space-y-6 mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="reporto" className="text-gray-700 dark:text-gray-300 font-medium">Reportó</Label>
+                      <Input
+                        id="reporto"
+                        name="reporto"
+                        value={formData.reporto}
+                        onChange={handleInputChange}
+                        placeholder="Nombre de quien reporta"
+                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                      />
+                    </div>
 
-              <div className="space-y-2">
-                <label htmlFor="rg" className="block text-sm font-medium text-gray-700">
-                  RG
-                </label>
-                <input
-                  id="rg"
-                  type="text"
-                  name="rg"
-                  value={formData.rg}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="RG"
-                />
-              </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="transmite" className="text-gray-700 dark:text-gray-300 font-medium">Transmite</Label>
+                      <Input
+                        id="transmite"
+                        name="transmite"
+                        value={formData.transmite}
+                        onChange={handleInputChange}
+                        placeholder="Quién transmite"
+                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                      />
+                    </div>
 
-              <div className="space-y-2">
-                <label htmlFor="duracion_de_falla" className="block text-sm font-medium text-gray-700">
-                  Duración de Falla
-                </label>
-                <input
-                  id="duracion_de_falla"
-                  type="text"
-                  name="duracion_de_falla"
-                  value={formData.duracion_de_falla}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Ej: 2h 30m"
-                />
-              </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="anar" className="text-gray-700 dark:text-gray-300 font-medium">ANAR</Label>
+                      <Input
+                        id="anar"
+                        name="anar"
+                        value={formData.anar}
+                        onChange={handleInputChange}
+                        placeholder="ANAR"
+                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                      />
+                    </div>
 
-              <div className="space-y-2">
-                <label htmlFor="diferencia_tiempo" className="block text-sm font-medium text-gray-700">
-                  Diferencia de Tiempo
-                </label>
-                <input
-                  id="diferencia_tiempo"
-                  type="text"
-                  name="diferencia_tiempo"
-                  value={formData.diferencia_tiempo}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Diferencia"
-                />
-              </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="rg" className="text-gray-700 dark:text-gray-300 font-medium">RG</Label>
+                      <Input
+                        id="rg"
+                        name="rg"
+                        value={formData.rg}
+                        onChange={handleInputChange}
+                        placeholder="RG"
+                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
 
-              {/* Checkbox */}
-              <div className="flex items-center h-full pt-6">
-                <div className="flex items-center space-x-3">
-                  <input
-                    id="rescatada"
-                    type="checkbox"
-                    name="rescatada"
-                    checked={formData.rescatada}
-                    onChange={handleChange}
-                    className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-colors"
-                  />
-                  <label htmlFor="rescatada" className="text-sm font-medium text-gray-700">
-                    Falla Rescatada
-                  </label>
-                </div>
-              </div>
-            </div>
+                {/* Pestaña Tiempos */}
+                <TabsContent value="tiempos" className="space-y-6 mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="duracion_de_falla" className="text-gray-700 dark:text-gray-300 font-medium">
+                        Duración de Falla
+                      </Label>
+                      <Input
+                        id="duracion_de_falla"
+                        name="duracion_de_falla"
+                        value={formData.duracion_de_falla}
+                        onChange={handleInputChange}
+                        placeholder="Ej: 2h 30m"
+                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                      />
+                    </div>
 
-            {/* Botones */}
-            <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 mt-8 pt-6 border-t border-gray-200">
-              <button
+                    <div className="space-y-2">
+                      <Label htmlFor="diferencia_tiempo" className="text-gray-700 dark:text-gray-300 font-medium">
+                        Diferencia de Tiempo
+                      </Label>
+                      <Input
+                        id="diferencia_tiempo"
+                        name="diferencia_tiempo"
+                        value={formData.diferencia_tiempo}
+                        onChange={handleInputChange}
+                        placeholder="Diferencia"
+                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                      />
+                    </div>
+                  </div>
+
+                  {formData.fecha_falla && formData.fecha_restablecer && (
+                    <Alert className="bg-gray-100 border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+                      <Clock className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                      <AlertDescription className="text-gray-700 dark:text-gray-300">
+                        Duración calculada: {formData.duracion_de_falla || 'Calculando...'}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+
+            <CardFooter className="flex flex-col sm:flex-row justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
+              <Button
                 type="button"
+                variant="outline"
                 onClick={handleReset}
                 disabled={isSubmitting}
-                className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed order-2 sm:order-1"
+                className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
               >
-                Limpiar Formulario
-              </button>
-              <button
+                <X className="h-4 w-4 mr-2" />
+                {isEditing ? 'Restaurar' : 'Cancelar'}
+              </Button>
+              <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center order-1 sm:order-2"
+                className="w-full sm:w-auto bg-gray-800 hover:bg-gray-900 text-white dark:bg-gray-700 dark:hover:bg-gray-600"
               >
                 {isSubmitting ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Guardando...
                   </>
                 ) : (
-                  'Guardar Falla'
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    {isEditing ? 'Actualizar Falla' : 'Guardar Falla'}
+                  </>
                 )}
-              </button>
-            </div>
+              </Button>
+            </CardFooter>
           </form>
-        </div>
+        </Card>
       </div>
     </div>
   );

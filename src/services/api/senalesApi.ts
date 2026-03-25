@@ -70,40 +70,149 @@ export const senalesService = {
     }
   },
 
-  // CRUD de señales
+  // Obtener todas las señales
   getSenales: async () => {
-    const response = await api.get('/senales');
-    return response.data;
+    try {
+      const response = await api.get('/senales');
+      return response.data;
+    } catch (error: any) {
+      console.error('Error obteniendo señales:', error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || error.message 
+      };
+    }
   },
 
+  // Obtener una señal por ID
   getSenalById: async (id: string) => {
-    const response = await api.get(`/senales/${id}`);
-    return response.data;
+    try {
+      const response = await api.get(`/senales/${id}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error obteniendo señal:', error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || error.message 
+      };
+    }
   },
 
-  createSenal: async (data: Partial<Senal>) => {
-    const response = await api.post('/senales', data);
+  // Crear nueva señal
+  createSenal: async (data: any) => {
+  try {
+    const userStr = localStorage.getItem('usuario');
+    const user = userStr ? JSON.parse(userStr) : null;
+    
+    const dataToSend = {
+      ...data,
+      createat: new Date().toISOString(),
+      createby: user?.usuario || 'sistema'
+    };
+    
+    console.log('📤 Enviando datos de señal:', JSON.stringify(dataToSend, null, 2));
+    const response = await api.post('/senales', dataToSend);
+    console.log('📥 Respuesta:', response.data);
     return response.data;
+  } catch (error: any) {
+    console.error('❌ Error creando señal:');
+    console.error('Status:', error.response?.status);
+    console.error('Data:', error.response?.data);
+    console.error('Message:', error.message);
+    console.error('Full error:', error);
+    
+    // Devolver el mensaje específico del servidor si existe
+    return { 
+      success: false, 
+      message: error.response?.data?.message || error.response?.data?.error || error.message 
+    };
+  }
+},
+
+  // Actualizar señal
+  updateSenal: async (id: string, data: any) => {
+    try {
+      const userStr = localStorage.getItem('usuario');
+      const user = userStr ? JSON.parse(userStr) : null;
+      
+      const dataToSend = {
+        ...data,
+        updateat: new Date().toISOString(),
+        updateby: user?.usuario || 'sistema'
+      };
+      
+      console.log('📤 Actualizando señal:', JSON.stringify(dataToSend, null, 2));
+      const response = await api.put(`/senales/${id}`, dataToSend);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error actualizando señal:', error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || error.message 
+      };
+    }
   },
 
-  updateSenal: async (id: string, data: Partial<Senal>) => {
-    const response = await api.put(`/senales/${id}`, data);
-    return response.data;
-  },
-
+  // Eliminar señal (soft delete)
   deleteSenal: async (id: string) => {
-    const response = await api.delete(`/senales/${id}`);
-    return response.data;
+    try {
+      const userStr = localStorage.getItem('usuario');
+      const user = userStr ? JSON.parse(userStr) : null;
+      
+      const response = await api.delete(`/senales/${id}`, {
+        data: { 
+          deleteat: new Date().toISOString(),
+          deleteby: user?.usuario || 'sistema' 
+        }
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Error eliminando señal:', error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || error.message 
+      };
+    }
   },
 
   // Equipamientos
   addEquipamiento: async (senalId: string, equipamiento: Equipamiento) => {
-    const response = await api.post(`/senales/${senalId}/equipamientos`, equipamiento);
-    return response.data;
+    try {
+      const response = await api.post(`/senales/${senalId}/equipamientos`, equipamiento);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error agregando equipamiento:', error);
+      return { success: false, message: error.message };
+    }
+  },
+
+  getEquipamientos: async (senalId: string) => {
+    try {
+      const response = await api.get(`/senales/${senalId}/equipamientos`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error obteniendo equipamientos:', error);
+      return { success: false, message: error.message };
+    }
+  },
+
+  updateEquipamiento: async (senalId: string, equipamientoId: string, data: any) => {
+    try {
+      const response = await api.put(`/senales/${senalId}/equipamientos/${equipamientoId}`, data);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error actualizando equipamiento:', error);
+      return { success: false, message: error.message };
+    }
   },
 
   removeEquipamiento: async (senalId: string, equipamientoId: string) => {
-    const response = await api.delete(`/senales/${senalId}/equipamientos/${equipamientoId}`);
-    return response.data;
+    try {
+      const response = await api.delete(`/senales/${senalId}/equipamientos/${equipamientoId}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error eliminando equipamiento:', error);
+      return { success: false, message: error.message };
+    }
   }
 };

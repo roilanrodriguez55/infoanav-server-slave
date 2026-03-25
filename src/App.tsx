@@ -1,41 +1,48 @@
-import { BrowserRouter as Router, Routes, Route, BrowserRouter } from "react-router";
-import SignIn from "./pages/AuthPages/SignIn";
-import SignUp from "./pages/AuthPages/SignUp";
-import NotFound from "./pages/OtherPage/NotFound";
-import AppLayout from "./layout/AppLayout";
-import Placeholder from "./pages/Dashboard/Placeholder";
-import FormANAV from "./pages/Forms/FormAnav";
-import FormFallas from "./pages/Forms/FormFallas";
-import FormMant from "./pages/Forms/FormMantenimientos";
-import { AuthProvider } from "./context/AuthContext";
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import AppLayout from './layout/AppLayout';
+import SignIn from './components/auth/SignInForm';
+import SignUp from './components/auth/SignUpForm';
+import ContentArea from './pages/Dashboard/ContentArea';
+import FormANAV from './pages/Forms/FormAnav';
+import FormFallas from './pages/Forms/FormFallas';
+import FormMantenimientos from './pages/Forms/FormMantenimientos';
 
-
-export default function App() {
+function App() {
   return (
-    <>
-      <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          {/* Ruta principal con AppLayout */}
-          <Route element={<AppLayout />}>
-            <Route index path="/" element={<Placeholder />} />
-            <Route path="/dashboard" element={<Placeholder />} />
-          </Route>
+    <BrowserRouter>
+      <ThemeProvider>
+        <AuthProvider>
+          <Routes>
+            {/* Rutas públicas */}
+            <Route path="/signin" element={<SignIn />} />
+            <Route path="/signup" element={<SignUp />} />
 
-          {/* Rutas de autenticación (sin layout) */}
-          <Route path="/signin" element={<SignIn />} />
-          <Route path="/signup" element={<SignUp />} />
+              <Route element={<AppLayout />}>
+                {/* Contenido dinámico según la ruta */}
+                <Route path="/" element={<ContentArea />} />
+                <Route path="/dashboard" element={<ContentArea />} />
+                <Route path="/gestion-senales" element={<ContentArea />} />
+                <Route path="/gestion-fallas" element={<ContentArea />} />
+                <Route path="/gestion-mant" element={<ContentArea />} />
+              </Route>
+              
+              {/* Formularios SIN layout (pantalla completa) */}
+              <Route path="/gestion-senales/nuevo" element={<FormANAV />} />
+              <Route path="/gestion-senales/editar/:id" element={<FormANAV />} />
+              <Route path="/gestion-fallas/nuevo" element={<FormFallas />} />
+              <Route path="/gestion-fallas/editar/:id" element={<FormFallas />} />
+              <Route path="/gestion-mant/nuevo" element={<FormMantenimientos />} />
+              <Route path="/gestion-mant/editar/:id" element={<FormMantenimientos />} />
 
-          {/* Rutas de gestión (pueden ir con o sin layout según necesites) */}
-          <Route path="/gestion-señales" element={<FormANAV />} />
-          <Route path="/gestion-fallas" element={<FormFallas />} />
-          <Route path="/gestion-mant" element={<FormMant />} />
-
-          {/* Ruta por defecto para 404 */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </AuthProvider>
+            {/* Ruta 404 */}
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
-    </>
   );
 }
+
+export default App;

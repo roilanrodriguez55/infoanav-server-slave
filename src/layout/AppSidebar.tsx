@@ -1,51 +1,67 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router"; 
-import { ChevronDownIcon, GridIcon, HorizontaLDots, ListIcon, FileIcon, AlertHexaIcon,
-         BoxIconLine } from "../icons";
+import { Link, useLocation, useNavigate } from "react-router-dom"; 
 import { useSidebar } from "../context/SidebarContext";
+
+// Iconos de Lucide React
+import { 
+  LayoutList, 
+  AlertTriangle, 
+  Wrench, 
+  FileText, 
+  Grid3x3,
+  Calculator,
+  ChevronDown,
+  LayoutGrid,
+  MoreHorizontal,
+  List,
+  Anchor,
+  ClipboardList,
+  ShieldAlert,
+  Settings
+} from "lucide-react";
 
 type NavItem = {
   name: string;
   icon: React.ReactNode;
   path?: string;
-  subItems?: {icon: React.ReactNode, name: string; path: string; pro?: boolean; new?: boolean }[];
+  subItems?: {icon: React.ReactNode; name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
 const navItems: NavItem[] = [
   {
-    icon: <ListIcon />,
-    name: "Gestión Señales",
-    path: "/gestion-señales"
+    icon: <Anchor className="w-5 h-5" />,
+    name: "Señales",
+    path: "/gestion-senales"
   },
   {
-    icon: <AlertHexaIcon />,
-    name: "Gestión de Fallas",
-    path: "/gestion-fallas",
+    icon: <AlertTriangle className="w-5 h-5" />,
+    name: "Fallas",
+    path: "/gestion-fallas"
   },
   {
-    icon: <BoxIconLine />,
-    name: "Gestión de Mantenimientos",
-    path: "/gestion-mant",
+    icon: <Wrench className="w-5 h-5" />,
+    name: "Mantenimientos",
+    path: "/gestion-mant"
   },
   {
-    icon: <FileIcon />,
+    icon: <FileText className="w-5 h-5" />,
     name: "Documentación",
     path: "/documentacion",
   },
   {
-    icon: <GridIcon />,
+    icon: <Grid3x3 className="w-5 h-5" />,
     name: "Control de Equipamiento",
     path: "/cont-equipamiento",
   },
   {
-    icon: <GridIcon />,
+    icon: <Calculator className="w-5 h-5" />,
     name: "Cálculo de Parámetros",
-    path: "/cont-equipamiento",
+    path: "/calculo-parametros",
   },
 ];
 
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen } = useSidebar();
+  const { isExpanded, isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate(); 
 
@@ -76,7 +92,9 @@ const AppSidebar: React.FC = () => {
         });
       }
     });
-    queueMicrotask(() => setOpenSubmenu(nextOpenSubmenu));
+    
+    // Usar setTimeout en lugar de queueMicrotask para mejor rendimiento
+    setTimeout(() => setOpenSubmenu(nextOpenSubmenu), 0);
   }, [location, isActive]);
 
   useEffect(() => {
@@ -104,7 +122,6 @@ const AppSidebar: React.FC = () => {
     });
   };
 
-  
   const handleGestionANAVClick = () => {
     navigate("/gestion-anav");
   };
@@ -139,7 +156,7 @@ const AppSidebar: React.FC = () => {
                 <span className="menu-item-text">{nav.name}</span>
               )}
               {(isExpanded || isMobileOpen) && (
-                <ChevronDownIcon
+                <ChevronDown
                   className={`ml-auto w-5 h-5 transition-transform duration-200 ${
                     openSubmenu?.type === menuType &&
                     openSubmenu?.index === index
@@ -299,9 +316,9 @@ const AppSidebar: React.FC = () => {
                 }`}
               >
                 {isExpanded || isMobileOpen ? (
-                  "Menu"
+                  "Gestión"
                 ) : (
-                  <HorizontaLDots className="size-6" />
+                  <MoreHorizontal className="w-6 h-6" />
                 )}
               </h2>
               {renderMenuItems(navItems, "main")}
