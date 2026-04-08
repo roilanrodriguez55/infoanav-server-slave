@@ -1,0 +1,589 @@
+{
+    "info": {
+        "name": "My Project",
+        "description": "",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Infoanav",
+            "description": "",
+            "item": [
+                {
+                    "name": "Senales",
+                    "description": "",
+                    "item": [
+                        {
+                            "name": "GET Senales",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIiA6ICJhZG1pbmlzdHJhZG9yIiwgImV4cCIgOiAxNzc1NzEwNzcyLCAidXN1YXJpbyIgOiAiYWRtaW5fc2lzdGVtYSJ9.PYy4GQlXAtDLWm9micGpao00N_W5flOB7J-Uxupq5pI",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "GET",
+                                "body": {},
+                                "header": [],
+                                "url": {
+                                    "raw": "http://localhost:3000/senales",
+                                    "path": [
+                                        "senales"
+                                    ],
+                                    "host": [
+                                        "localhost"
+                                    ],
+                                    "protocol": "http",
+                                    "port": "3000",
+                                    "query": [
+                                        {
+                                            "key": "deleted_at",
+                                            "value": "is.null",
+                                            "description": "",
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "Post Senales",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIiA6ICJhZG1pbmlzdHJhZG9yIiwgImV4cCIgOiAxNzc1MTM5MzMzLCAidXN1YXJpbyIgOiAiYWRtaW5fc2lzdGVtYSJ9.dcPXBIE6W9TqLLLffaYMKoGLXtTKvEedLYrjaHBJNGc",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"codigo_lsm\": \"1,00\",\n  \"id_tipo\": \"c48ce006-d095-450d-a165-c01af3f2a5fc\",\n  \"id_categoria\": \"a4536b82-07c2-42a1-a7e5-5d880f2652e9\",\n  \"nombre\": \"Faro Roncalli\",\n  \"id_modelo\": \"25b1f09f-9405-41c1-97be-36309bbb111e\",\n  \"id_empresa\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_estacion\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"luminica\": true,\n  \"secreta\": true,\n  \"fecha_instalacion\": \"string\",\n  \"id_usuario_navegacion\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"monitoreo\": \"string\",\n  \"id_zona\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"reflector_radar\": true,\n  \"repeticion\": true,\n  \"id_estado\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_material\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"control_distancia\": true,\n  \"id_energia\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_marca_tope\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"observaciones\": \"string\",\n  \"id_color\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_forma\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"altura\": 0,\n  \"elevacion\": 0,\n  \"profundidad\": 0,\n  \"alcancegeografico\": 0,\n  \"latitud\": 0,\n  \"longitud\": 0,\n  \"id_mar\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"ubicacion\": \"string\",\n  \"alcanceluminico\": 0,\n  \"intensidadluminica\": 0,\n  \"id_colorluz\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_caracteristica\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"periodo\": 0,\n  \"oscuridad\": 0,\n  \"tiempoluz\": 0,\n  \"potenciabombillo\": 0,\n  \"voltagebombillo\": 0,\n  \"consumodestellador\": 0,\n  \"id_equipamiento\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_fallas\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_mantenimientos\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"sistema_fondeo\": \"string\",\n  \"created_by\": \"string\",\n  \"updated_by\": \"string\",\n  \"deleted_by\": \"string\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "header": [],
+                                "url": {
+                                    "raw": "http://localhost:3000/senales",
+                                    "path": [
+                                        "senales"
+                                    ],
+                                    "host": [
+                                        "localhost"
+                                    ],
+                                    "protocol": "http",
+                                    "port": "3000",
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "PATCH Senales",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIiA6ICJhZG1pbmlzdHJhZG9yIiwgImV4cCIgOiAxNzc1MTM5MzMzLCAidXN1YXJpbyIgOiAiYWRtaW5fc2lzdGVtYSJ9.dcPXBIE6W9TqLLLffaYMKoGLXtTKvEedLYrjaHBJNGc",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "PATCH",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"codigo_lsm\": \"1,00\",\n  \"id_tipo\": \"c48ce006-d095-450d-a165-c01af3f2a5fc\",\n  \"id_categoria\": \"a4536b82-07c2-42a1-a7e5-5d880f2652e9\",\n  \"nombre\": \"Faro Roncalli\",\n  \"id_modelo\": \"25b1f09f-9405-41c1-97be-36309bbb111e\",\n  \"id_empresa\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_estacion\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"luminica\": true,\n  \"secreta\": true,\n  \"fecha_instalacion\": \"string\",\n  \"id_usuario_navegacion\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"monitoreo\": \"string\",\n  \"id_zona\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"reflector_radar\": true,\n  \"repeticion\": true,\n  \"id_estado\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_material\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"control_distancia\": true,\n  \"id_energia\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_marca_tope\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"observaciones\": \"string\",\n  \"id_color\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_forma\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"altura\": 0,\n  \"elevacion\": 0,\n  \"profundidad\": 0,\n  \"alcancegeografico\": 0,\n  \"latitud\": 0,\n  \"longitud\": 0,\n  \"id_mar\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"ubicacion\": \"string\",\n  \"alcanceluminico\": 0,\n  \"intensidadluminica\": 0,\n  \"id_colorluz\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_caracteristica\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"periodo\": 0,\n  \"oscuridad\": 0,\n  \"tiempoluz\": 0,\n  \"potenciabombillo\": 0,\n  \"voltagebombillo\": 0,\n  \"consumodestellador\": 0,\n  \"id_equipamiento\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_fallas\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_mantenimientos\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"sistema_fondeo\": \"string\",\n  \"created_by\": \"string\",\n  \"updated_by\": \"string\",\n  \"deleted_by\": \"string\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "header": [],
+                                "url": {
+                                    "raw": "http://localhost:3000/senales",
+                                    "path": [
+                                        "senales"
+                                    ],
+                                    "host": [
+                                        "localhost"
+                                    ],
+                                    "protocol": "http",
+                                    "port": "3000",
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        }
+                    ],
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
+                    "auth": {}
+                },
+                {
+                    "name": "Empresas",
+                    "description": "",
+                    "item": [
+                        {
+                            "name": "GET Empresas",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIiA6ICJhZG1pbmlzdHJhZG9yIiwgImV4cCIgOiAxNzc0NTczOTg5LCAidXN1YXJpbyIgOiAiYWRtaW5fc2lzdGVtYSJ9.ZUmrIXmhkmBRb-l_Y9ihzWZPV89_UjgmiipWvztXfwo",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "GET",
+                                "body": {},
+                                "header": [],
+                                "url": {
+                                    "raw": "http://localhost:3000/empresas",
+                                    "path": [
+                                        "empresas"
+                                    ],
+                                    "host": [
+                                        "localhost"
+                                    ],
+                                    "protocol": "http",
+                                    "port": "3000",
+                                    "query": [
+                                        {
+                                            "key": "deleted_at",
+                                            "value": "is.null",
+                                            "description": "",
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "POST Empresas",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {},
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"codigo_lsm\": \"1,00\",\n  \"id_tipo\": \"c48ce006-d095-450d-a165-c01af3f2a5fc\",\n  \"id_categoria\": \"a4536b82-07c2-42a1-a7e5-5d880f2652e9\",\n  \"nombre\": \"Faro Roncalli\",\n  \"id_modelo\": \"25b1f09f-9405-41c1-97be-36309bbb111e\",\n  \"id_empresa\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_estacion\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"luminica\": true,\n  \"secreta\": true,\n  \"fecha_instalacion\": \"string\",\n  \"id_usuario_navegacion\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"monitoreo\": \"string\",\n  \"id_zona\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"reflector_radar\": true,\n  \"repeticion\": true,\n  \"id_estado\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_material\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"control_distancia\": true,\n  \"id_energia\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_marca_tope\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"observaciones\": \"string\",\n  \"id_color\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_forma\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"altura\": 0,\n  \"elevacion\": 0,\n  \"profundidad\": 0,\n  \"alcancegeografico\": 0,\n  \"latitud\": 0,\n  \"longitud\": 0,\n  \"id_mar\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"ubicacion\": \"string\",\n  \"alcanceluminico\": 0,\n  \"intensidadluminica\": 0,\n  \"id_colorluz\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_caracteristica\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"periodo\": 0,\n  \"oscuridad\": 0,\n  \"tiempoluz\": 0,\n  \"potenciabombillo\": 0,\n  \"voltagebombillo\": 0,\n  \"consumodestellador\": 0,\n  \"id_equipamiento\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_fallas\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"id_mantenimientos\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"sistema_fondeo\": \"string\",\n  \"created_at\": \"now()\",\n  \"created_by\": \"string\",\n  \"updated_at\": \"now()\",\n  \"updated_by\": \"string\",\n  \"deleted_at\": \"string\",\n  \"deleted_by\": \"string\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "header": [],
+                                "url": {
+                                    "raw": "http://localhost:3000/senales",
+                                    "path": [
+                                        "senales"
+                                    ],
+                                    "host": [
+                                        "localhost"
+                                    ],
+                                    "protocol": "http",
+                                    "port": "3000",
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        }
+                    ],
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
+                    "auth": {}
+                },
+                {
+                    "name": "Usuarios",
+                    "description": "",
+                    "item": [
+                        {
+                            "name": "DELETE Usuarios",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIiA6ICJhZG1pbmlzdHJhZG9yIiwgImV4cCIgOiAxNzc1MjE4OTc3LCAidXN1YXJpbyIgOiAiYWRtaW5fc2lzdGVtYSJ9.JiTzWdeCFnBrfIPlXTfsATF7NG8_5X96vCXSOOjrxAQ",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "DELETE",
+                                "body": {},
+                                "header": [
+                                    {
+                                        "key": "Content-Profile",
+                                        "value": "auth",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "http://localhost:3000/usuarios_sistema",
+                                    "path": [
+                                        "usuarios_sistema"
+                                    ],
+                                    "host": [
+                                        "localhost"
+                                    ],
+                                    "protocol": "http",
+                                    "port": "3000",
+                                    "query": [
+                                        {
+                                            "key": "deleted_at",
+                                            "value": "is.not_null",
+                                            "description": "",
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "GET Usuarios",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIiA6ICJhZG1pbmlzdHJhZG9yIiwgImV4cCIgOiAxNzc1MjE4OTc3LCAidXN1YXJpbyIgOiAiYWRtaW5fc2lzdGVtYSJ9.JiTzWdeCFnBrfIPlXTfsATF7NG8_5X96vCXSOOjrxAQ",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "GET",
+                                "body": {},
+                                "header": [
+                                    {
+                                        "key": "Accept-Profile",
+                                        "value": "auth",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "http://localhost:3000/usuarios_sistema",
+                                    "path": [
+                                        "usuarios_sistema"
+                                    ],
+                                    "host": [
+                                        "localhost"
+                                    ],
+                                    "protocol": "http",
+                                    "port": "3000",
+                                    "query": [
+                                        {
+                                            "key": "deleted_at",
+                                            "value": "is.not_null",
+                                            "description": "",
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "POST Usuarios",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIiA6ICJhZG1pbmlzdHJhZG9yIiwgImV4cCIgOiAxNzc1NzEwNzcyLCAidXN1YXJpbyIgOiAiYWRtaW5fc2lzdGVtYSJ9.PYy4GQlXAtDLWm9micGpao00N_W5flOB7J-Uxupq5pI",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"usuario\":\"new\",\n  \"contrasena\":\"12345678\",\n  \"cargo_ocupa\":\"\",\n  \"created_by\":\"c0b38f71-cac7-48b4-813e-827cec142e76\",\n  \"updated_by\":\"c0b38f71-cac7-48b4-813e-827cec142e76\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Profile",
+                                        "value": "auth",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "http://localhost:3000/usuarios_sistema",
+                                    "path": [
+                                        "usuarios_sistema"
+                                    ],
+                                    "host": [
+                                        "localhost"
+                                    ],
+                                    "protocol": "http",
+                                    "port": "3000",
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        }
+                    ],
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
+                    "auth": {}
+                },
+                {
+                    "name": "Login Postgrest INFOANAV",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {},
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"usuario\": \"admin_sistema\",\n  \"contrasena\": \"Admin1234!\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Profile",
+                                "value": "auth",
+                                "description": "",
+                                "type": "string"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:3000/rpc/login",
+                            "path": [
+                                "rpc",
+                                "login"
+                            ],
+                            "host": [
+                                "localhost"
+                            ],
+                            "protocol": "http",
+                            "port": "3000",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "Logout Postgrest INFOANAV",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIiA6ICJhZG1pbmlzdHJhZG9yIiwgImV4cCIgOiAxNzc1NzEzNzExLCAidXN1YXJpbyIgOiAiYWRtaW5fc2lzdGVtYSJ9.8Wh8O4OV5Nt9NV49ptWrk2F-WC0Fue5eF3n7y2hTF5c",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "body": {},
+                        "header": [
+                            {
+                                "key": "Content-Profile",
+                                "value": "auth",
+                                "description": "",
+                                "type": "string"
+                            }
+                        ],
+                        "url": {
+                            "raw": "http://localhost:3000/rpc/logout",
+                            "path": [
+                                "rpc",
+                                "logout"
+                            ],
+                            "host": [
+                                "localhost"
+                            ],
+                            "protocol": "http",
+                            "port": "3000",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                }
+            ],
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "exec": [],
+                        "type": "text/javascript",
+                        "packages": {}
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [],
+                        "type": "text/javascript",
+                        "packages": {}
+                    }
+                }
+            ],
+            "auth": {}
+        }
+    ],
+    "variable": [],
+    "event": [],
+    "auth": {}
+}

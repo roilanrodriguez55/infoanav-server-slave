@@ -1,0 +1,160 @@
+{
+  "version": 2,
+  "activeProfile": "restoredFromDump",
+  "description": "Switch activeProfile to match your pipeline: restoredFromDump (pg_restore ACL) vs afterEntrypointAlways (docker-entrypoint setup_database_roles). Override with env DB_EXPECTATIONS_PROFILE. rolesToEnsureBeforeRestore: roles created if missing before restore. profiles.*.expectedPrivilegesAfterRestore: checked after restore + setup_database_roles.",
+  "rolesToEnsureBeforeRestore": [
+    { "name": "anon", "noLogin": true },
+    { "name": "usuario_comun", "noLogin": true },
+    { "name": "administrador", "noLogin": true }
+  ],
+  "profiles": {
+    "restoredFromDump": {
+      "expectedPrivilegesAfterRestore": {
+        "anon": {
+          "schemas": [
+            { "name": "api", "privileges": ["USAGE"] },
+            { "name": "auth", "privileges": ["USAGE"] }
+          ],
+          "tablesInSchema": [
+            {
+              "schema": "api",
+              "match": "all_base_tables",
+              "privileges": ["SELECT"]
+            }
+          ],
+          "tables": [],
+          "functions": [
+            {
+              "schema": "auth",
+              "name": "login",
+              "argTypes": ["text", "text"],
+              "privileges": ["EXECUTE"]
+            }
+          ]
+        },
+        "usuario_comun": {
+          "schemas": [
+            { "name": "api", "privileges": ["USAGE"] },
+            { "name": "auth", "privileges": ["USAGE"] }
+          ],
+          "tablesInSchema": [
+            {
+              "schema": "api",
+              "match": "all_base_tables",
+              "privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"]
+            }
+          ],
+          "tables": [],
+          "functions": []
+        },
+        "administrador": {
+          "schemas": [
+            { "name": "api", "privileges": ["USAGE"] },
+            { "name": "auth", "privileges": ["USAGE"] }
+          ],
+          "tablesInSchema": [
+            {
+              "schema": "api",
+              "match": "all_base_tables",
+              "privileges": ["MAINTAIN"]
+            }
+          ],
+          "tables": [
+            {
+              "schema": "auth",
+              "name": "usuarios_sistema",
+              "privileges": [
+                "SELECT",
+                "INSERT",
+                "UPDATE",
+                "DELETE",
+                "REFERENCES",
+                "TRIGGER",
+                "TRUNCATE"
+              ]
+            }
+          ],
+          "functions": []
+        }
+      }
+    },
+    "afterEntrypointAlways": {
+      "expectedPrivilegesAfterRestore": {
+        "anon": {
+          "schemas": [
+            { "name": "api", "privileges": ["USAGE"] },
+            { "name": "auth", "privileges": ["USAGE"] }
+          ],
+          "tablesInSchema": [],
+          "tables": [],
+          "functions": [
+            {
+              "schema": "auth",
+              "name": "login",
+              "argTypes": ["text", "text"],
+              "privileges": ["EXECUTE"]
+            }
+          ]
+        },
+        "usuario_comun": {
+          "schemas": [
+            { "name": "api", "privileges": ["USAGE"] },
+            { "name": "auth", "privileges": ["USAGE"] }
+          ],
+          "tablesInSchema": [
+            {
+              "schema": "api",
+              "match": "all_base_tables",
+              "privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"]
+            },
+            {
+              "schema": "auth",
+              "match": "all_base_tables",
+              "privileges": ["SELECT"]
+            }
+          ],
+          "tables": [],
+          "functions": []
+        },
+        "administrador": {
+          "schemas": [
+            { "name": "api", "privileges": ["USAGE"] },
+            { "name": "auth", "privileges": ["USAGE"] }
+          ],
+          "tablesInSchema": [
+            {
+              "schema": "api",
+              "match": "all_base_tables",
+              "privileges": [
+                "SELECT",
+                "INSERT",
+                "UPDATE",
+                "DELETE",
+                "REFERENCES",
+                "TRIGGER",
+                "TRUNCATE",
+                "MAINTAIN"
+              ]
+            },
+            {
+              "schema": "auth",
+              "match": "all_base_tables",
+              "privileges": [
+                "SELECT",
+                "INSERT",
+                "UPDATE",
+                "DELETE",
+                "REFERENCES",
+                "TRIGGER",
+                "TRUNCATE",
+                "MAINTAIN"
+              ]
+            }
+          ],
+          "tables": [],
+          "functions": []
+        }
+      }
+    }
+  }
+}

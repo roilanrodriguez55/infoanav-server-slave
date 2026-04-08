@@ -4,7 +4,12 @@
   "description": "Servidor Express que sirve una interfaz Swagger UI para documentar APIs PostgREST, mostrando la documentación OpenAPI en /api-docs",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "db:post-restore": "node scripts/db.cjs post-restore postgrest-docker.conf",
+    "db:post-restore:local": "node scripts/db.cjs post-restore postgrest.conf",
+    "db:validate": "node scripts/verify-db-expectations.cjs validate",
+    "db:ensure-roles": "node scripts/verify-db-expectations.cjs ensure-roles",
+    "db:verify-grants": "node scripts/verify-db-expectations.cjs verify-grants"
   },
   "keywords": [],
   "author": "Roilan Rodriguez Castillo",

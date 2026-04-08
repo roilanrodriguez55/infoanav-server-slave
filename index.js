@@ -33,21 +33,19 @@ function startPostgREST() {
   return postgrest;
 }
 
-// Start PostgREST
-startPostgREST();
+// Start PostgREST only if not skipped (e.g., when using external/Dockerized PostgREST)
+if (process.env.SKIP_POSTGREST !== 'true') {
+  startPostgREST();
+} else {
+  console.log('⏭️  Skipping local PostgREST start (using external instance)');
+}
 
 const app = express();
 const PORT = process.env.PORT || 8080; // Port for Swagger UI
 const POSTGREST_URL = process.env.POSTGREST_URL || 'http://localhost:3000';
 
-const options = {
-  swaggerOptions: {
-    url: '/openapi-spec',
-  },
-};
-
-// Middleware to intercept OpenAPI spec and add security definitions (Swagger 2.0)
-app.get('/openapi-spec', async (req, res) => {
+// Fetch and modify OpenAPI spec from PostgREST
+async function getApiSpec() {
   try {
     const response = await fetch(`${POSTGREST_URL}/`);
     const spec = await response.json();
@@ -69,15 +67,38 @@ app.get('/openapi-spec', async (req, res) => {
       }
     ];
 
-    res.json(spec);
+    return spec;
   } catch (error) {
     console.error('Error fetching OpenAPI spec:', error);
-    res.status(500).json({ error: 'Error fetching OpenAPI spec' });
+    return null;
+  }
+}
+
+// Route for documentation - serve spec directly
+let apiSpec = null;
+
+app.use('/api-docs', swaggerUi.serve, async (req, res, next) => {
+  if (!apiSpec) {
+    apiSpec = await getApiSpec();
+  }
+  if (apiSpec) {
+    swaggerUi.setup(apiSpec)(req, res, next);
+  } else {
+    res.status(500).json({ error: 'Failed to load API spec' });
   }
 });
 
-// Route for documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(null, options));
+// Keep the endpoint for direct access to the modified spec
+app.get('/openapi-spec', async (req, res) => {
+  if (!apiSpec) {
+    apiSpec = await getApiSpec();
+  }
+  if (apiSpec) {
+    res.json(apiSpec);
+  } else {
+    res.status(500).json({ error: 'Failed to load API spec' });
+  }
+});
 
 app.listen(PORT, () => {
   console.log('\n--- INFO ---');
