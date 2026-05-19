@@ -1,6 +1,10 @@
 #!/bin/sh
 set -e
 
+export LANG="${LANG:-C.UTF-8}"
+export LC_ALL="${LC_ALL:-C.UTF-8}"
+export PGCLIENTENCODING="${PGCLIENTENCODING:-UTF8}"
+
 # Script de entrypoint para el contenedor de la app
 # Soporta restauración dinámica: infoanav-backup-{timestamp}.sql (elige el timestamp más reciente)
 # (puede ser SQL plano o pg_dump -Fc; la extensión .sql no implica formato texto)
@@ -21,6 +25,12 @@ echo "=========================================="
 # Función para loggear con timestamp
 log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
+}
+
+# Strip CRLF (Windows editors) before piping SQL to psql
+psql_run_file() {
+    local host="$1" user="$2" db="$3" pass="$4" sql_file="$5"
+    sed 's/\r$//' "$sql_file" | PGPASSWORD="$pass" psql -h "$host" -U "$user" -d "$db" -v ON_ERROR_STOP=1
 }
 
 # database-expectations.json: validate JSON, ensure roles before restore, verify grants after setup
@@ -102,6 +112,28 @@ wait_for_postgres() {
     return 1
 }
 
+wait_for_postgrest() {
+    local base="${POSTGREST_URL:-http://postgrest:3000}"
+    local url="${base%/}/"
+    local max_attempts=30
+    local attempt=1
+
+    log "${YELLOW}Esperando a que PostgREST esté disponible...${NC}"
+
+    while [ $attempt -le $max_attempts ]; do
+        if wget -q --spider "$url" 2>/dev/null; then
+            log "${GREEN}PostgREST está listo${NC}"
+            return 0
+        fi
+        log "Intento $attempt/$max_attempts - PostgREST no está listo, esperando..."
+        sleep 2
+        attempt=$((attempt + 1))
+    done
+
+    log "${RED}Error: PostgREST no respondió después de $max_attempts intentos${NC}"
+    return 1
+}
+
 # Verificar si la base de datos está vacía (no tiene tablas en el esquema api)
 is_db_empty() {
     local host="${DB_HOST:-db}"
@@ -170,7 +202,7 @@ restore_backup() {
         fi
     else
         log "${YELLOW}Detectado archivo SQL plano. Usando psql...${NC}"
-        if PGPASSWORD="$pass" psql -h "$host" -U "$user" -d "$db" < "$backup_file"; then
+        if psql_run_file "$host" "$user" "$db" "$pass" "$backup_file"; then
             log "${GREEN}Backup SQL restaurado exitosamente${NC}"
             return 0
         else
@@ -198,7 +230,7 @@ apply_post_restore_sql() {
         log "${RED}No se encontró $patch_sql${NC}"
         exit 1
     fi
-    if ! PGPASSWORD="$pass" psql -h "$host" -U "$user" -d "$db" -v ON_ERROR_STOP=1 -f "$patch_sql"; then
+    if ! psql_run_file "$host" "$user" "$db" "$pass" "$patch_sql"; then
         log "${RED}Error en post-restore.sql${NC}"
         exit 1
     fi
@@ -428,9 +460,8 @@ setup_database_roles_if_needed() {
 
 # Main execution
 main() {
-    # Esperar a PostgreSQL
     wait_for_postgres
-    
+
     if db_expectations_enabled; then
         run_db_expectations validate
         run_db_expectations ensure-roles
@@ -449,7 +480,9 @@ main() {
     if db_expectations_enabled; then
         run_db_expectations verify-grants
     fi
-    
+
+    wait_for_postgrest
+
     log "${GREEN}Iniciando aplicación...${NC}"
     echo "=========================================="
     

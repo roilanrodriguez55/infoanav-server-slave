@@ -7,6 +7,7 @@ Express + Swagger UI server that manages a PostgREST binary as a child process. 
 ## Dev Commands
 
 - `npm start` — starts PostgREST + Swagger UI (port 8080)
+- `docker compose --env-file .env.docker up -d --build` — full stack (see `.env.docker` for host ports)
 - `npm run db:post-restore:local` — run post-restore SQL + sync auth.login from `postgrest.conf`
 - `npm run db:validate` — validate `database-expectations.json`
 - `npm run db:ensure-roles` — create missing roles (`anon`, `usuario_comun`, `administrador`)
@@ -17,7 +18,8 @@ Express + Swagger UI server that manages a PostgREST binary as a child process. 
 - `index.js` — entry point; spawns PostgREST (auto-selects `postgrest.exe` on win32, `postgrest` on unix); sets up Swagger UI at `/api-docs`
 - `postgrest.conf` — local dev config (port 3000, connects to `localhost:5430`)
 - `postgrest-docker.conf` — Docker config (connects to `db:5432`)
-- `docker-compose.yml` — full stack: `db` (5437:5432), `postgrest` (3000), `app` (8080)
+- `docker-compose.yml` — full stack: `db` (`DB_HOST_PORT`→5432, default 5437), `postgrest` (`POSTGREST_HOST_PORT`→3000), `app` (`APP_HOST_PORT`→8080); `.env.docker` for host ports and restore mode
+- `.gitattributes` — LF for shell/SQL/config (Windows CRLF safe with Dockerfile `sed` strip)
 - `scripts/db.cjs` — reads db-uri and jwt-secret from INI config; uses `psql` CLI
 - `scripts/verify-db-expectations.cjs` — uses `psql` CLI with libpq env vars
 - `scripts/sql/post-restore.sql` — runs after database restore

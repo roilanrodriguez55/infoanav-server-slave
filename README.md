@@ -78,6 +78,26 @@ El archivo `index.js` detecta automáticamente el sistema operativo (`win32` par
 
 ---
 
+## Docker Compose (Linux / macOS / Windows)
+
+Stack completo: PostgreSQL, PostgREST y Swagger UI.
+
+```bash
+docker compose --env-file .env.docker up -d --build
+```
+
+- **Swagger UI**: `http://localhost:${APP_HOST_PORT:-8080}/api-docs`
+- **PostgREST**: `http://localhost:${POSTGREST_HOST_PORT:-3000}`
+- **PostgreSQL** (host): puerto `${DB_HOST_PORT:-5437}`
+
+Variables en `.env.docker` (puertos del host, modo de restore, etc.). Si `8080` está ocupado (p. ej. por `npm start`), define `APP_HOST_PORT=8081` en `.env.docker` o en un `.env` en la raíz del proyecto.
+
+En Windows, Git debe respetar `.gitattributes` (`core.autocrlf=input` recomendado). Los scripts SQL y el entrypoint se normalizan a LF dentro de la imagen; no montes `docker-entrypoint.sh` ni `scripts/` como volúmenes.
+
+Reimportar backup desde cero: `RESTORE_BACKUP=force` y `docker compose down -v`.
+
+---
+
 ## Solución de problemas
 
 - **Error de conexión a la DB**: Verifica que la `db-uri` en `postgrest.conf` sea correcta y que la base de datos sea accesible.
