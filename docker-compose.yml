@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: admin
       POSTGRES_DB: infoanav
     ports:
-      - "5432:5432"
+      - "5437:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -80,6 +80,7 @@ services:
       - ./backups:/app/backups:ro
       - ./scripts:/app/scripts:ro
       - ./docker-entrypoint.sh:/app/docker-entrypoint.sh:ro
+
     ports:
       - "8080:8080"
     depends_on:
