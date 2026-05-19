@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
+    "docker:up": "docker compose --env-file .env.docker up -d --build",
+    "docker:down": "docker compose --env-file .env.docker down",
     "db:post-restore": "node scripts/db.cjs post-restore postgrest-docker.conf",
     "db:post-restore:local": "node scripts/db.cjs post-restore postgrest.conf",
     "db:validate": "node scripts/verify-db-expectations.cjs validate",

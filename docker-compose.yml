@@ -7,8 +7,9 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: admin
       POSTGRES_DB: infoanav
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     ports:
-      - "5432:5432"
+      - "${DB_HOST_PORT:-5437}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -26,17 +27,14 @@ services:
     environment:
       PGRST_DB_URI: ${POSTGREST_DB_URI:-postgres://postgres:admin@db:5432/infoanav}
       PGRST_DB_SCHEMAS: api,auth
+      PGRST_DB_EXTRA_SEARCH_PATH: api, auth, public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${PGRST_JWT_SECRET:-12345678123456781234567812345678}
       PGRST_DB_CHANNEL: pgrst
-    volumes:
-      - ./postgrest-docker.conf:/etc/postgrest.conf:ro
-    command: ["postgrest", "/etc/postgrest.conf"]
+      PGRST_SERVER_PORT: "3000"
+    command: ["postgrest"]
     ports:
-      - "3000:3000"
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - "${POSTGREST_HOST_PORT:-3000}:3000"
     depends_on:
       db:
         condition: service_healthy
@@ -49,39 +47,38 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: infoanav-app
+    env_file:
+      - .env.docker
     environment:
       PORT: 8080
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      PGCLIENTENCODING: UTF8
       POSTGREST_URL: http://postgrest:3000
-      # Configuración de conexión a base de datos para restauración
       DB_HOST: db
       DB_PORT: 5432
       DB_USER: postgres
       DB_PASSWORD: admin
       DB_NAME: infoanav
-      # Backup: patrón infoanav-backup-*.sql en /app o /app/backups (SQL plano o pg_dump -Fc; pg_restore si es custom)
-      # RESTORE_BACKUP: auto = solo si no hay tablas en schema api | force = siempre | skip = no restaurar
-      # Reimportar desde cero: RESTORE_BACKUP=force y docker compose down -v (borra volumen postgres_data)
-      # SETUP_DATABASE_ROLES: auto = no pisar GRANT si ya existen anon, usuario_comun, administrador (alineado al dump)
-      #                       always = aplicar plantilla del entrypoint cada arranque | never = no tocar roles
-      # database-expectations.json: validate + ensure roles antes de restore + verify grants después de setup
-      # DB_EXPECTATIONS_MODE: full (defecto) | skip | off | false | 0
-      # DB_EXPECTATIONS_STRICT: 1 = el contenedor falla si verify-grants no coincide con el JSON
-      # DB_EXPECTATIONS_FILE: ruta al JSON (defecto database-expectations.json en /app)
-      # DB_EXPECTATIONS_PROFILE: restoredFromDump | afterEntrypointAlways (debe coincidir con SETUP_DATABASE_ROLES + origen de GRANT)
-      # POST_RESTORE_PATCH: auto (defecto) = scripts/sql/post-restore.sql tras restore; skip = omitir
-      DB_EXPECTATIONS_PROFILE: afterEntrypointAlways
-      # Same file postgrest uses; entrypoint syncs auth.login fallback to jwt-secret here
+      RESTORE_BACKUP: ${RESTORE_BACKUP:-auto}
+      SETUP_DATABASE_ROLES: ${SETUP_DATABASE_ROLES:-auto}
+      DB_EXPECTATIONS_PROFILE: ${DB_EXPECTATIONS_PROFILE:-afterEntrypointAlways}
       POSTGREST_CONF: /app/postgrest-docker.conf
       SKIP_POSTGREST: "true"
-      RESTORE_BACKUP: force
-      SETUP_DATABASE_ROLES: always
+      POST_RESTORE_PATCH: ${POST_RESTORE_PATCH:-auto}
+      DB_EXPECTATIONS_MODE: ${DB_EXPECTATIONS_MODE:-full}
+      DB_EXPECTATIONS_STRICT: ${DB_EXPECTATIONS_STRICT:-0}
     volumes:
-      # Montaje opcional: coloca dumps en ./backups sin reconstruir la imagen
+      # Solo backups: dumps opcionales sin reconstruir imagen (scripts/entrypoint van en la imagen)
       - ./backups:/app/backups:ro
-      - ./scripts:/app/scripts:ro
-      - ./docker-entrypoint.sh:/app/docker-entrypoint.sh:ro
     ports:
-      - "8080:8080"
+      - "${APP_HOST_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8080/api-docs"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 120s
     depends_on:
       db:
         condition: service_healthy
