@@ -74,9 +74,11 @@ Los permisos estan en `src/modules/data/policy.ts`. La tabla resume la matriz:
 
 | Recurso | Clase | Lectura (GET, HEAD) | Escritura (POST, PATCH, DELETE) |
 |---|---|---|---|
-| `senales`, `fallas`, `mantenimientos`, `equipamientos_senal` | operativo | usuario y administrador | usuario y administrador |
-| 21 catalogos (`caracteristicas`, `categorias`, `colores`, `colores_luz`, `empresas`, `energias`, `estaciones`, `estados`, `estados_senal`, `formas`, `marcas_tope`, `mares`, `materiales`, `modelos_senal`, `origenes_falla`, `tipos_equipamiento`, `tipos_falla`, `tipos_mantenimiento`, `tipos_senal`, `usuarios_navegacion`, `zonas`) | catalogo | usuario y administrador | solo administrador |
+| `senales`, `fallas`, `mantenimientos`, `equipamientos_senal`, `plan_mantenimiento`, `lmf`, `racon`, `hechos`, `pronosticos_senal` | operativo | usuario y administrador | usuario y administrador |
+| 27 catalogos (`caracteristicas`, `categorias`, `colores`, `colores_luz`, `complejidades`, `empresas`, `energias`, `estaciones`, `estados`, `estados_senal`, `formas`, `idiomas`, `marcas_tope`, `mares`, `materiales`, `misiones_buque`, `modelos_senal`, `origenes_falla`, `tipos_alistamiento`, `tipos_documento`, `tipos_equipamiento`, `tipos_falla`, `tipos_mantenimiento`, `tipos_senal`, `ubicaciones_medio`, `usuarios_navegacion`, `zonas`) | catalogo | usuario y administrador | solo administrador |
+| `temas`, `paises`, `editoriales` (catalogos abiertos) | catalogo_abierto | usuario y administrador | `POST`: usuario y administrador. `PATCH` y `DELETE`: solo administrador |
 | `historial_cambios` | historial | usuario y administrador | nadie (403) |
+| `v_equipos`, `v_alistamiento_buques`, `v_libros`, `v_senales_estadisticas` (vistas) | historial | usuario y administrador | nadie (403) |
 | `rpc/get_dashboard_stats`, `rpc/get_fault_analytics`, `rpc/get_status_by_zone` | rpc | solo `POST` | usuario y administrador |
 
 Reglas que aplica el gateway antes de reenviar:
@@ -85,11 +87,21 @@ Reglas que aplica el gateway antes de reenviar:
 - Metodo no permitido para esa clase (por ejemplo `GET` sobre `/rpc/...` o `PUT` en cualquier sitio): 405.
 - `PATCH` o `DELETE` sin filtro: 400. Los parametros `select`, `order`, `limit`, `offset`, `columns` y `on_conflict` no cuentan como filtro.
 - Escritura sin permiso para el rol: 403.
+- `DELETE` sobre `senales`: solo administrador (403 para `usuario`).
+- `POST` de upsert sobre `senales` o `personal` (cabecera `Prefer` con `resolution=`, o query `on_conflict`): solo administrador (403 para `usuario`). El alta `POST` sin esas marcas sigue permitida a ambos roles.
+
+Reglas por cuerpo. Se inspeccionan los cuerpos de `POST` y `PATCH` sobre `senales` y `personal`, y las reglas siguientes aplican a `PATCH`. El gateway lee el cuerpo completo (limite de 5 MB, timeout de 30 s), lo parsea como JSON (si no es JSON valido: 400 `Cuerpo invalido`) y lo evalua antes de reenviarlo tal cual. Acepta un objeto o un arreglo de objetos. Para `usuario` responden 403 las siguientes peticiones:
+
+- `personal`, `PATCH` con `fecha_baja: null` (reactivar). Dar de baja (`fecha_baja` con valor) sigue permitido.
+- `senales`, `PATCH` con `fecha_retirada: null` (reactivar una baja). Dar de baja (`fecha_retirada` con valor) sigue permitido.
+- `senales`, `PATCH` con la clave `deleted_at` presente, con valor o con `null` (eliminar o restaurar).
+
+El administrador no tiene restricciones por cuerpo. El cliente elimina las señales con `PATCH {deleted_at: <fecha>}`, asi que esa operacion la hace solo el administrador.
 
 Roles:
 
 - `administrador`: todo lo anterior, mas la gestion de usuarios.
-- `usuario`: lectura de todo, escritura en recursos operativos y RPC. No escribe catalogos ni historial.
+- `usuario`: lectura de todo, escritura en recursos operativos (salvo las reglas de eliminar senales y de cuerpo anteriores), RPC y alta (`POST`) en los catalogos abiertos. No modifica ni da de baja catalogos, ni escribe historial.
 
 Endpoints:
 
@@ -351,6 +363,7 @@ npm run migrate:status
 
    - `RECURSOS_OPERATIVOS`: lectura y escritura para ambos roles. Es la lista para `inspecciones`. Anadir `'inspecciones'` al array.
    - `CATALOGOS`: lectura para ambos y escritura solo para administrador.
+   - `CATALOGOS_ABIERTOS`: lectura para ambos. `POST` para ambos y `PATCH`/`DELETE` solo para administrador. Usarla para catalogos donde el usuario puede dar de alta valores nuevos.
    - `HISTORIAL_CAMBIOS`: solo lectura para ambos.
    - `RPC_PERMITIDAS`: funciones que se llaman con `POST /api/data/rpc/<nombre>`. La funcion del ejemplo necesita entrar aqui: anadir `'contar_inspecciones_por_senal'`.
 

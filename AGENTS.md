@@ -24,6 +24,7 @@ Gateway en Node.js y TypeScript sobre PostgREST y PostgreSQL. Node autentica y a
 - Idempotentes cuando se pueda (`IF NOT EXISTS`, `DROP ... IF EXISTS`, `CREATE OR REPLACE`). Un cambio logico por migracion.
 - Todo cambio en `api` termina con `NOTIFY pgrst, 'reload schema';`.
 - Tabla operativa nueva: columnas de auditoria, trigger `trg_set_audit_fields` y regla `rl_soft_delete` con `RETURNING *`.
+- Toda migracion que anada columnas a una tabla con `rl_soft_delete` recrea la regla al final, con el mismo bloque `DO` de `20261016173527_recrear_reglas_soft_delete`. Si no, el `DELETE` falla por la lista de columnas desactualizada.
 
 ## Donde esta cada cosa
 

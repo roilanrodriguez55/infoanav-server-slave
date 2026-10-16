@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "migrate": "prisma migrate deploy",
     "migrate:status": "prisma migrate status",
-    "migration:new": "node scripts/new-migration.ts"
+    "migration:new": "node scripts/new-migration.ts",
+    "seed": "node scripts/seed.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
