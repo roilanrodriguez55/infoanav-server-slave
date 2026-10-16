@@ -9,7 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import HistorialCambios from '@/components/common/HistorialCambios';
 import { mantenimientosService, type MantenimientoResponse } from '@/services/api/mantenApi';
+import { flotaService } from '@/services/api/flotaApi';
 import { senalesService, type CatalogoItem } from '@/services/api/senalesApi';
+import { textoTiempoEmpleado } from '@/lib/planMantenimiento';
 
 interface Mantenimiento {
   id_mantenimiento: string;
@@ -21,6 +23,8 @@ interface Mantenimiento {
   tiempo_empleado: string | number | null;
   aseguro: string | null;
   id_estado_senal: string | null;
+  id_buque: string | null;
+  vehiculo: string | null;
   trabajo_realizado: string | null;
   costo_mn: string | number | null;
   costo_mlc: string | number | null;
@@ -45,6 +49,7 @@ interface DatosDetalle {
   senal: SenalResumen | null;
   tiposMantenimiento: CatalogoItem[];
   estadosSenal: CatalogoItem[];
+  buques: CatalogoItem[];
 }
 
 const ETIQUETAS: Record<string, string> = {
@@ -52,6 +57,8 @@ const ETIQUETAS: Record<string, string> = {
   id_tipo_mant: 'Tipo de mantenimiento',
   ident_mantenimiento: 'Identificador del mantenimiento',
   id_estado_senal: 'Estado de la señal',
+  id_buque: 'Buque',
+  vehiculo: 'Vehículo',
   tipoFallaCausa: 'Tipo de falla y causa',
   trabajo_realizado: 'Descripción del trabajo',
   fecha_inicio: 'Fecha de inicio',
@@ -95,10 +102,11 @@ const cargarDatos = async (id: string): Promise<DatosDetalle | null> => {
   const mantenimiento = (mantRes.data as Mantenimiento[] | null)?.[0] ?? null;
   if (!mantenimiento) return null;
 
-  const [senal, tiposRes, estadosRes] = await Promise.all([
+  const [senal, tiposRes, estadosRes, buques] = await Promise.all([
     cargarSenal(mantenimiento.id_senal),
     mantenimientosService.getTiposMantenimiento(),
     mantenimientosService.getEstadosSenal(),
+    flotaService.getBuquesCatalogo().catch(() => [] as CatalogoItem[]),
   ]);
 
   return {
@@ -106,6 +114,7 @@ const cargarDatos = async (id: string): Promise<DatosDetalle | null> => {
     senal,
     tiposMantenimiento: aCatalogo(tiposRes, 'id_tipo_mant'),
     estadosSenal: aCatalogo(estadosRes, 'id_estado_senal'),
+    buques,
   };
 };
 
@@ -115,9 +124,6 @@ const nombreDe = (lista: CatalogoItem[] | undefined, id: string | null | undefin
 };
 
 const texto = (valor: string | null | undefined): string => (valor?.length ? valor : '—');
-
-const textoCampo = (valor: string | number | null | undefined): string =>
-  valor === null || valor === undefined || valor === '' ? '—' : String(valor);
 
 const moneda = (valor: unknown): string =>
   `$ ${(Number(valor) || 0).toLocaleString('es', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -228,7 +234,14 @@ export default function MantenimientoDetalle() {
     );
   }
 
-  const { mantenimiento, senal, tiposMantenimiento, estadosSenal } = datos;
+  const { mantenimiento, senal, tiposMantenimiento, estadosSenal, buques } = datos;
+
+  const buqueNombre = mantenimiento.id_buque ? nombreDe(buques, mantenimiento.id_buque) : '';
+  const medioUtilizado = mantenimiento.id_buque
+    ? `Buque: ${buqueNombre}`
+    : mantenimiento.vehiculo
+      ? `Vehículo: ${mantenimiento.vehiculo}`
+      : null;
 
   const enlaceSenal: ReactNode = senal ? (
     <Link to={`/gestion-senales/${senal.id_senal}`} className="text-blue-600 hover:underline dark:text-blue-400">
@@ -301,6 +314,7 @@ export default function MantenimientoDetalle() {
             <Dato etiqueta={ETIQUETAS.id_tipo_mant} valor={nombreDe(tiposMantenimiento, mantenimiento.id_tipo_mant)} />
             <Dato etiqueta={ETIQUETAS.ident_mantenimiento} valor={texto(mantenimiento.ident_mantenimiento)} />
             <Dato etiqueta={ETIQUETAS.id_estado_senal} valor={nombreDe(estadosSenal, mantenimiento.id_estado_senal)} />
+            {medioUtilizado && <Dato etiqueta="Medio utilizado" valor={medioUtilizado} />}
             <div className="sm:col-span-2 lg:col-span-3">
               <Dato etiqueta={ETIQUETAS.tipoFallaCausa} valor={texto(mantenimiento.tipoFallaCausa)} />
             </div>
@@ -314,7 +328,7 @@ export default function MantenimientoDetalle() {
           <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Dato etiqueta={ETIQUETAS.fecha_inicio} valor={fechaLegible(mantenimiento.fecha_inicio, true)} />
             <Dato etiqueta={ETIQUETAS.fecha_finalizacion} valor={fechaLegible(mantenimiento.fecha_finalizacion, true)} />
-            <Dato etiqueta={ETIQUETAS.tiempo_empleado} valor={textoCampo(mantenimiento.tiempo_empleado)} />
+            <Dato etiqueta={ETIQUETAS.tiempo_empleado} valor={textoTiempoEmpleado(mantenimiento.tiempo_empleado)} />
             <Dato etiqueta={ETIQUETAS.aseguro} valor={texto(mantenimiento.aseguro)} />
           </dl>
         </TabsContent>

@@ -3,11 +3,11 @@ import type { AxiosError } from 'axios';
 
 export interface FallaData {
   id_senal?: string;
-  fecha_falla?: string;
+  fecha_falla?: string | null;
   fecha_restablecer?: string | null;
   fecha_pronost_restablecer?: string | null;
   id_tipo_falla?: string | null;
-  causa_de_falla?: string;
+  causa_de_falla?: string | null;
   medidas?: string | null;
   reporto?: string | null;
   rescatada?: boolean;
@@ -25,6 +25,11 @@ export interface FallaResponse {
   message: string;
   data: unknown;
 }
+
+export type DatosRestablecer = Pick<
+  FallaData,
+  'fecha_restablecer' | 'medidas' | 'observaciones' | 'duracion_de_falla' | 'diferencia_tiempo'
+>;
 
 export const fallasService = {
   getAll: async (): Promise<FallaResponse> => {
@@ -77,6 +82,34 @@ export const fallasService = {
     } catch (error: unknown) {
       const axiosError = error as AxiosError<{ message?: string }>;
       console.error('Error en update:', axiosError);
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
+    }
+  },
+
+  restablecer: (id: string, datos: DatosRestablecer): Promise<FallaResponse> =>
+    fallasService.update(id, datos),
+
+  getAbiertasPorSenal: async (idSenal: string, excluirIdFalla?: string): Promise<FallaResponse> => {
+    try {
+      const excluir = excluirIdFalla ? `&id_falla=neq.${excluirIdFalla}` : '';
+      const response = await api.get(
+        `/fallas?id_senal=eq.${idSenal}&fecha_restablecer=is.null&deleted_at=is.null&select=id_falla${excluir}`
+      );
+      return { success: true, message: 'Fallas abiertas obtenidas', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
+    }
+  },
+
+  getSenalResumen: async (idSenal: string): Promise<FallaResponse> => {
+    try {
+      const response = await api.get(
+        `/senales?id_senal=eq.${idSenal}&deleted_at=is.null&select=id_senal,codigo_lsm,nombre,luminica,fecha_retirada,empresa:empresas(nombre),zona:zonas(nombre),estacion:estaciones(nombre),tipo:tipos_senal(nombre),modelo:modelos_senal(nombre),categoria:categorias(nombre)`
+      );
+      return { success: true, message: 'Senal obtenida', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
       return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
     }
   },

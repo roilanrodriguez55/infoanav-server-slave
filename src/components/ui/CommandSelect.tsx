@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Check, ChevronsUpDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { CAMPO_PENDIENTE, cn } from '@/lib/utils';
 
 // Componentes shadcn
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,7 @@ interface CommandSelectProps {
   required?: boolean;
   disabled?: boolean;
   className?: string;
+  pendiente?: boolean;
 }
 
 export function CommandSelect({
@@ -48,6 +49,7 @@ export function CommandSelect({
   required = false,
   disabled = false,
   className = "",
+  pendiente = false,
 }: CommandSelectProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,6 +71,7 @@ export function CommandSelect({
             className={cn(
               "w-full justify-between h-10 font-normal",
               !value && "text-muted-foreground",
+              pendiente && CAMPO_PENDIENTE,
               className
             )}
             disabled={disabled}

@@ -25,6 +25,7 @@ import {
 import { senalesService } from "@/services/api/senalesApi";
 import { fallasService } from "@/services/api/fallasApi";
 import { mantenimientosService } from "@/services/api/mantenApi";
+import { TarjetasAlertas } from "@/pages/Dashboard/TarjetasAlerta";
 
 type TabKey = "criticas" | "degradadas" | "offline";
 type ModalKey = "reporte" | null;
@@ -636,6 +637,16 @@ const Dashboard = () => {
             </div>
           </div>
         )}
+      </div>
+
+      <div>
+        <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          Alertas
+        </p>
+        <TarjetasAlertas
+          fueraServicio={stats?.fuera_servicio ?? null}
+          cargandoFueraServicio={loading}
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">

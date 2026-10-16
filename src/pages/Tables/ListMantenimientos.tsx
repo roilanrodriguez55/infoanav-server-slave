@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { mantenimientosService } from '@/services/api/mantenApi';
 import { senalesService } from '@/services/api/senalesApi';
 import { useServerList } from '@/hooks/useServerList';
 import { dateRangeFilters, type Filter } from '@/lib/postgrest';
+import { textoTiempoEmpleado } from '@/lib/planMantenimiento';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,6 +57,7 @@ import {
   User
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { etiquetaSenal } from '@/lib/utils';
 
 interface MantenimientoFila {
   id_mantenimiento: string;
@@ -64,7 +66,7 @@ interface MantenimientoFila {
   id_estado_senal: string | null;
   id_senal: string;
   fecha_inicio: string | null;
-  tiempo_empleado: number | null;
+  tiempo_empleado: string | number | null;
   trabajo_realizado: string | null;
   informa: string | null;
   aseguro: string | null;
@@ -230,6 +232,23 @@ const ListMantenimientos = () => {
 
   return (
     <div className="w-full min-w-0">
+      {/* Conmutador entre mantenimientos realizados y plan */}
+      <nav className="mb-4 flex gap-2 text-sm" aria-label="Vistas de mantenimiento">
+        <Link
+          to="/gestion-mant"
+          aria-current="page"
+          className="rounded-md bg-blue-600 px-3 py-1.5 font-medium text-white"
+        >
+          Realizados
+        </Link>
+        <Link
+          to="/plan-mantenimiento"
+          className="rounded-md px-3 py-1.5 font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+        >
+          Plan
+        </Link>
+      </nav>
+
       {/* Header con título y acciones */}
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
@@ -290,7 +309,7 @@ const ListMantenimientos = () => {
                 <SelectItem value={TODOS}>Todas</SelectItem>
                 {senales.map((senal) => (
                   <SelectItem key={senal.id_senal} value={senal.id_senal}>
-                    {`${senal.codigo_lsm} - ${senal.nombre}`}
+                    {etiquetaSenal(senal.codigo_lsm, senal.nombre)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -447,7 +466,7 @@ const ListMantenimientos = () => {
                       <TableCell>
                         {mant.tiempo_empleado !== null ? (
                           <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                            {mant.tiempo_empleado}h
+                            {textoTiempoEmpleado(mant.tiempo_empleado)}
                           </Badge>
                         ) : (
                           <Badge variant="outline">-</Badge>

@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { fallasService } from '@/services/api/fallasApi';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { fallasService, type FallaData } from '@/services/api/fallasApi';
 import { senalesService } from '@/services/api/senalesApi';
 import { CommandSelect } from '@/components/ui/CommandSelect';
+import { CAMPO_PENDIENTE, cn, esVacio, etiquetaSenal } from '@/lib/utils';
+import {
+  aIntervaloPostgres,
+  aValorDatetimeLocal,
+  diferenciaMs,
+  formatearDuracion,
+} from '@/lib/intervalos';
+import { aTimestampLocal } from '@/lib/planMantenimiento';
 
 // Componentes shadcn
 import { Button } from '@/components/ui/button';
@@ -22,10 +32,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertCircle,
+  AlertTriangle,
   Save,
   X,
   ArrowLeft,
-  Clock,
   Loader2
 } from 'lucide-react';
 
@@ -40,6 +50,24 @@ interface OrigenFalla {
   nombre: string;
 }
 
+interface Catalogo {
+  nombre: string;
+}
+
+interface SenalResumen {
+  id_senal: string;
+  codigo_lsm: string;
+  nombre: string;
+  luminica: boolean | null;
+  fecha_retirada: string | null;
+  empresa: Catalogo | null;
+  zona: Catalogo | null;
+  estacion: Catalogo | null;
+  tipo: Catalogo | null;
+  modelo: Catalogo | null;
+  categoria: Catalogo | null;
+}
+
 interface FormData {
   id_senal: string;
   fecha_falla: string;
@@ -51,68 +79,83 @@ interface FormData {
   reporto: string;
   rescatada: boolean;
   observaciones: string;
-  duracion_de_falla: string;
-  diferencia_tiempo: string;
   id_origen_falla: string;
   transmite: string;
   anar: string;
   rg: string;
 }
 
-interface FallaSubmitData {
-  id_senal?: string;
-  fecha_falla?: string;
-  fecha_restablecer?: string | null;
-  fecha_pronost_restablecer?: string | null;
-  id_tipo_falla?: string | null;
-  causa_de_falla?: string;
-  medidas?: string | null;
-  reporto?: string | null;
-  rescatada?: boolean;
-  observaciones?: string | null;
-  duracion_de_falla?: string | null;
-  diferencia_tiempo?: string | null;
-  id_origen_falla?: string | null;
-  transmite?: string | null;
-  anar?: string | null;
-  rg?: string | null;
-  updated_at?: string;
-  updated_by?: string;
-  created_at?: string;
-  created_by?: string;
+const formularioVacio = (idSenal = ''): FormData => ({
+  id_senal: idSenal,
+  fecha_falla: '',
+  fecha_restablecer: '',
+  fecha_pronost_restablecer: '',
+  id_tipo_falla: '',
+  causa_de_falla: '',
+  medidas: '',
+  reporto: '',
+  rescatada: false,
+  observaciones: '',
+  id_origen_falla: '',
+  transmite: '',
+  anar: '',
+  rg: ''
+});
+
+const CLASE_AVISO = 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30';
+
+const aNulo = (valor: string): string | null => (esVacio(valor) ? null : valor);
+
+// Las columnas son timestamp sin zona: se guarda la hora local tal cual.
+const aIsoNulo = (valor: string): string | null =>
+  esVacio(valor) ? null : aTimestampLocal(valor);
+
+const nombreCatalogo = (catalogo: Catalogo | null): string => catalogo?.nombre ?? '—';
+
+function ResumenSenal({ senal }: { senal: SenalResumen }) {
+  const campos: [string, string][] = [
+    ['LSM', senal.codigo_lsm],
+    ['Nombre', senal.nombre],
+    ['Empresa', nombreCatalogo(senal.empresa)],
+    ['Zona', nombreCatalogo(senal.zona)],
+    ['Estación', nombreCatalogo(senal.estacion)],
+    ['Tipo', nombreCatalogo(senal.tipo)],
+    ['Modelo', nombreCatalogo(senal.modelo)],
+    ['Categoría', nombreCatalogo(senal.categoria)],
+    ['Lumínica/Ciega', senal.luminica === null ? '—' : senal.luminica ? 'Lumínica' : 'Ciega'],
+  ];
+
+  return (
+    <dl className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4 sm:grid-cols-2 lg:grid-cols-3 dark:border-gray-700 dark:bg-gray-800">
+      {campos.map(([etiqueta, valor]) => (
+        <div key={etiqueta}>
+          <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">{etiqueta}</dt>
+          <dd className="break-words text-sm text-gray-800 dark:text-gray-200">{valor || '—'}</dd>
+        </div>
+      ))}
+    </dl>
+  );
 }
 
 const FormFallas: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+  const [searchParams] = useSearchParams();
+
   const isEditing = !!id;
-  
+
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(isEditing);
   const [tiposFalla, setTiposFalla] = useState<TipoFalla[]>([]);
   const [origenesFalla, setOrigenesFalla] = useState<OrigenFalla[]>([]);
   const [senales, setSenales] = useState<{ id: string; nombre: string }[]>([]);
   const [activeTab, setActiveTab] = useState('basicos');
-  
-  const [formData, setFormData] = useState<FormData>({
-    id_senal: '',
-    fecha_falla: '',
-    fecha_restablecer: '',
-    fecha_pronost_restablecer: '',
-    id_tipo_falla: '',
-    causa_de_falla: '',
-    medidas: '',
-    reporto: '',
-    rescatada: false,
-    observaciones: '',
-    duracion_de_falla: '',
-    diferencia_tiempo: '',
-    id_origen_falla: '',
-    transmite: '',
-    anar: '',
-    rg: ''
-  });
+
+  const [formData, setFormData] = useState<FormData>(
+    () => formularioVacio(searchParams.get('senal') ?? '')
+  );
+  const [senalInfo, setSenalInfo] = useState<{ idSenal: string; datos: SenalResumen | null } | null>(null);
+  const [abiertasInfo, setAbiertasInfo] = useState<{ idSenal: string; cantidad: number } | null>(null);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -138,7 +181,7 @@ const FormFallas: React.FC = () => {
             nombre: item.nombre,
           })));
         }
-        
+
         if (origenesRes.success) {
           const items = origenesRes.data as { id_origen_falla: string; nombre: string }[];
           setOrigenesFalla(items.map((item) => ({
@@ -151,7 +194,7 @@ const FormFallas: React.FC = () => {
           setSenales(
             ((senalesRes.data) ?? []).map((item) => ({
               id: item.id_senal,
-              nombre: `${item.codigo_lsm} - ${item.nombre}`,
+              nombre: etiquetaSenal(item.codigo_lsm, item.nombre),
             }))
           );
         }
@@ -170,11 +213,11 @@ const FormFallas: React.FC = () => {
   useEffect(() => {
     const loadFalla = async () => {
       if (!id) return;
-      
+
       setLoadingData(true);
       try {
         const response = await fallasService.getById(id);
-        
+
         if (response.success && response.data) {
           const items = response.data as { id_falla: string; [key: string]: unknown }[];
           const data = items[0];
@@ -184,25 +227,17 @@ const FormFallas: React.FC = () => {
             return;
           }
 
-          const formatDateForInput = (dateStr?: string) => {
-            if (!dateStr) return '';
-            const date = new Date(dateStr);
-            return date.toISOString().slice(0, 16);
-          };
-
           setFormData({
             id_senal: (data.id_senal as string | null) ?? '',
-            fecha_falla: formatDateForInput(data.fecha_falla as string),
-            fecha_restablecer: formatDateForInput(data.fecha_restablecer as string | undefined),
-            fecha_pronost_restablecer: formatDateForInput(data.fecha_pronost_restablecer as string | undefined),
+            fecha_falla: aValorDatetimeLocal(data.fecha_falla as string | null),
+            fecha_restablecer: aValorDatetimeLocal(data.fecha_restablecer as string | null),
+            fecha_pronost_restablecer: aValorDatetimeLocal(data.fecha_pronost_restablecer as string | null),
             id_tipo_falla: (data.id_tipo_falla as string | null) ?? '',
             causa_de_falla: (data.causa_de_falla as string | null) ?? '',
             medidas: (data.medidas as string | null) ?? '',
             reporto: (data.reporto as string | null) ?? '',
             rescatada: (data.rescatada as boolean | null) ?? false,
             observaciones: (data.observaciones as string | null) ?? '',
-            duracion_de_falla: (data.duracion_de_falla as string | null) ?? '',
-            diferencia_tiempo: (data.diferencia_tiempo as string | null) ?? '',
             id_origen_falla: (data.id_origen_falla as string | null) ?? '',
             transmite: (data.transmite as string | null) ?? '',
             anar: (data.anar as string | null) ?? '',
@@ -226,24 +261,36 @@ const FormFallas: React.FC = () => {
     }
   }, [id, isEditing, navigate]);
 
-  // Calcular duración automáticamente
+  // Datos de la señal elegida: ficha, fallas abiertas y, si aplica, fecha de retiro
   useEffect(() => {
-    if (formData.fecha_falla && formData.fecha_restablecer) {
-      const inicio = new Date(formData.fecha_falla);
-      const fin = new Date(formData.fecha_restablecer);
-      const diffMs = fin.getTime() - inicio.getTime();
-      
-      if (diffMs > 0) {
-        const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial de datos
-        setFormData(prev => ({
-          ...prev,
-          duracion_de_falla: `${diffHrs}h ${diffMins}m`
-        }));
-      }
-    }
-  }, [formData.fecha_falla, formData.fecha_restablecer]);
+    const idSenal = formData.id_senal;
+    if (!idSenal) return;
+
+    let vigente = true;
+    void Promise.all([
+      fallasService.getSenalResumen(idSenal),
+      fallasService.getAbiertasPorSenal(idSenal, id),
+    ]).then(([senalRes, abiertasRes]) => {
+      if (!vigente) return;
+      const datos = (senalRes.data as SenalResumen[] | null)?.[0] ?? null;
+      setSenalInfo({ idSenal, datos: senalRes.success ? datos : null });
+      const cantidad = abiertasRes.success ? ((abiertasRes.data as unknown[] | null) ?? []).length : 0;
+      setAbiertasInfo({ idSenal, cantidad });
+    });
+
+    return () => {
+      vigente = false;
+    };
+  }, [formData.id_senal, id]);
+
+  const senalActual = senalInfo?.idSenal === formData.id_senal ? senalInfo.datos : null;
+  const abiertasActual = abiertasInfo?.idSenal === formData.id_senal ? abiertasInfo.cantidad : 0;
+  const retiradaActual = senalActual?.fecha_retirada ?? null;
+  const fallaPosteriorARetiro =
+    !!formData.fecha_falla && !!retiradaActual && new Date(formData.fecha_falla) > new Date(retiradaActual);
+
+  const duracionMs = diferenciaMs(formData.fecha_falla, formData.fecha_restablecer);
+  const diferenciaTiempoMs = diferenciaMs(formData.fecha_pronost_restablecer, formData.fecha_restablecer);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -271,61 +318,54 @@ const FormFallas: React.FC = () => {
     void navigate('/gestion-fallas');
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    
-    if (!formData.id_senal) newErrors.id_senal = 'La señal es requerida';
-    if (!formData.fecha_falla) newErrors.fecha_falla = 'La fecha de falla es requerida';
-    if (!formData.id_tipo_falla) newErrors.id_tipo_falla = 'El tipo de falla es requerido';
-    if (!formData.causa_de_falla) newErrors.causa_de_falla = 'La causa de falla es requerida';
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const validarFormulario = (): Record<string, string> => {
+    const nuevosErrores: Record<string, string> = {};
+
+    if (!formData.id_senal) nuevosErrores.id_senal = 'La señal es requerida';
+    if (duracionMs !== null && duracionMs < 0) {
+      nuevosErrores.fecha_restablecer = 'La fecha de restablecimiento no puede ser anterior a la fecha de falla';
+    }
+
+    return nuevosErrores;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      alert('Por favor complete los campos requeridos');
+
+    const nuevosErrores = validarFormulario();
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrors(nuevosErrores);
+      setActiveTab(nuevosErrores.id_senal ? 'basicos' : 'detalles');
+      alert(Object.values(nuevosErrores)[0]);
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
-      const dataToSend: FallaSubmitData = {
-        ...(formData.id_senal && { id_senal: formData.id_senal }),
-        ...(formData.fecha_falla && { fecha_falla: new Date(formData.fecha_falla).toISOString() }),
-        ...(formData.fecha_restablecer && { fecha_restablecer: new Date(formData.fecha_restablecer).toISOString() }),
-        ...(formData.fecha_pronost_restablecer && { fecha_pronost_restablecer: new Date(formData.fecha_pronost_restablecer).toISOString() }),
-        ...(formData.id_tipo_falla && { id_tipo_falla: formData.id_tipo_falla }),
-        ...(formData.causa_de_falla && { causa_de_falla: formData.causa_de_falla }),
-        ...(formData.medidas && { medidas: formData.medidas }),
-        ...(formData.reporto && { reporto: formData.reporto }),
-        rescatada: formData.rescatada ?? false,
-        ...(formData.observaciones && { observaciones: formData.observaciones }),
-        ...(formData.duracion_de_falla && { duracion_de_falla: formData.duracion_de_falla }),
-        ...(formData.diferencia_tiempo && { diferencia_tiempo: formData.diferencia_tiempo }),
-        ...(formData.id_origen_falla && { id_origen_falla: formData.id_origen_falla }),
-        ...(formData.transmite && { transmite: formData.transmite }),
-        ...(formData.anar && { anar: formData.anar }),
-        ...(formData.rg && { rg: formData.rg })
+      const dataToSend: FallaData = {
+        id_senal: formData.id_senal,
+        fecha_falla: aIsoNulo(formData.fecha_falla),
+        fecha_restablecer: aIsoNulo(formData.fecha_restablecer),
+        fecha_pronost_restablecer: aIsoNulo(formData.fecha_pronost_restablecer),
+        id_tipo_falla: aNulo(formData.id_tipo_falla),
+        causa_de_falla: aNulo(formData.causa_de_falla),
+        medidas: aNulo(formData.medidas),
+        reporto: aNulo(formData.reporto),
+        rescatada: formData.rescatada,
+        observaciones: aNulo(formData.observaciones),
+        duracion_de_falla: duracionMs === null ? null : aIntervaloPostgres(duracionMs),
+        diferencia_tiempo: diferenciaTiempoMs === null ? null : aIntervaloPostgres(diferenciaTiempoMs),
+        id_origen_falla: aNulo(formData.id_origen_falla),
+        transmite: aNulo(formData.transmite),
+        anar: aNulo(formData.anar),
+        rg: aNulo(formData.rg)
       };
 
-      if (isEditing) {
-        dataToSend.updated_at = new Date().toISOString();
-      } else {
-        dataToSend.created_at = new Date().toISOString();
-      }
+      const response = id
+        ? await fallasService.update(id, dataToSend)
+        : await fallasService.create(dataToSend);
 
-      let response;
-      if (isEditing) {
-        response = await fallasService.update(id, dataToSend);
-      } else {
-        response = await fallasService.create(dataToSend);
-      }
-      
       if (response.success) {
         alert(`✅ Falla ${isEditing ? 'actualizada' : 'registrada'} correctamente`);
         void navigate('/gestion-fallas');
@@ -345,39 +385,19 @@ const FormFallas: React.FC = () => {
     if (isEditing) {
       window.location.reload();
     } else {
-      setFormData({
-        id_senal: '',
-        fecha_falla: '',
-        fecha_restablecer: '',
-        fecha_pronost_restablecer: '',
-        id_tipo_falla: '',
-        causa_de_falla: '',
-        medidas: '',
-        reporto: '',
-        rescatada: false,
-        observaciones: '',
-        duracion_de_falla: '',
-        diferencia_tiempo: '',
-        id_origen_falla: '',
-        transmite: '',
-        anar: '',
-        rg: ''
-      });
+      setFormData(formularioVacio());
       setErrors({});
       void navigate('/gestion-fallas');
     }
   };
 
-  const hasError = (fieldName: keyof FormData): boolean => {
-    return !!errors[fieldName];
-  };
-
-  const inputClassName = (fieldName: keyof FormData): string => {
-    const baseClasses = "w-full";
-    return hasError(fieldName)
-      ? `${baseClasses} border-red-500 focus-visible:ring-red-500`
-      : baseClasses;
-  };
+  // Campos vacios en naranja; un error de validacion tiene prioridad.
+  const claseCampo = (campo: keyof FormData): string =>
+    cn(
+      'border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400',
+      esVacio(formData[campo]) && CAMPO_PENDIENTE,
+      errors[campo] && 'border-red-500 focus-visible:ring-red-500'
+    );
 
   if (loading ?? loadingData) {
     return (
@@ -395,7 +415,7 @@ const FormFallas: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         <div className="mb-6">
           <Button
             variant="outline"
@@ -414,8 +434,8 @@ const FormFallas: React.FC = () => {
               {isEditing ? 'Editar Falla' : 'Nueva Falla'}
             </CardTitle>
             <CardDescription className="text-gray-500 dark:text-gray-400 text-sm mt-2">
-              {isEditing 
-                ? 'Modifique los datos de la falla seleccionada' 
+              {isEditing
+                ? 'Modifique los datos de la falla seleccionada'
                 : 'Complete la información detallada de la falla'}
             </CardDescription>
           </CardHeader>
@@ -424,25 +444,25 @@ const FormFallas: React.FC = () => {
             <CardContent className="p-6 lg:p-8">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
                 <TabsList className="grid w-full grid-cols-4 bg-gray-100 dark:bg-gray-700">
-                  <TabsTrigger 
+                  <TabsTrigger
                     value="basicos"
                     className="data-[state=active]:bg-gray-800 data-[state=active]:text-white dark:data-[state=active]:bg-gray-600 dark:text-gray-300"
                   >
                     Datos Básicos
                   </TabsTrigger>
-                  <TabsTrigger 
+                  <TabsTrigger
                     value="detalles"
                     className="data-[state=active]:bg-gray-800 data-[state=active]:text-white dark:data-[state=active]:bg-gray-600 dark:text-gray-300"
                   >
                     Detalles
                   </TabsTrigger>
-                  <TabsTrigger 
+                  <TabsTrigger
                     value="responsables"
                     className="data-[state=active]:bg-gray-800 data-[state=active]:text-white dark:data-[state=active]:bg-gray-600 dark:text-gray-300"
                   >
                     Responsables
                   </TabsTrigger>
-                  <TabsTrigger 
+                  <TabsTrigger
                     value="tiempos"
                     className="data-[state=active]:bg-gray-800 data-[state=active]:text-white dark:data-[state=active]:bg-gray-600 dark:text-gray-300"
                   >
@@ -462,6 +482,7 @@ const FormFallas: React.FC = () => {
                       items={senales}
                       label="Señal"
                       required
+                      pendiente={esVacio(formData.id_senal)}
                     />
                     {errors.id_senal && (
                       <p className="text-sm text-red-500 flex items-center mt-1">
@@ -471,11 +492,41 @@ const FormFallas: React.FC = () => {
                     )}
                   </div>
 
+                  {senalActual && <ResumenSenal senal={senalActual} />}
+
+                  {abiertasActual > 0 && (
+                    <Alert className={CLASE_AVISO}>
+                      <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      <AlertDescription className="flex flex-wrap items-center gap-x-2 text-amber-800 dark:text-amber-200">
+                        <span>
+                          Esta señal ya tiene {abiertasActual}{' '}
+                          {abiertasActual === 1 ? 'falla abierta' : 'fallas abiertas'}.
+                        </span>
+                        <Link
+                          to={`/gestion-fallas?senal=${formData.id_senal}`}
+                          className="underline hover:no-underline"
+                        >
+                          Ver fallas de la señal
+                        </Link>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {fallaPosteriorARetiro && retiradaActual && (
+                    <Alert className={CLASE_AVISO}>
+                      <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      <AlertDescription className="text-amber-800 dark:text-amber-200">
+                        La señal fue retirada el{' '}
+                        {format(new Date(retiradaActual), 'dd/MM/yyyy', { locale: es })}; la falla es posterior.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Fecha de Falla */}
                     <div className="space-y-2">
                       <Label htmlFor="fecha_falla" className="flex items-center text-gray-700 dark:text-gray-300 font-medium">
-                        Fecha de Falla <span className="text-red-500 ml-1">*</span>
+                        Fecha de Falla
                       </Label>
                       <Input
                         id="fecha_falla"
@@ -483,14 +534,8 @@ const FormFallas: React.FC = () => {
                         name="fecha_falla"
                         value={formData.fecha_falla}
                         onChange={handleInputChange}
-                        className={`${inputClassName('fecha_falla')} border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white`}
+                        className={cn('w-full', claseCampo('fecha_falla'))}
                       />
-                      {errors.fecha_falla && (
-                        <p className="text-sm text-red-500 flex items-center mt-1">
-                          <AlertCircle className="h-4 w-4 mr-1" />
-                          {errors.fecha_falla}
-                        </p>
-                      )}
                     </div>
 
                     {/* Tipo de Falla */}
@@ -503,21 +548,15 @@ const FormFallas: React.FC = () => {
                         emptyMessage="No se encontraron tipos de falla"
                         items={tiposFalla}
                         label="Tipo de Falla"
-                        required
+                        pendiente={esVacio(formData.id_tipo_falla)}
                       />
-                      {errors.id_tipo_falla && (
-                        <p className="text-sm text-red-500 flex items-center mt-1">
-                          <AlertCircle className="h-4 w-4 mr-1" />
-                          {errors.id_tipo_falla}
-                        </p>
-                      )}
                     </div>
                   </div>
 
                   {/* Causa de Falla */}
                   <div className="space-y-2">
                     <Label htmlFor="causa_de_falla" className="flex items-center text-gray-700 dark:text-gray-300 font-medium">
-                      Causa de Falla <span className="text-red-500 ml-1">*</span>
+                      Causa de Falla
                     </Label>
                     <Textarea
                       id="causa_de_falla"
@@ -525,15 +564,9 @@ const FormFallas: React.FC = () => {
                       value={formData.causa_de_falla}
                       onChange={handleInputChange}
                       placeholder="Describa la causa de la falla..."
-                      className={`${inputClassName('causa_de_falla')} border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400`}
+                      className={claseCampo('causa_de_falla')}
                       rows={4}
                     />
-                    {errors.causa_de_falla && (
-                      <p className="text-sm text-red-500 flex items-center mt-1">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        {errors.causa_de_falla}
-                      </p>
-                    )}
                   </div>
                 </TabsContent>
 
@@ -551,8 +584,14 @@ const FormFallas: React.FC = () => {
                         name="fecha_restablecer"
                         value={formData.fecha_restablecer}
                         onChange={handleInputChange}
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        className={cn('w-full', claseCampo('fecha_restablecer'))}
                       />
+                      {errors.fecha_restablecer && (
+                        <p className="text-sm text-red-500 flex items-center mt-1">
+                          <AlertCircle className="h-4 w-4 mr-1" />
+                          {errors.fecha_restablecer}
+                        </p>
+                      )}
                     </div>
 
                     {/* Fecha Pronóstico */}
@@ -566,7 +605,7 @@ const FormFallas: React.FC = () => {
                         name="fecha_pronost_restablecer"
                         value={formData.fecha_pronost_restablecer}
                         onChange={handleInputChange}
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        className={cn('w-full', claseCampo('fecha_pronost_restablecer'))}
                       />
                     </div>
 
@@ -580,6 +619,7 @@ const FormFallas: React.FC = () => {
                         emptyMessage="No se encontraron orígenes de falla"
                         items={origenesFalla}
                         label="Origen de Falla"
+                        pendiente={esVacio(formData.id_origen_falla)}
                       />
                     </div>
 
@@ -610,7 +650,7 @@ const FormFallas: React.FC = () => {
                       value={formData.medidas}
                       onChange={handleInputChange}
                       placeholder="Describa las medidas tomadas..."
-                      className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                      className={claseCampo('medidas')}
                       rows={3}
                     />
                   </div>
@@ -626,7 +666,7 @@ const FormFallas: React.FC = () => {
                       value={formData.observaciones}
                       onChange={handleInputChange}
                       placeholder="Observaciones adicionales..."
-                      className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                      className={claseCampo('observaciones')}
                       rows={3}
                     />
                   </div>
@@ -643,7 +683,7 @@ const FormFallas: React.FC = () => {
                         value={formData.reporto}
                         onChange={handleInputChange}
                         placeholder="Nombre de quien reporta"
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                        className={claseCampo('reporto')}
                       />
                     </div>
 
@@ -655,7 +695,7 @@ const FormFallas: React.FC = () => {
                         value={formData.transmite}
                         onChange={handleInputChange}
                         placeholder="Quién transmite"
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                        className={claseCampo('transmite')}
                       />
                     </div>
 
@@ -667,7 +707,7 @@ const FormFallas: React.FC = () => {
                         value={formData.anar}
                         onChange={handleInputChange}
                         placeholder="ANAR"
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                        className={claseCampo('anar')}
                       />
                     </div>
 
@@ -679,7 +719,7 @@ const FormFallas: React.FC = () => {
                         value={formData.rg}
                         onChange={handleInputChange}
                         placeholder="RG"
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                        className={claseCampo('rg')}
                       />
                     </div>
                   </div>
@@ -694,11 +734,13 @@ const FormFallas: React.FC = () => {
                       </Label>
                       <Input
                         id="duracion_de_falla"
-                        name="duracion_de_falla"
-                        value={formData.duracion_de_falla}
-                        onChange={handleInputChange}
-                        placeholder="Ej: 2h 30m"
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                        readOnly
+                        value={formatearDuracion(duracionMs)}
+                        placeholder="Requiere fecha de falla y de restablecimiento"
+                        className={cn(
+                          'w-full border-gray-300 bg-gray-100 text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200',
+                          esVacio(duracionMs) && CAMPO_PENDIENTE
+                        )}
                       />
                     </div>
 
@@ -708,23 +750,16 @@ const FormFallas: React.FC = () => {
                       </Label>
                       <Input
                         id="diferencia_tiempo"
-                        name="diferencia_tiempo"
-                        value={formData.diferencia_tiempo}
-                        onChange={handleInputChange}
-                        placeholder="Diferencia"
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                        readOnly
+                        value={formatearDuracion(diferenciaTiempoMs)}
+                        placeholder="Requiere fecha pronóstico y de restablecimiento"
+                        className={cn(
+                          'w-full border-gray-300 bg-gray-100 text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200',
+                          esVacio(diferenciaTiempoMs) && CAMPO_PENDIENTE
+                        )}
                       />
                     </div>
                   </div>
-
-                  {formData.fecha_falla && formData.fecha_restablecer && (
-                    <Alert className="bg-gray-100 border-gray-200 dark:bg-gray-700 dark:border-gray-600">
-                      <Clock className="h-4 w-4 text-gray-600 dark:text-gray-300" />
-                      <AlertDescription className="text-gray-700 dark:text-gray-300">
-                        Duración calculada: {formData.duracion_de_falla ?? 'Calculando...'}
-                      </AlertDescription>
-                    </Alert>
-                  )}
                 </TabsContent>
               </Tabs>
             </CardContent>

@@ -12,6 +12,14 @@ import FallaDetalle from './pages/Detalle/FallaDetalle';
 import MantenimientoDetalle from './pages/Detalle/MantenimientoDetalle';
 import UsuariosPage from './pages/Usuarios/UsuariosPage';
 import CatalogosPage from './pages/Catalogos/CatalogosPage';
+import CalculosPage from './pages/Calculos/CalculosPage';
+import RadioelectricasPage from './pages/Radioelectricas/RadioelectricasPage';
+import EquipamientoPage from './pages/Equipamiento/EquipamientoPage';
+import HechosPage from './pages/Hechos/HechosPage';
+import DocumentacionPage from './pages/Documentacion/DocumentacionPage';
+import FlotaPage from './pages/Flota/FlotaPage';
+import EstadisticasPage from './pages/Estadisticas/EstadisticasPage';
+import PlanMantenimientoPage from './pages/Mantenimientos/PlanMantenimientoPage';
 
 const ProtectedRoute = () => {
   const { authState } = useAuth();
@@ -103,6 +111,14 @@ function App() {
                 <Route path="/gestion-senales/:id" element={<SenalDetalle />} />
                 <Route path="/gestion-fallas/:id" element={<FallaDetalle />} />
                 <Route path="/gestion-mant/:id" element={<MantenimientoDetalle />} />
+                <Route path="/calculos" element={<CalculosPage />} />
+                <Route path="/radioelectricas" element={<RadioelectricasPage />} />
+                <Route path="/plan-mantenimiento" element={<PlanMantenimientoPage />} />
+                <Route path="/equipamiento" element={<EquipamientoPage />} />
+                <Route path="/hechos" element={<HechosPage />} />
+                <Route path="/flota" element={<FlotaPage />} />
+                <Route path="/estadisticas" element={<EstadisticasPage />} />
+                <Route path="/documentacion" element={<DocumentacionPage />} />
                 <Route element={<AdminRoute />}>
                   <Route path="/usuarios" element={<UsuariosPage />} />
                   <Route path="/catalogos" element={<CatalogosPage />} />

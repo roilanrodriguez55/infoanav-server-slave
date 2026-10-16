@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { senalesService, type CatalogosResponse } from '@/services/api/senalesApi';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { senalesService, type CatalogoItem, type CatalogosResponse } from '@/services/api/senalesApi';
 import { useServerList } from '@/hooks/useServerList';
+import { useAuth } from '@/context/AuthContext';
 import { dateRangeFilters, type Filter } from '@/lib/postgrest';
 
 // Componentes shadcn
@@ -65,18 +66,46 @@ interface Senal {
   luminica: boolean;
   id_estado: string;
   created_at: string;
+  fecha_retirada: string | null;
+  causa_retirada: string | null;
 }
 
 interface FiltrosSenales {
   texto: string;
   id_tipo: string;
+  id_estacion: string;
+  id_categoria: string;
   id_estado: string;
   id_zona: string;
   id_empresa: string;
+  id_complejidad: string;
+  id_usuario_navegacion: string;
+  id_caracteristica: string;
+  id_colorluz: string;
+  id_color: string;
+  id_modelo: string;
+  id_forma: string;
+  id_material: string;
+  altura: string;
+  elevacion: string;
+  profundidad: string;
   luminica: string;
+  bajas: string;
   desde: string;
   hasta: string;
 }
+
+type Vista = 'activas' | 'ciegas' | 'luminicas' | 'bajas';
+
+const VISTAS: { valor: Vista; etiqueta: string }[] = [
+  { valor: 'activas', etiqueta: 'Activas' },
+  { valor: 'ciegas', etiqueta: 'Ciegas' },
+  { valor: 'luminicas', etiqueta: 'Lumínicas' },
+  { valor: 'bajas', etiqueta: 'Bajas' },
+];
+
+const esVista = (valor: string | null): valor is Vista =>
+  VISTAS.some((v) => v.valor === valor);
 
 // Radix Select no admite value vacio; esta opcion equivale a sin filtro.
 const TODOS = '__all__';
@@ -84,27 +113,116 @@ const TODOS = '__all__';
 const FILTROS_INICIALES: FiltrosSenales = {
   texto: '',
   id_tipo: '',
+  id_estacion: '',
+  id_categoria: '',
   id_estado: '',
   id_zona: '',
   id_empresa: '',
+  id_complejidad: '',
+  id_usuario_navegacion: '',
+  id_caracteristica: '',
+  id_colorluz: '',
+  id_color: '',
+  id_modelo: '',
+  id_forma: '',
+  id_material: '',
+  altura: '',
+  elevacion: '',
+  profundidad: '',
   luminica: '',
+  bajas: '',
   desde: '',
   hasta: '',
 };
 
-const COLUMNAS_LISTA = 'id_senal,codigo_lsm,nombre,id_tipo,ubicacion,luminica,id_estado,created_at';
+const esId = (valor: string): boolean =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(valor);
+const esNumero = (valor: string): boolean => /^-?\d+(\.\d+)?$/.test(valor);
+const esFecha = (valor: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(valor);
 
-const toFiltros = (filtros: FiltrosSenales): Filter[] => [
-  { column: 'id_tipo', op: 'eq', value: filtros.id_tipo },
-  { column: 'id_estado', op: 'eq', value: filtros.id_estado },
-  { column: 'id_zona', op: 'eq', value: filtros.id_zona },
-  { column: 'id_empresa', op: 'eq', value: filtros.id_empresa },
-  { column: 'luminica', op: 'eq', value: filtros.luminica },
-  ...dateRangeFilters('created_at', filtros.desde, filtros.hasta),
+// Parametro de URL de cada filtro. Un valor que no pasa su validacion se ignora.
+const PARAMETROS: { clave: keyof FiltrosSenales; param: string; valido: (valor: string) => boolean }[] = [
+  { clave: 'texto', param: 'texto', valido: () => true },
+  { clave: 'id_tipo', param: 'tipo', valido: esId },
+  { clave: 'id_estacion', param: 'estacion', valido: esId },
+  { clave: 'id_categoria', param: 'categoria', valido: esId },
+  { clave: 'id_estado', param: 'estado', valido: esId },
+  { clave: 'id_zona', param: 'zona', valido: esId },
+  { clave: 'id_empresa', param: 'empresa', valido: esId },
+  { clave: 'id_complejidad', param: 'complejidad', valido: esId },
+  { clave: 'id_usuario_navegacion', param: 'usuario_navegacion', valido: esId },
+  { clave: 'id_caracteristica', param: 'caracteristica', valido: esId },
+  { clave: 'id_colorluz', param: 'colorluz', valido: esId },
+  { clave: 'id_color', param: 'color', valido: esId },
+  { clave: 'id_modelo', param: 'modelo', valido: esId },
+  { clave: 'id_forma', param: 'forma', valido: esId },
+  { clave: 'id_material', param: 'material', valido: esId },
+  { clave: 'altura', param: 'altura', valido: esNumero },
+  { clave: 'elevacion', param: 'elevacion', valido: esNumero },
+  { clave: 'profundidad', param: 'profundidad', valido: esNumero },
+  { clave: 'luminica', param: 'luminica', valido: (valor) => valor === 'true' || valor === 'false' },
+  { clave: 'bajas', param: 'bajas', valido: (valor) => valor === '1' },
+  { clave: 'desde', param: 'desde', valido: esFecha },
+  { clave: 'hasta', param: 'hasta', valido: esFecha },
 ];
+
+const filtrosDesdeUrl = (params: URLSearchParams): FiltrosSenales => {
+  const filtros: FiltrosSenales = { ...FILTROS_INICIALES };
+  for (const { clave, param, valido } of PARAMETROS) {
+    const valor = params.get(param)?.trim() ?? '';
+    if (valor !== '' && valido(valor)) filtros[clave] = valor;
+  }
+  return filtros;
+};
+
+const COLUMNAS_LISTA =
+  'id_senal,codigo_lsm,nombre,id_tipo,ubicacion,luminica,id_estado,created_at,fecha_retirada,causa_retirada';
+
+// Las vistas Ciegas y Lumínicas fijan el filtro lumínica; la vista Bajas muestra solo bajas.
+// En las demas vistas las bajas se excluyen, salvo con bajas=1 en la URL.
+const toFiltros = (filtros: FiltrosSenales, vista: Vista): Filter[] => {
+  const luminica =
+    vista === 'ciegas' ? 'false' : vista === 'luminicas' ? 'true' : filtros.luminica;
+
+  const retirada: Filter[] = vista === 'bajas'
+    ? [{ column: 'fecha_retirada', op: 'not_is', value: null }]
+    : filtros.bajas === '1'
+      ? []
+      : [{ column: 'fecha_retirada', op: 'is', value: null }];
+
+  return [
+    ...retirada,
+    { column: 'id_tipo', op: 'eq', value: filtros.id_tipo },
+    { column: 'id_estacion', op: 'eq', value: filtros.id_estacion },
+    { column: 'id_categoria', op: 'eq', value: filtros.id_categoria },
+    { column: 'id_estado', op: 'eq', value: filtros.id_estado },
+    { column: 'id_zona', op: 'eq', value: filtros.id_zona },
+    { column: 'id_empresa', op: 'eq', value: filtros.id_empresa },
+    { column: 'id_complejidad', op: 'eq', value: filtros.id_complejidad },
+    { column: 'id_usuario_navegacion', op: 'eq', value: filtros.id_usuario_navegacion },
+    { column: 'id_caracteristica', op: 'eq', value: filtros.id_caracteristica },
+    { column: 'id_colorluz', op: 'eq', value: filtros.id_colorluz },
+    { column: 'id_color', op: 'eq', value: filtros.id_color },
+    { column: 'id_modelo', op: 'eq', value: filtros.id_modelo },
+    { column: 'id_forma', op: 'eq', value: filtros.id_forma },
+    { column: 'id_material', op: 'eq', value: filtros.id_material },
+    { column: 'altura', op: 'eq', value: filtros.altura },
+    { column: 'elevacion', op: 'eq', value: filtros.elevacion },
+    { column: 'profundidad', op: 'eq', value: filtros.profundidad },
+    { column: 'luminica', op: 'eq', value: luminica },
+    ...dateRangeFilters('created_at', filtros.desde, filtros.hasta),
+  ];
+};
 
 const ListSenales = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { isAdmin } = useAuth();
+  const vistaParam = searchParams.get('vista');
+  const vista: Vista = esVista(vistaParam) ? vistaParam : 'activas';
+
+  // Los filtros se toman de la URL al abrir la pagina; despues cada cambio se refleja en ella.
+  const [filtrosIniciales] = useState(() => filtrosDesdeUrl(searchParams));
 
   const {
     rows: senales,
@@ -115,8 +233,7 @@ const ListSenales = () => {
     order,
     toggleOrder,
     filters,
-    setFilter,
-    resetFilters,
+    setFilter: setFilterLista,
     loading,
     error,
     reload,
@@ -125,11 +242,72 @@ const ListSenales = () => {
     select: COLUMNAS_LISTA,
     pageSize: 20,
     defaultOrder: { column: 'created_at', dir: 'desc' },
-    initialFilters: FILTROS_INICIALES,
-    toFilters: toFiltros,
+    initialFilters: filtrosIniciales,
+    toFilters: (filtros) => toFiltros(filtros, vista),
     searchColumns: ['codigo_lsm', 'nombre', 'ubicacion'],
     searchKey: 'texto',
   });
+
+  const setFilter = (clave: keyof FiltrosSenales, valor: string) => {
+    setFilterLista(clave, valor);
+    const parametro = PARAMETROS.find((p) => p.clave === clave)?.param;
+    if (!parametro) return;
+    setSearchParams((previos) => {
+      const next = new URLSearchParams(previos);
+      if (valor === '') next.delete(parametro);
+      else next.set(parametro, valor);
+      return next;
+    }, { replace: true });
+  };
+
+  // Limpia los filtros y sus parametros de URL; la vista se mantiene.
+  const limpiarFiltros = () => {
+    PARAMETROS.forEach(({ clave }) => setFilterLista(clave, ''));
+    setSearchParams((previos) => {
+      const next = new URLSearchParams(previos);
+      PARAMETROS.forEach(({ param }) => next.delete(param));
+      return next;
+    }, { replace: true });
+  };
+
+  // Selector de catalogo; vacio equivale a sin filtro.
+  const selectorCatalogo = (
+    etiqueta: string,
+    clave: keyof FiltrosSenales,
+    opciones: CatalogoItem[] | undefined,
+    todos: 'Todos' | 'Todas'
+  ) => (
+    <FilterField label={etiqueta} className="w-full md:w-44">
+      <Select
+        value={filters[clave] || TODOS}
+        onValueChange={(valor) => setFilter(clave, valor === TODOS ? '' : valor)}
+      >
+        <SelectTrigger className="w-full border-blue-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={TODOS}>{todos}</SelectItem>
+          {opciones?.map((opcion) => (
+            <SelectItem key={opcion.id} value={opcion.id}>{opcion.nombre}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </FilterField>
+  );
+
+  // Campo numerico para valor exacto (altura, elevacion, profundidad).
+  const campoNumerico = (etiqueta: string, clave: 'altura' | 'elevacion' | 'profundidad') => (
+    <FilterField label={etiqueta} className="w-full md:w-32">
+      <Input
+        type="number"
+        step="any"
+        value={filters[clave]}
+        onChange={(e) => setFilter(clave, e.target.value)}
+        placeholder="Valor exacto"
+        className="w-full border-blue-200 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+      />
+    </FilterField>
+  );
 
   const [catalogos, setCatalogos] = useState<CatalogosResponse | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -151,8 +329,17 @@ const ListSenales = () => {
     [catalogos]
   );
 
-  // Cada campo con valor cuenta como filtro activo (solo sobre los 8 campos de filtro).
+  // Cada campo con valor cuenta como filtro activo. La vista no cuenta.
   const filtrosActivos = Object.values(filters).filter((valor) => valor !== '').length;
+
+  const cambiarVista = (nueva: Vista) => {
+    setPage(1);
+    setSearchParams((previos) => {
+      const next = new URLSearchParams(previos);
+      next.set('vista', nueva);
+      return next;
+    });
+  };
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '-';
@@ -226,6 +413,13 @@ const ListSenales = () => {
             Actualizar
           </Button>
           <Button
+            variant="outline"
+            onClick={() => navigate('/radioelectricas')}
+            className="w-full sm:w-auto"
+          >
+            Radioeléctricas
+          </Button>
+          <Button
             onClick={handleNew}
             className="w-full sm:w-auto bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
           >
@@ -235,9 +429,33 @@ const ListSenales = () => {
         </div>
       </div>
 
+      {/* Vistas rápidas: cambian el criterio base de la consulta */}
+      <div
+        role="group"
+        aria-label="Vista de señales"
+        className="mb-4 inline-flex flex-wrap gap-1 rounded-lg border border-blue-200 bg-white p-1 dark:border-gray-600 dark:bg-gray-800"
+      >
+        {VISTAS.map((opcion) => {
+          const activa = vista === opcion.valor;
+          return (
+            <Button
+              key={opcion.valor}
+              size="sm"
+              aria-pressed={activa}
+              onClick={() => cambiarVista(opcion.valor)}
+              className={activa
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-transparent text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700'}
+            >
+              {opcion.etiqueta}
+            </Button>
+          );
+        })}
+      </div>
+
       {/* Filtros: se consultan en el servidor */}
       <div className="mb-6">
-        <FilterBar onReset={resetFilters} activeCount={filtrosActivos}>
+        <FilterBar onReset={limpiarFiltros} activeCount={filtrosActivos}>
           <FilterField label="Buscar" className="w-full md:w-72">
             <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -320,21 +538,86 @@ const ListSenales = () => {
             </Select>
           </FilterField>
 
-          <FilterField label="Lumínica" className="w-full md:w-36">
+          <FilterField label="Estación" className="w-full md:w-44">
             <Select
-              value={filters.luminica || TODOS}
-              onValueChange={(valor) => setFilter('luminica', valor === TODOS ? '' : valor)}
+              value={filters.id_estacion || TODOS}
+              onValueChange={(valor) => setFilter('id_estacion', valor === TODOS ? '' : valor)}
             >
               <SelectTrigger className="w-full border-blue-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={TODOS}>Todas</SelectItem>
-                <SelectItem value="true">Sí</SelectItem>
-                <SelectItem value="false">No</SelectItem>
+                {catalogos?.estaciones.map((estacion) => (
+                  <SelectItem key={estacion.id} value={estacion.id}>{estacion.nombre}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </FilterField>
+
+          <FilterField label="Categoría" className="w-full md:w-44">
+            <Select
+              value={filters.id_categoria || TODOS}
+              onValueChange={(valor) => setFilter('id_categoria', valor === TODOS ? '' : valor)}
+            >
+              <SelectTrigger className="w-full border-blue-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TODOS}>Todas</SelectItem>
+                {catalogos?.categorias.map((categoria) => (
+                  <SelectItem key={categoria.id} value={categoria.id}>{categoria.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+
+          {selectorCatalogo('Complejidad', 'id_complejidad', catalogos?.complejidades, 'Todas')}
+          {selectorCatalogo('Usuario de navegación', 'id_usuario_navegacion', catalogos?.usuariosNavegacion, 'Todos')}
+          {selectorCatalogo('Característica', 'id_caracteristica', catalogos?.caracteristicas, 'Todas')}
+          {selectorCatalogo('Modelo', 'id_modelo', catalogos?.modelos, 'Todos')}
+          {selectorCatalogo('Forma', 'id_forma', catalogos?.formas, 'Todas')}
+          {selectorCatalogo('Material', 'id_material', catalogos?.materiales, 'Todos')}
+          {selectorCatalogo('Color', 'id_color', catalogos?.colores, 'Todos')}
+          {selectorCatalogo('Color de luz', 'id_colorluz', catalogos?.coloresLuz, 'Todos')}
+          {campoNumerico('Altura', 'altura')}
+          {campoNumerico('Elevación', 'elevacion')}
+          {campoNumerico('Profundidad', 'profundidad')}
+
+          {(vista === 'activas' || vista === 'bajas') && (
+            <FilterField label="Lumínica" className="w-full md:w-36">
+              <Select
+                value={filters.luminica || TODOS}
+                onValueChange={(valor) => setFilter('luminica', valor === TODOS ? '' : valor)}
+              >
+                <SelectTrigger className="w-full border-blue-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TODOS}>Todas</SelectItem>
+                  <SelectItem value="true">Sí</SelectItem>
+                  <SelectItem value="false">No</SelectItem>
+                </SelectContent>
+              </Select>
+            </FilterField>
+          )}
+
+          {vista !== 'bajas' && (
+            <FilterField label="Bajas" className="w-full md:w-40">
+              <Select
+                value={filters.bajas === '1' ? '1' : '0'}
+                onValueChange={(valor) => setFilter('bajas', valor === '1' ? '1' : '')}
+              >
+                <SelectTrigger className="w-full border-blue-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Excluir</SelectItem>
+                  <SelectItem value="1">Incluir</SelectItem>
+                </SelectContent>
+              </Select>
+            </FilterField>
+          )}
 
           <FilterField label="Creación desde" className="w-full md:w-40">
             <Input
@@ -428,9 +711,17 @@ const ListSenales = () => {
                     <SortableHead column="codigo_lsm" label="Código LSM" order={order} onSort={toggleOrder} className="font-semibold" />
                     <SortableHead column="nombre" label="Nombre" order={order} onSort={toggleOrder} className="font-semibold" />
                     <TableHead className="font-semibold">Tipo</TableHead>
-                    <SortableHead column="ubicacion" label="Ubicación" order={order} onSort={toggleOrder} className="font-semibold" />
+                    {vista === 'bajas' ? (
+                      <SortableHead column="fecha_retirada" label="Fecha de retirada" order={order} onSort={toggleOrder} className="font-semibold" />
+                    ) : (
+                      <SortableHead column="ubicacion" label="Ubicación" order={order} onSort={toggleOrder} className="font-semibold" />
+                    )}
                     <SortableHead column="luminica" label="Lumínica" order={order} onSort={toggleOrder} className="font-semibold" />
-                    <TableHead className="font-semibold">Estado</TableHead>
+                    {vista === 'bajas' ? (
+                      <TableHead className="font-semibold">Causa</TableHead>
+                    ) : (
+                      <TableHead className="font-semibold">Estado</TableHead>
+                    )}
                     <SortableHead column="created_at" label="Fecha Creación" order={order} onSort={toggleOrder} className="font-semibold" />
                     <TableHead className="font-semibold text-center">Acciones</TableHead>
                   </TableRow>
@@ -447,7 +738,11 @@ const ListSenales = () => {
                           {tipoById.get(senal.id_tipo) ?? senal.id_tipo ?? 'No especificado'}
                         </Badge>
                       </TableCell>
-                      <TableCell>{senal.ubicacion ?? '-'}</TableCell>
+                      {vista === 'bajas' ? (
+                        <TableCell>{formatDate(senal.fecha_retirada ?? undefined)}</TableCell>
+                      ) : (
+                        <TableCell>{senal.ubicacion ?? '-'}</TableCell>
+                      )}
                       <TableCell>
                         {senal.luminica ? (
                           <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
@@ -459,11 +754,15 @@ const ListSenales = () => {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-slate-100 text-slate-800 dark:bg-gray-600 dark:text-gray-100">
-                          {estadoById.get(senal.id_estado) ?? '—'}
-                        </Badge>
-                      </TableCell>
+                      {vista === 'bajas' ? (
+                        <TableCell>{senal.causa_retirada ?? '—'}</TableCell>
+                      ) : (
+                        <TableCell>
+                          <Badge variant="outline" className="bg-slate-100 text-slate-800 dark:bg-gray-600 dark:text-gray-100">
+                            {estadoById.get(senal.id_estado) ?? '—'}
+                          </Badge>
+                        </TableCell>
+                      )}
                       <TableCell>{formatDate(senal.created_at)}</TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-2">
@@ -476,24 +775,28 @@ const ListSenales = () => {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Editar señal"
-                            onClick={() => handleEdit(senal.id_senal)}
-                            className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Eliminar señal"
-                            onClick={() => confirmDelete(senal)}
-                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {vista !== 'bajas' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Editar señal"
+                              onClick={() => handleEdit(senal.id_senal)}
+                              className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Eliminar señal"
+                              onClick={() => confirmDelete(senal)}
+                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -530,7 +833,7 @@ const ListSenales = () => {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteLoading}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
+              onClick={() => void handleDelete()}
               disabled={deleteLoading}
               className="bg-red-600 hover:bg-red-700 text-white"
             >

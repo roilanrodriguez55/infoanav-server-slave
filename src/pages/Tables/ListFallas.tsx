@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fallasService } from '@/services/api/fallasApi';
 import { senalesService } from '@/services/api/senalesApi';
 import { useServerList } from '@/hooks/useServerList';
@@ -55,6 +55,7 @@ import {
   User
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { etiquetaSenal } from '@/lib/utils';
 
 interface FallaFila {
   id_falla: string;
@@ -127,6 +128,7 @@ const toFiltros = (filtros: FiltrosFallas): Filter[] => [
 
 const ListFallas = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const {
     rows: fallas,
@@ -161,6 +163,12 @@ const ListFallas = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
 
+  // Enlaces desde la ficha de señal: ?senal=<id> preselecciona el filtro de señal.
+  useEffect(() => {
+    const senal = searchParams.get('senal');
+    if (senal) setFilter('id_senal', senal);
+  }, [searchParams, setFilter]);
+
   useEffect(() => {
     // Los catalogos solo llenan las opciones de los filtros; si fallan, los selects quedan en "Todos".
     void senalesService.getSenales().then((res) => {
@@ -189,7 +197,7 @@ const ListFallas = () => {
 
   const getSenalNombre = (falla: FallaFila) => {
     if (!falla.senales) return falla.id_senal;
-    return `${falla.senales.codigo_lsm} - ${falla.senales.nombre}`;
+    return etiquetaSenal(falla.senales.codigo_lsm, falla.senales.nombre);
   };
 
   const confirmDelete = (falla: FallaFila) => {
@@ -248,6 +256,14 @@ const ListFallas = () => {
         <div className="flex flex-col sm:flex-row gap-2">
           <Button
             variant="outline"
+            onClick={() => setFilter('estado', 'abiertas')}
+            className="w-full sm:w-auto border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+          >
+            <AlertCircle className="h-4 w-4 mr-2" />
+            Fuera de servicio actualmente
+          </Button>
+          <Button
+            variant="outline"
             onClick={reload}
             className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
           >
@@ -293,7 +309,7 @@ const ListFallas = () => {
                 <SelectItem value={TODOS}>Todas</SelectItem>
                 {senales.map((senal) => (
                   <SelectItem key={senal.id_senal} value={senal.id_senal}>
-                    {`${senal.codigo_lsm} - ${senal.nombre}`}
+                    {etiquetaSenal(senal.codigo_lsm, senal.nombre)}
                   </SelectItem>
                 ))}
               </SelectContent>

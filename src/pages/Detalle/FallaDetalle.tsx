@@ -1,13 +1,28 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { format, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { AlertCircle, ArrowLeft, Loader2, Pencil } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Loader2, Pencil, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import HistorialCambios from '@/components/common/HistorialCambios';
+import { aIntervaloPostgres, aValorDatetimeLocal, diferenciaMs } from '@/lib/intervalos';
+import { aTimestampLocal } from '@/lib/planMantenimiento';
+import { esVacio } from '@/lib/utils';
 import { fallasService, type FallaResponse } from '@/services/api/fallasApi';
 import { senalesService, type CatalogoItem } from '@/services/api/senalesApi';
 
@@ -121,6 +136,8 @@ const fechaLegible = (valor: string | null | undefined, conHora = false): string
 
 const etiquetaSenal = (senal: SenalResumen): string => `${texto(senal.codigo_lsm)} - ${texto(senal.nombre)}`;
 
+const aNulo = (valor: string): string | null => (esVacio(valor) ? null : valor);
+
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: ReactNode }) {
   return (
     <div className="space-y-1">
@@ -132,11 +149,19 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: ReactNode }) {
 
 export default function FallaDetalle() {
   const { id = '' } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [datos, setDatos] = useState<DatosDetalle | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [intento, setIntento] = useState(0);
   const [pestana, setPestana] = useState('basicos');
+  const [dialogoAbierto, setDialogoAbierto] = useState(false);
+  const [fechaRestablecer, setFechaRestablecer] = useState('');
+  const [medidas, setMedidas] = useState('');
+  const [observaciones, setObservaciones] = useState('');
+  const [registrarMantenimiento, setRegistrarMantenimiento] = useState(false);
+  const [guardandoRestablecer, setGuardandoRestablecer] = useState(false);
+  const [errorRestablecer, setErrorRestablecer] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -219,6 +244,54 @@ export default function FallaDetalle() {
   const { falla, senal, tiposFalla, origenesFalla } = datos;
   const abierta = !falla.fecha_restablecer;
 
+  const abrirRestablecer = () => {
+    setFechaRestablecer(aValorDatetimeLocal(new Date()));
+    setMedidas(falla.medidas ?? '');
+    setObservaciones(falla.observaciones ?? '');
+    setRegistrarMantenimiento(false);
+    setErrorRestablecer(null);
+    setDialogoAbierto(true);
+  };
+
+  const guardarRestablecer = async () => {
+    if (!fechaRestablecer) {
+      setErrorRestablecer('Indique la fecha de restablecimiento');
+      return;
+    }
+
+    const iso = aTimestampLocal(fechaRestablecer) ?? fechaRestablecer;
+    const duracion = diferenciaMs(falla.fecha_falla, iso);
+    if (duracion !== null && duracion < 0) {
+      setErrorRestablecer('La fecha de restablecimiento no puede ser anterior a la fecha de falla');
+      return;
+    }
+    const diferencia = diferenciaMs(falla.fecha_pronost_restablecer, iso);
+
+    setGuardandoRestablecer(true);
+    setErrorRestablecer(null);
+    const respuesta = await fallasService.restablecer(falla.id_falla, {
+      fecha_restablecer: iso,
+      medidas: aNulo(medidas),
+      observaciones: aNulo(observaciones),
+      duracion_de_falla: duracion === null ? null : aIntervaloPostgres(duracion),
+      diferencia_tiempo: diferencia === null ? null : aIntervaloPostgres(diferencia),
+    });
+    setGuardandoRestablecer(false);
+
+    if (!respuesta.success) {
+      setErrorRestablecer(respuesta.message || 'Error al restablecer la falla');
+      return;
+    }
+
+    setDialogoAbierto(false);
+    if (registrarMantenimiento) {
+      const params = new URLSearchParams({ senal: falla.id_senal ?? '', falla: falla.id_falla, fin: iso });
+      void navigate(`/gestion-mant/nuevo?${params.toString()}`);
+    } else {
+      setIntento((n) => n + 1);
+    }
+  };
+
   const enlaceSenal: ReactNode = senal ? (
     <Link to={`/gestion-senales/${senal.id_senal}`} className="text-blue-600 hover:underline dark:text-blue-400">
       {etiquetaSenal(senal)}
@@ -260,6 +333,12 @@ export default function FallaDetalle() {
               Volver
             </Link>
           </Button>
+          {abierta && (
+            <Button onClick={abrirRestablecer}>
+              <RotateCcw />
+              Restablecer
+            </Button>
+          )}
           <Button asChild>
             <Link to={`/gestion-fallas/editar/${falla.id_falla}`}>
               <Pencil />
@@ -339,6 +418,86 @@ export default function FallaDetalle() {
           />
         </TabsContent>
       </Tabs>
+
+      <Dialog
+        open={dialogoAbierto}
+        onOpenChange={(abrir) => {
+          if (!guardandoRestablecer) setDialogoAbierto(abrir);
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Restablecer falla</DialogTitle>
+            <DialogDescription>Registre el restablecimiento de la señal.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fecha-restablecer">Fecha de restablecimiento</Label>
+              <Input
+                id="fecha-restablecer"
+                type="datetime-local"
+                value={fechaRestablecer}
+                onChange={(e) => setFechaRestablecer(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="medidas-restablecer">Medidas tomadas</Label>
+              <Textarea
+                id="medidas-restablecer"
+                value={medidas}
+                onChange={(e) => setMedidas(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="observaciones-restablecer">Observaciones</Label>
+              <Textarea
+                id="observaciones-restablecer"
+                value={observaciones}
+                onChange={(e) => setObservaciones(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="registrar-mantenimiento"
+                checked={registrarMantenimiento}
+                onCheckedChange={(marcado) => setRegistrarMantenimiento(marcado === true)}
+              />
+              <Label htmlFor="registrar-mantenimiento" className="cursor-pointer">
+                Registrar mantenimiento de este restablecimiento
+              </Label>
+            </div>
+
+            {errorRestablecer && (
+              <p className="flex items-center text-sm text-red-600 dark:text-red-400">
+                <AlertCircle className="mr-1 h-4 w-4" />
+                {errorRestablecer}
+              </p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogoAbierto(false)} disabled={guardandoRestablecer}>
+              Cancelar
+            </Button>
+            <Button onClick={() => void guardarRestablecer()} disabled={guardandoRestablecer}>
+              {guardandoRestablecer ? (
+                <>
+                  <Loader2 className="animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                'Restablecer'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

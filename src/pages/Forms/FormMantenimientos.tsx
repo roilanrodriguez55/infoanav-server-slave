@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { mantenimientosService } from '@/services/api/mantenApi';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { mantenimientosService, type MantenimientoResponse } from '@/services/api/mantenApi';
 import { senalesService } from '@/services/api/senalesApi';
+import { fallasService } from '@/services/api/fallasApi';
+import { planMantService, type PlanMantenimiento } from '@/services/api/planMantApi';
+import { flotaService } from '@/services/api/flotaApi';
 import { CommandSelect } from '@/components/ui/CommandSelect';
+import { CAMPO_PENDIENTE, cn, esVacio, etiquetaSenal } from '@/lib/utils';
+import { aIntervaloPostgres, aValorDatetimeLocal, diferenciaMs, formatearDuracion } from '@/lib/intervalos';
+import { aTextoLocal, aTimestampLocal, fechaHoraLegible } from '@/lib/planMantenimiento';
 
 // Componentes shadcn
 import { Button } from '@/components/ui/button';
@@ -25,7 +31,6 @@ import {
   X,
   ArrowLeft,
   Wrench,
-  Clock,
   Loader2
 } from 'lucide-react';
 import { type AxiosError } from 'axios';
@@ -42,9 +47,10 @@ interface FormMantenimientosData {
   ident_mantenimiento: string;
   fecha_inicio: string;
   fecha_finalizacion: string;
-  tiempo_empleado: string;
   aseguro: string;
   id_estado_senal: string;
+  id_buque: string;
+  vehiculo: string;
   trabajo_realizado: string;
   costo_mn: number;
   costo_mlc: number;
@@ -55,73 +61,87 @@ interface FormMantenimientosData {
   rg: string;
   orden: string;
   introdujo: string;
-  tipoFallaCausa: string;
 }
 
-interface MantenimientoResponse {
-  success: boolean;
-  data?: {
-    id_senal: string;
-    id_tipo_mant: string;
-    ident_mantenimiento: string;
-    fecha_inicio: string;
-    fecha_finalizacion: string;
-    tiempo_empleado: string;
-    aseguro: string;
-    id_estado_senal: string;
-    trabajo_realizado: string;
-    costo_mn: string | number;
-    costo_mlc: string | number;
-    diesel_lit: string | number;
-    gasolina_lit: string | number;
-    informa: string;
-    transmite: string;
-    rg: string;
-    orden: string;
-    introdujo: string;
-    tipoFallaCausa: string;
-  };
-  message?: string;
+const FORMULARIO_VACIO: FormMantenimientosData = {
+  id_senal: '',
+  id_tipo_mant: '',
+  ident_mantenimiento: '',
+  fecha_inicio: '',
+  fecha_finalizacion: '',
+  aseguro: '',
+  id_estado_senal: '',
+  id_buque: '',
+  vehiculo: '',
+  trabajo_realizado: '',
+  costo_mn: 0,
+  costo_mlc: 0,
+  diesel_lit: 0,
+  gasolina_lit: 0,
+  informa: '',
+  transmite: '',
+  rg: '',
+  orden: '',
+  introdujo: ''
+};
+
+const CLASE_INPUT = 'border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400';
+
+const texto = (valor: unknown): string => (typeof valor === 'string' ? valor : '');
+
+const numero = (valor: unknown): number => Number(valor) || 0;
+
+const fechaParaInput = (valor: unknown): string => aValorDatetimeLocal(typeof valor === 'string' ? valor : null);
+
+interface FallaRegistro {
+  id_senal?: string | null;
+  fecha_falla?: string | null;
+  id_tipo_falla?: string | null;
+  causa_de_falla?: string | null;
+}
+
+interface FallaAsociada {
+  fecha: string | null;
+  tipo: string;
+  causa: string | null;
 }
 
 const FormMantenimientos: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+  const [searchParams] = useSearchParams();
+
   const isEditing = !!id;
-  
+  const idPlan = isEditing ? null : searchParams.get('plan');
+  const idFalla = isEditing ? null : searchParams.get('falla');
+
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(isEditing);
   const [senales, setSenales] = useState<CatalogoItem[]>([]);
+  const [fechasRetiro, setFechasRetiro] = useState<Record<string, string | null>>({});
   const [tiposMantenimiento, setTiposMantenimiento] = useState<CatalogoItem[]>([]);
   const [estadosSenal, setEstadosSenal] = useState<CatalogoItem[]>([]);
-  const [tiposFalla, setTiposFalla] = useState<CatalogoItem[]>([]);
-  
-  const [formData, setFormData] = useState<FormMantenimientosData>({
-    id_senal: '',
-    id_tipo_mant: '',
-    ident_mantenimiento: '',
-    fecha_inicio: '',
-    fecha_finalizacion: '',
-    tiempo_empleado: '',
-    aseguro: '',
-    id_estado_senal: '',
-    trabajo_realizado: '',
-    costo_mn: 0,
-    costo_mlc: 0,
-    diesel_lit: 0,
-    gasolina_lit: 0,
-    informa: '',
-    transmite: '',
-    rg: '',
-    orden: '',
-    introdujo: '',
-    tipoFallaCausa: ''
-  });
+  const [buques, setBuques] = useState<CatalogoItem[]>([]);
+  const [medio, setMedio] = useState<'buque' | 'vehiculo' | null>(null);
+  const [fallaAsociada, setFallaAsociada] = useState<FallaAsociada | null>(null);
+  const [plan, setPlan] = useState<PlanMantenimiento | null>(null);
+  const [errorPlan, setErrorPlan] = useState<string | null>(null);
+
+  // Precarga desde la URL: ?senal= y ?fin= (fecha de finalizacion)
+  const [formData, setFormData] = useState<FormMantenimientosData>(() => ({
+    ...FORMULARIO_VACIO,
+    id_senal: searchParams.get('senal') ?? '',
+    fecha_finalizacion: fechaParaInput(searchParams.get('fin')),
+  }));
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState('general');
+
+  // Cargar buques de la flota (medio utilizado)
+  useEffect(() => {
+    void flotaService.getBuquesCatalogo().then(setBuques).catch(() => undefined);
+  }, []);
 
   // Cargar catálogos
   useEffect(() => {
@@ -129,31 +149,32 @@ const FormMantenimientos: React.FC = () => {
       setLoading(true);
       try {
         const [senalesRes, tiposRes, estadosRes] = await Promise.all([
-          senalesService.getSenales() as Promise<{ success: boolean; data: { id_senal: string; codigo_lsm: string; nombre: string }[] }>,
+          senalesService.getSenales() as Promise<{ success: boolean; data: { id_senal: string; codigo_lsm: string; nombre: string; fecha_retirada?: string | null }[] }>,
           mantenimientosService.getTiposMantenimiento() as Promise<{ success: boolean; data: { id_tipo_mant: string; nombre: string }[] }>,
           mantenimientosService.getEstadosSenal() as Promise<{ success: boolean; data: { id_estado_senal: string; nombre: string }[] }>,
         ]);
-        
+
         if (senalesRes.success) {
-          setSenales(((senalesRes.data) ?? []).map((item) => ({ id: item.id_senal, nombre: `${item.codigo_lsm} - ${item.nombre}` })));
+          const lista = senalesRes.data ?? [];
+          setSenales(lista.map((item) => ({ id: item.id_senal, nombre: etiquetaSenal(item.codigo_lsm, item.nombre) })));
+          setFechasRetiro(Object.fromEntries(lista.map((item) => [item.id_senal, item.fecha_retirada ?? null])));
         }
-        
+
         if (tiposRes.success) {
           setTiposMantenimiento(((tiposRes.data) ?? []).map((item) => ({ id: item.id_tipo_mant, nombre: item.nombre })));
         }
-        
+
         if (estadosRes.success) {
           setEstadosSenal(((estadosRes.data) ?? []).map((item) => ({ id: item.id_estado_senal, nombre: item.nombre })));
         }
-        
-        setTiposFalla([]);
+
       } catch (error) {
         console.error('Error cargando catálogos:', error);
       } finally {
         setLoading(false);
       }
     };
-    
+
     void loadCatalogos();
   }, []);
 
@@ -161,13 +182,13 @@ const FormMantenimientos: React.FC = () => {
   useEffect(() => {
     const loadMantenimiento = async () => {
       if (!id) return;
-      
+
       setLoadingData(true);
       try {
-        const response = await mantenimientosService.getById(id) as MantenimientoResponse;
-        
+        const response = await mantenimientosService.getById(id);
+
         if (response.success && response.data) {
-          const items = response.data as unknown as { id_mantenimiento: string; [key: string]: unknown }[];
+          const items = response.data as Record<string, unknown>[];
           const data = items[0];
           if (!data) {
             alert('Error al cargar los datos del mantenimiento');
@@ -175,32 +196,31 @@ const FormMantenimientos: React.FC = () => {
             return;
           }
 
-          const formatDateForInput = (dateStr?: unknown) => {
-            if (!dateStr || typeof dateStr !== 'string') return '';
-            const date = new Date(dateStr);
-            return date.toISOString().slice(0, 16);
-          };
+          // Medio utilizado excluyente: si hay datos viejos con buque y vehiculo, prevalece el buque.
+          const idBuque = texto(data.id_buque);
+          const vehiculo = texto(data.vehiculo);
+          setMedio(idBuque ? 'buque' : vehiculo ? 'vehiculo' : null);
 
           setFormData({
-            id_senal: (data.id_senal as string | null) ?? '',
-            id_tipo_mant: (data.id_tipo_mant as string | null) ?? '',
-            ident_mantenimiento: (data.ident_mantenimiento as string | null) ?? '',
-            fecha_inicio: formatDateForInput(data.fecha_inicio),
-            fecha_finalizacion: formatDateForInput(data.fecha_finalizacion),
-            tiempo_empleado: data.tiempo_empleado?.toString() ?? '',
-            aseguro: (data.aseguro as string | null) ?? '',
-            id_estado_senal: (data.id_estado_senal as string | null) ?? '',
-            trabajo_realizado: (data.trabajo_realizado as string | null) ?? '',
-            costo_mn: Number(data.costo_mn) || 0,
-            costo_mlc: Number(data.costo_mlc) || 0,
-            diesel_lit: Number(data.diesel_lit) || 0,
-            gasolina_lit: Number(data.gasolina_lit) || 0,
-            informa: (data.informa as string | null) ?? '',
-            transmite: (data.transmite as string | null) ?? '',
-            rg: (data.rg as string | null) ?? '',
-            orden: (data.orden as string | null) ?? '',
-            introdujo: (data.introdujo as string | null) ?? '',
-            tipoFallaCausa: (data.tipoFallaCausa as string | null) ?? ''
+            id_senal: texto(data.id_senal),
+            id_tipo_mant: texto(data.id_tipo_mant),
+            ident_mantenimiento: texto(data.ident_mantenimiento),
+            fecha_inicio: fechaParaInput(data.fecha_inicio),
+            fecha_finalizacion: fechaParaInput(data.fecha_finalizacion),
+            aseguro: texto(data.aseguro),
+            id_estado_senal: texto(data.id_estado_senal),
+            id_buque: idBuque,
+            vehiculo: idBuque ? '' : vehiculo,
+            trabajo_realizado: texto(data.trabajo_realizado),
+            costo_mn: numero(data.costo_mn),
+            costo_mlc: numero(data.costo_mlc),
+            diesel_lit: numero(data.diesel_lit),
+            gasolina_lit: numero(data.gasolina_lit),
+            informa: texto(data.informa),
+            transmite: texto(data.transmite),
+            rg: texto(data.rg),
+            orden: texto(data.orden),
+            introdujo: texto(data.introdujo)
           });
         } else {
           alert('Error al cargar los datos del mantenimiento');
@@ -220,17 +240,59 @@ const FormMantenimientos: React.FC = () => {
     }
   }, [id, isEditing, navigate]);
 
+  // Cargar el plan que se va a cumplir
+  useEffect(() => {
+    if (!idPlan) return;
+
+    const cargarPlan = async () => {
+      const response = await planMantService.getById(idPlan);
+      const data = response.success ? (response.data as PlanMantenimiento[] | null)?.[0] : undefined;
+      if (!data) {
+        setErrorPlan('No se encontró el plan de mantenimiento. Se registrará sin plan.');
+        return;
+      }
+      setPlan(data);
+      setFormData(prev => ({
+        ...prev,
+        id_senal: data.id_senal,
+        id_tipo_mant: data.id_tipo_mant ?? '',
+        trabajo_realizado: data.trabajo_medios ?? '',
+      }));
+    };
+
+    void cargarPlan();
+  }, [idPlan]);
+
+  // Precargar la señal de la falla y mostrar sus datos (solo lectura, sin referencia guardada)
+  useEffect(() => {
+    if (!idFalla) return;
+
+    const cargarFalla = async () => {
+      const [fallaRes, tiposRes] = await Promise.all([fallasService.getById(idFalla), fallasService.getTiposFalla()]);
+      const falla = fallaRes.success ? (fallaRes.data as FallaRegistro[] | null)?.[0] : undefined;
+      if (!falla) return;
+
+      const tipos = tiposRes.success ? (tiposRes.data as { id_tipo_falla: string; nombre: string }[] | null) ?? [] : [];
+      setFallaAsociada({
+        fecha: falla.fecha_falla ?? null,
+        tipo: tipos.find(t => t.id_tipo_falla === falla.id_tipo_falla)?.nombre ?? '',
+        causa: falla.causa_de_falla ?? null,
+      });
+      if (falla.id_senal) setFormData(prev => ({ ...prev, id_senal: falla.id_senal ?? '' }));
+    };
+
+    void cargarFalla();
+  }, [idFalla]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    
-    if (name === 'tiempo_empleado') {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    } else if (type === 'number') {
+
+    if (type === 'number') {
       setFormData(prev => ({ ...prev, [name]: value === '' ? 0 : Number(value) }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
-    
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -243,47 +305,65 @@ const FormMantenimientos: React.FC = () => {
     }
   };
 
+  // Al cambiar de medio se limpia el valor del otro.
+  const elegirMedio = (nuevo: 'buque' | 'vehiculo') => {
+    setMedio(nuevo);
+    setFormData(prev => ({
+      ...prev,
+      id_buque: nuevo === 'buque' ? prev.id_buque : '',
+      vehiculo: nuevo === 'vehiculo' ? prev.vehiculo : '',
+    }));
+  };
+
   const handleGoBack = () => {
     void navigate('/gestion-mant');
   };
 
+  // Tiempo empleado calculado; null si falta una fecha o fin es anterior a inicio
+  const duracionMs = diferenciaMs(formData.fecha_inicio, formData.fecha_finalizacion);
+  const duracionValida = duracionMs !== null && duracionMs >= 0 ? duracionMs : null;
+
+  // Aviso no bloqueante: el mantenimiento es posterior a la baja de la señal
+  const fechaRetiro = formData.id_senal ? fechasRetiro[formData.id_senal] : null;
+  const avisoRetiro = fechaRetiro && formData.fecha_inicio && new Date(formData.fecha_inicio) > new Date(fechaRetiro)
+    ? `La señal fue retirada el ${new Date(fechaRetiro).toLocaleDateString('es')} y este mantenimiento es posterior a esa fecha.`
+    : null;
+
   const validateForm = (): Record<string, string> => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!formData.id_senal) newErrors.id_senal = 'La señal es requerida';
-    if (!formData.id_tipo_mant) newErrors.id_tipo_mant = 'El tipo de mantenimiento es requerido';
-    if (!formData.fecha_inicio) newErrors.fecha_inicio = 'La fecha de inicio es requerida';
-    if (!formData.id_estado_senal) newErrors.id_estado_senal = 'El estado es requerido';
-    if (!formData.trabajo_realizado) newErrors.trabajo_realizado = 'La descripción del trabajo realizado es requerida';
-    
+
     if (formData.fecha_inicio && formData.fecha_finalizacion) {
       if (new Date(formData.fecha_finalizacion) < new Date(formData.fecha_inicio)) {
         newErrors.fecha_finalizacion = 'La fecha de finalización no puede ser anterior a la fecha de inicio';
       }
     }
-    
+
     return newErrors;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     const newErrors = validateForm();
-    
+
     if (Object.keys(newErrors).length === 0) {
       setIsSubmitting(true);
-      
+
       try {
         const dataToSend = {
-          id_senal: formData.id_senal || undefined,
-          id_tipo_mant: formData.id_tipo_mant,
+          id_senal: formData.id_senal,
+          id_tipo_mant: formData.id_tipo_mant || null,
           ident_mantenimiento: formData.ident_mantenimiento || null,
-          fecha_inicio: formData.fecha_inicio ? new Date(formData.fecha_inicio).toISOString() : null,
-          fecha_finalizacion: formData.fecha_finalizacion ? new Date(formData.fecha_finalizacion).toISOString() : null,
-          tiempo_empleado: formData.tiempo_empleado || undefined,
+          fecha_inicio: aTimestampLocal(formData.fecha_inicio),
+          fecha_finalizacion: aTimestampLocal(formData.fecha_finalizacion),
+          tiempo_empleado: duracionValida === null ? null : aIntervaloPostgres(duracionValida),
           aseguro: formData.aseguro || null,
-          id_estado_senal: formData.id_estado_senal,
-          trabajo_realizado: formData.trabajo_realizado,
+          id_estado_senal: formData.id_estado_senal || null,
+          id_buque: medio === 'buque' ? formData.id_buque || null : null,
+          vehiculo: medio === 'vehiculo' ? formData.vehiculo || null : null,
+          trabajo_realizado: formData.trabajo_realizado || null,
           costo_mn: formData.costo_mn ?? 0,
           costo_mlc: formData.costo_mlc ?? 0,
           diesel_lit: formData.diesel_lit ?? 0,
@@ -295,15 +375,33 @@ const FormMantenimientos: React.FC = () => {
           introdujo: formData.introdujo || null
         };
 
-        let response: { success: boolean; message?: string };
+        let response: MantenimientoResponse;
         if (isEditing) {
           response = await mantenimientosService.update(id, dataToSend);
         } else {
           response = await mantenimientosService.create(dataToSend);
         }
-        
+
         if (response.success) {
-          alert(`✅ Mantenimiento ${isEditing ? 'actualizado' : 'registrado'} con éxito`);
+          let avisoPlanCumplido = '';
+
+          // Marca el plan como cumplido solo si estaba pendiente
+          if (!isEditing && plan && !plan.fecha_cumplida) {
+            const idCreado = (response.data as { id_mantenimiento?: string }[] | null)?.[0]?.id_mantenimiento;
+            const actualizado = idCreado
+              ? await planMantService.update(plan.id_plan_mantenimiento, {
+                  fecha_cumplida: aTimestampLocal(formData.fecha_finalizacion)
+                    ?? aTimestampLocal(formData.fecha_inicio)
+                    ?? aTextoLocal(new Date()),
+                  id_mantenimiento: idCreado,
+                })
+              : null;
+            if (!actualizado?.success) {
+              avisoPlanCumplido = '\nNo se pudo marcar el plan como cumplido.';
+            }
+          }
+
+          alert(`✅ Mantenimiento ${isEditing ? 'actualizado' : 'registrado'} con éxito${avisoPlanCumplido}`);
           void navigate('/gestion-mant');
         } else {
           alert('❌ Error al guardar: ' + (response.message ?? 'Error desconocido'));
@@ -325,49 +423,19 @@ const FormMantenimientos: React.FC = () => {
     if (isEditing) {
       window.location.reload();
     } else {
-      setFormData({
-        id_senal: '',
-        id_tipo_mant: '',
-        ident_mantenimiento: '',
-        fecha_inicio: '',
-        fecha_finalizacion: '',
-        tiempo_empleado: '',
-        aseguro: '',
-        id_estado_senal: '',
-        trabajo_realizado: '',
-        costo_mn: 0,
-        costo_mlc: 0,
-        diesel_lit: 0,
-        gasolina_lit: 0,
-        informa: '',
-        transmite: '',
-        rg: '',
-        orden: '',
-        introdujo: '',
-        tipoFallaCausa: ''
-      });
+      setFormData({ ...FORMULARIO_VACIO });
+      setMedio(null);
       setErrors({});
     }
   };
 
-  const loadFallaData = (): void => {
-    const fallaEjemplo = tiposFalla.length > 0 
-      ? (tiposFalla[Math.floor(Math.random() * tiposFalla.length)]?.nombre ?? 'Falla en sistema eléctrico')
-      : 'Falla en sistema eléctrico';
-    
-    setFormData(prev => ({
-      ...prev,
-      tipoFallaCausa: `${fallaEjemplo} - Corte de energía por tormenta eléctrica`
-    }));
-  };
-
-  const hasError = (fieldName: string): boolean => {
-    return !!errors[fieldName];
-  };
-
-  const getInputClassName = (fieldName: string): string => {
-    return hasError(fieldName) ? "border-red-500 focus-visible:ring-red-500" : "";
-  };
+  // Campo vacio se marca en naranja; un error de validacion se marca en rojo
+  const claseCampo = (valor: unknown, campo?: string): string =>
+    cn(
+      CLASE_INPUT,
+      esVacio(valor) && CAMPO_PENDIENTE,
+      campo && errors[campo] && 'border-red-500 focus-visible:ring-red-500'
+    );
 
   if (loading ?? loadingData) {
     return (
@@ -385,7 +453,7 @@ const FormMantenimientos: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         <div className="mb-6">
           <Button
             variant="outline"
@@ -404,35 +472,60 @@ const FormMantenimientos: React.FC = () => {
               {isEditing ? 'Editar Mantenimiento' : 'Nuevo Mantenimiento'}
             </CardTitle>
             <CardDescription className="text-gray-500 dark:text-gray-400 text-sm mt-2">
-              {isEditing 
-                ? 'Modifique los datos del mantenimiento seleccionado' 
+              {isEditing
+                ? 'Modifique los datos del mantenimiento seleccionado'
                 : 'Complete la información para registrar un nuevo mantenimiento'}
             </CardDescription>
           </CardHeader>
 
           <form onSubmit={handleSubmit}>
             <CardContent className="p-6 lg:p-8">
+              {(errorPlan !== null || !!plan?.fecha_cumplida || avisoRetiro !== null) && (
+                <div className="mb-6 space-y-3">
+                  {errorPlan && (
+                    <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      <AlertDescription className="text-amber-800 dark:text-amber-300">{errorPlan}</AlertDescription>
+                    </Alert>
+                  )}
+                  {plan?.fecha_cumplida && (
+                    <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      <AlertDescription className="text-amber-800 dark:text-amber-300">
+                        Este plan ya está cumplido. El mantenimiento se registrará sin modificar el plan.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {avisoRetiro && (
+                    <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      <AlertDescription className="text-amber-800 dark:text-amber-300">{avisoRetiro}</AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              )}
+
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
                 <TabsList className="grid w-full grid-cols-4 bg-gray-100 dark:bg-gray-700">
-                  <TabsTrigger 
+                  <TabsTrigger
                     value="general"
                     className="data-[state=active]:bg-gray-800 data-[state=active]:text-white dark:data-[state=active]:bg-gray-600 dark:text-gray-300"
                   >
                     Información General
                   </TabsTrigger>
-                  <TabsTrigger 
+                  <TabsTrigger
                     value="fechas"
                     className="data-[state=active]:bg-gray-800 data-[state=active]:text-white dark:data-[state=active]:bg-gray-600 dark:text-gray-300"
                   >
                     Fechas y Tiempos
                   </TabsTrigger>
-                  <TabsTrigger 
+                  <TabsTrigger
                     value="costos"
                     className="data-[state=active]:bg-gray-800 data-[state=active]:text-white dark:data-[state=active]:bg-gray-600 dark:text-gray-300"
                   >
                     Costos
                   </TabsTrigger>
-                  <TabsTrigger 
+                  <TabsTrigger
                     value="responsables"
                     className="data-[state=active]:bg-gray-800 data-[state=active]:text-white dark:data-[state=active]:bg-gray-600 dark:text-gray-300"
                   >
@@ -454,6 +547,7 @@ const FormMantenimientos: React.FC = () => {
                         items={senales}
                         label="Señal"
                         required
+                        pendiente={esVacio(formData.id_senal)}
                       />
                       {errors.id_senal && (
                         <p className="text-sm text-red-500 flex items-center mt-1">
@@ -473,14 +567,8 @@ const FormMantenimientos: React.FC = () => {
                         emptyMessage="No se encontraron tipos de mantenimiento"
                         items={tiposMantenimiento}
                         label="Tipo de Mantenimiento"
-                        required
+                        pendiente={esVacio(formData.id_tipo_mant)}
                       />
-                      {errors.id_tipo_mant && (
-                        <p className="text-sm text-red-500 flex items-center mt-1">
-                          <AlertCircle className="h-4 w-4 mr-1" />
-                          {errors.id_tipo_mant}
-                        </p>
-                      )}
                     </div>
 
                     {/* Identificador Mantenimiento */}
@@ -494,7 +582,7 @@ const FormMantenimientos: React.FC = () => {
                         value={formData.ident_mantenimiento}
                         onChange={handleInputChange}
                         placeholder="ID del mantenimiento"
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                        className={claseCampo(formData.ident_mantenimiento)}
                       />
                     </div>
 
@@ -508,48 +596,78 @@ const FormMantenimientos: React.FC = () => {
                         emptyMessage="No se encontraron estados de señal"
                         items={estadosSenal}
                         label="Estado de la Señal"
-                        required
+                        pendiente={esVacio(formData.id_estado_senal)}
                       />
-                      {errors.id_estado_senal && (
-                        <p className="text-sm text-red-500 flex items-center mt-1">
-                          <AlertCircle className="h-4 w-4 mr-1" />
-                          {errors.id_estado_senal}
-                        </p>
-                      )}
                     </div>
                   </div>
 
-                  {/* Tipo de falla y causa */}
+                  {/* Medio utilizado: buque de la flota o vehiculo, excluyentes */}
                   <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <Label htmlFor="tipoFallaCausa" className="text-gray-700 dark:text-gray-300 font-medium">
-                        Tipo de Falla y Causa
-                      </Label>
+                    <p className="font-medium text-gray-700 dark:text-gray-300">Medio utilizado</p>
+                    <div className="inline-flex overflow-hidden rounded-md border border-gray-300 dark:border-gray-600">
                       <Button
                         type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={loadFallaData}
-                        className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+                        variant="ghost"
+                        onClick={() => elegirMedio('buque')}
+                        className={cn('rounded-none', medio === 'buque' ? 'bg-blue-600 text-white hover:bg-blue-700' : 'text-gray-700 dark:text-gray-300')}
                       >
-                        Cargar datos de la falla
+                        Buque
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => elegirMedio('vehiculo')}
+                        className={cn('rounded-none', medio === 'vehiculo' ? 'bg-blue-600 text-white hover:bg-blue-700' : 'text-gray-700 dark:text-gray-300')}
+                      >
+                        Vehículo
                       </Button>
                     </div>
-                    <Textarea
-                      id="tipoFallaCausa"
-                      name="tipoFallaCausa"
-                      value={formData.tipoFallaCausa}
-                      onChange={handleInputChange}
-                      rows={2}
-                      className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
-                      placeholder="Descripción de la falla y su causa"
-                    />
+                    {medio && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {medio === 'buque' ? (
+                          <CommandSelect
+                            value={formData.id_buque}
+                            onValueChange={(value) => handleSelectChange('id_buque', value)}
+                            placeholder="Seleccionar buque"
+                            searchPlaceholder="Buscar buque..."
+                            emptyMessage="No se encontraron buques"
+                            items={buques}
+                            label="Buque"
+                            pendiente={esVacio(formData.id_buque)}
+                          />
+                        ) : (
+                          <div className="space-y-2">
+                            <Label htmlFor="vehiculo" className="text-gray-700 dark:text-gray-300 font-medium">
+                              Vehículo
+                            </Label>
+                            <Input
+                              id="vehiculo"
+                              name="vehiculo"
+                              value={formData.vehiculo}
+                              onChange={handleInputChange}
+                              placeholder="Vehículo utilizado"
+                              className={claseCampo(formData.vehiculo)}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
+
+                  {/* Falla asociada (solo lectura) */}
+                  {fallaAsociada && (
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-1 dark:border-gray-600 dark:bg-gray-700">
+                      <p className="font-medium text-gray-700 dark:text-gray-200">Falla asociada</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Fecha de falla: {fechaHoraLegible(fallaAsociada.fecha)}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Tipo de falla: {fallaAsociada.tipo || '—'}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Causa: {fallaAsociada.causa ?? '—'}</p>
+                    </div>
+                  )}
 
                   {/* Trabajo Realizado */}
                   <div className="space-y-2">
                     <Label htmlFor="trabajo_realizado" className="text-gray-700 dark:text-gray-300 font-medium">
-                      Descripción del Trabajo <span className="text-red-500">*</span>
+                      Descripción del Trabajo
                     </Label>
                     <Textarea
                       id="trabajo_realizado"
@@ -557,15 +675,9 @@ const FormMantenimientos: React.FC = () => {
                       value={formData.trabajo_realizado}
                       onChange={handleInputChange}
                       rows={4}
-                      className={getInputClassName('trabajo_realizado')}
+                      className={claseCampo(formData.trabajo_realizado)}
                       placeholder="Describa detalladamente el trabajo realizado durante el mantenimiento..."
                     />
-                    {errors.trabajo_realizado && (
-                      <p className="text-sm text-red-500 flex items-center mt-1">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        {errors.trabajo_realizado}
-                      </p>
-                    )}
                   </div>
                 </TabsContent>
 
@@ -575,7 +687,7 @@ const FormMantenimientos: React.FC = () => {
                     {/* Fecha Inicio */}
                     <div className="space-y-2">
                       <Label htmlFor="fecha_inicio" className="text-gray-700 dark:text-gray-300 font-medium">
-                        Fecha Inicio <span className="text-red-500">*</span>
+                        Fecha Inicio
                       </Label>
                       <Input
                         id="fecha_inicio"
@@ -583,7 +695,7 @@ const FormMantenimientos: React.FC = () => {
                         name="fecha_inicio"
                         value={formData.fecha_inicio}
                         onChange={handleInputChange}
-                        className={getInputClassName('fecha_inicio')}
+                        className={claseCampo(formData.fecha_inicio, 'fecha_inicio')}
                       />
                       {errors.fecha_inicio && (
                         <p className="text-sm text-red-500">{errors.fecha_inicio}</p>
@@ -601,28 +713,25 @@ const FormMantenimientos: React.FC = () => {
                         name="fecha_finalizacion"
                         value={formData.fecha_finalizacion}
                         onChange={handleInputChange}
-                        className={getInputClassName('fecha_finalizacion')}
+                        className={claseCampo(formData.fecha_finalizacion, 'fecha_finalizacion')}
                       />
                       {errors.fecha_finalizacion && (
                         <p className="text-sm text-red-500">{errors.fecha_finalizacion}</p>
                       )}
                     </div>
 
-                    {/* Tiempo Empleado */}
+                    {/* Tiempo Empleado (calculado) */}
                     <div className="space-y-2">
                       <Label htmlFor="tiempo_empleado" className="text-gray-700 dark:text-gray-300 font-medium">
-                        Tiempo Empleado (horas)
+                        Tiempo Empleado
                       </Label>
                       <Input
                         id="tiempo_empleado"
-                        type="number"
                         name="tiempo_empleado"
-                        value={formData.tiempo_empleado}
-                        onChange={handleInputChange}
-                        min="0"
-                        step="0.5"
-                        placeholder="Horas trabajadas"
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                        value={duracionValida === null ? '' : formatearDuracion(duracionValida)}
+                        readOnly
+                        placeholder="Se calcula con las fechas"
+                        className="border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
                       />
                     </div>
 
@@ -637,19 +746,10 @@ const FormMantenimientos: React.FC = () => {
                         value={formData.aseguro}
                         onChange={handleInputChange}
                         placeholder="Quién aseguró el trabajo"
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                        className={claseCampo(formData.aseguro)}
                       />
                     </div>
                   </div>
-
-                  {formData.fecha_inicio && formData.fecha_finalizacion && (
-                    <Alert className="bg-gray-100 border-gray-200 dark:bg-gray-700 dark:border-gray-600">
-                      <Clock className="h-4 w-4 text-gray-600 dark:text-gray-300" />
-                      <AlertDescription className="text-gray-700 dark:text-gray-300">
-                        Duración: {formData.tiempo_empleado ?? 0} horas
-                      </AlertDescription>
-                    </Alert>
-                  )}
                 </TabsContent>
 
                 {/* Pestaña Costos */}
@@ -673,7 +773,7 @@ const FormMantenimientos: React.FC = () => {
                           min="0"
                           step="0.01"
                           placeholder="0.00"
-                          className="pl-8 border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                          className={cn(claseCampo(formData.costo_mn), 'pl-8')}
                         />
                       </div>
                     </div>
@@ -696,7 +796,7 @@ const FormMantenimientos: React.FC = () => {
                           min="0"
                           step="0.01"
                           placeholder="0.00"
-                          className="pl-8 border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                          className={cn(claseCampo(formData.costo_mlc), 'pl-8')}
                         />
                       </div>
                     </div>
@@ -715,7 +815,7 @@ const FormMantenimientos: React.FC = () => {
                         min="0"
                         step="0.1"
                         placeholder="Litros"
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                        className={claseCampo(formData.diesel_lit)}
                       />
                     </div>
 
@@ -733,7 +833,7 @@ const FormMantenimientos: React.FC = () => {
                         min="0"
                         step="0.1"
                         placeholder="Litros"
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                        className={claseCampo(formData.gasolina_lit)}
                       />
                     </div>
                   </div>
@@ -752,7 +852,7 @@ const FormMantenimientos: React.FC = () => {
                         value={formData.informa}
                         onChange={handleInputChange}
                         placeholder="Quién informa"
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                        className={claseCampo(formData.informa)}
                       />
                     </div>
 
@@ -766,7 +866,7 @@ const FormMantenimientos: React.FC = () => {
                         value={formData.transmite}
                         onChange={handleInputChange}
                         placeholder="Quién transmite"
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                        className={claseCampo(formData.transmite)}
                       />
                     </div>
 
@@ -780,7 +880,7 @@ const FormMantenimientos: React.FC = () => {
                         value={formData.rg}
                         onChange={handleInputChange}
                         placeholder="Número RG"
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                        className={claseCampo(formData.rg)}
                       />
                     </div>
 
@@ -794,7 +894,7 @@ const FormMantenimientos: React.FC = () => {
                         value={formData.orden}
                         onChange={handleInputChange}
                         placeholder="Número de orden"
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                        className={claseCampo(formData.orden)}
                       />
                     </div>
 
@@ -808,7 +908,7 @@ const FormMantenimientos: React.FC = () => {
                         value={formData.introdujo}
                         onChange={handleInputChange}
                         placeholder="Quién introdujo"
-                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                        className={claseCampo(formData.introdujo)}
                       />
                     </div>
                   </div>

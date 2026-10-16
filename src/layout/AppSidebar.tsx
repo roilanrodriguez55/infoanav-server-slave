@@ -8,10 +8,12 @@ import {
   AlertTriangle,
   Wrench,
   FileText,
-  Grid3x3,
+  Package,
+  ShieldAlert,
+  BarChart3,
   Calculator,
+  Ship,
   ChevronDown,
-  MoreHorizontal,
   Anchor,
   LayoutDashboard,
   Users,
@@ -24,10 +26,10 @@ interface NavItem {
   path?: string;
   hidden?: boolean;
   adminOnly?: boolean;
+  group?: string;
   subItems?: {icon: React.ReactNode; name: string; path: string; pro?: boolean; new?: boolean }[];
 }
 
-// Single nav item for initial admin panel structure
 const navItems: NavItem[] = [
   {
     icon: <LayoutDashboard className="w-5 h-5" />,
@@ -37,46 +39,69 @@ const navItems: NavItem[] = [
   {
     icon: <Anchor className="w-5 h-5" />,
     name: "Señales",
-    path: "/gestion-senales"
-  },
-  {
-    icon: <AlertTriangle className="w-5 h-5" />,
-    name: "Fallas",
-    path: "/gestion-fallas"
+    path: "/gestion-senales",
+    group: "Módulos principales",
   },
   {
     icon: <Wrench className="w-5 h-5" />,
     name: "Mantenimientos",
-    path: "/gestion-mant"
+    path: "/gestion-mant",
+    group: "Módulos principales",
+  },
+  {
+    icon: <AlertTriangle className="w-5 h-5" />,
+    name: "Fallas",
+    path: "/gestion-fallas",
+    group: "Módulos principales",
+  },
+  {
+    icon: <Package className="w-5 h-5" />,
+    name: "Equipamiento",
+    path: "/equipamiento",
+    group: "Módulos principales",
+  },
+  {
+    icon: <ShieldAlert className="w-5 h-5" />,
+    name: "Hechos extraordinarios",
+    path: "/hechos",
+    group: "Módulos principales",
   },
   {
     icon: <FileText className="w-5 h-5" />,
     name: "Documentación",
     path: "/documentacion",
-    hidden: true,
+    group: "Consulta y gestión",
   },
   {
-    icon: <Grid3x3 className="w-5 h-5" />,
-    name: "Control de Equipamiento",
-    path: "/cont-equipamiento",
-    hidden: true,
+    icon: <BarChart3 className="w-5 h-5" />,
+    name: "Estadísticas",
+    path: "/estadisticas",
+    group: "Consulta y gestión",
   },
   {
     icon: <Calculator className="w-5 h-5" />,
-    name: "Cálculo de Parámetros",
-    path: "/calculo-parametros",
-    hidden: true,
+    name: "Cálculos",
+    path: "/calculos",
+    group: "Consulta y gestión",
+  },
+  {
+    icon: <Ship className="w-5 h-5" />,
+    name: "Flota y personal",
+    path: "/flota",
+    group: "Consulta y gestión",
   },
   {
     icon: <Users className="w-5 h-5" />,
     name: "Usuarios",
     path: "/usuarios",
+    group: "Administración",
     adminOnly: true,
   },
   {
     icon: <Library className="w-5 h-5" />,
     name: "Catálogos",
     path: "/catalogos",
+    group: "Administración",
     adminOnly: true,
   },
 ];
@@ -89,6 +114,16 @@ const AppSidebar: React.FC = () => {
     () => navItems.filter((nav) => !nav.hidden && (!nav.adminOnly || isAdmin)),
     [isAdmin]
   );
+  const { ungroupedNavItems, groupedNavItems } = useMemo(() => {
+    const groups = new Map<string, NavItem[]>();
+    visibleNavItems.forEach((nav) => {
+      if (nav.group) groups.set(nav.group, [...(groups.get(nav.group) ?? []), nav]);
+    });
+    return {
+      ungroupedNavItems: visibleNavItems.filter((nav) => !nav.group),
+      groupedNavItems: [...groups],
+    };
+  }, [visibleNavItems]);
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
@@ -321,22 +356,25 @@ const AppSidebar: React.FC = () => {
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
-            <div>
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isMobileOpen
-                    ? "lg:justify-center"
-                    : "justify-start"
-                  }`}
-              >
-                {isExpanded || isMobileOpen ? (
-                  "Gestión"
-                ) : (
-                  <MoreHorizontal className="w-6 h-6" />
-                )}
-              </h2>
-              {renderMenuItems(visibleNavItems, "main")}
-            </div>
+            {renderMenuItems(ungroupedNavItems, "main")}
+            {groupedNavItems.map(([groupName, items]) => (
+              <div key={groupName}>
+                <h2
+                  className={`mb-2 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                    !isExpanded && !isMobileOpen
+                      ? "lg:justify-center"
+                      : "justify-start"
+                    }`}
+                >
+                  {isExpanded || isMobileOpen ? (
+                    groupName
+                  ) : (
+                    <span className="my-2 block h-px w-8 bg-gray-200 dark:bg-gray-700" />
+                  )}
+                </h2>
+                {renderMenuItems(items, "main")}
+              </div>
+            ))}
           </div>
         </nav>
       </div>

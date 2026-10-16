@@ -2,12 +2,31 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { format, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { AlertCircle, ArrowLeft, Loader2, Pencil } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Ban, Loader2, Pencil, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import HistorialCambios from '@/components/common/HistorialCambios';
+import { DarBajaDialog } from '@/components/senal/DarBajaDialog';
+import TabHechos from '@/components/senal/TabHechos';
+import TabLmf from '@/components/senal/TabLmf';
+import { VinculoEquipo } from '@/components/senal/VinculoEquipo';
+import TabMantenimientos from '@/components/senal/TabMantenimientos';
+import TabPronostico from '@/components/senal/TabPronostico';
+import TabRacon from '@/components/senal/TabRacon';
+import { useAuth } from '@/context/AuthContext';
 import api from '@/services/config/axiosConfig';
 import { senalesService, type CatalogoItem, type CatalogosResponse } from '@/services/api/senalesApi';
 
@@ -32,6 +51,7 @@ interface Senal {
   control_distancia: boolean | null;
   id_energia: string | null;
   id_marca_tope: string | null;
+  id_complejidad: string | null;
   observaciones: string | null;
   id_color: string | null;
   id_forma: string | null;
@@ -54,6 +74,8 @@ interface Senal {
   voltagebombillo: number | null;
   consumodestellador: number | null;
   sistema_fondeo: string | null;
+  fecha_retirada: string | null;
+  causa_retirada: string | null;
 }
 
 interface EquipamientoSenal {
@@ -62,6 +84,7 @@ interface EquipamientoSenal {
   nombre: string | null;
   cantidad: number | null;
   num_inventario: string | null;
+  id_equipo?: string | null;
 }
 
 interface FallaResumen {
@@ -69,13 +92,6 @@ interface FallaResumen {
   fecha_falla: string | null;
   fecha_restablecer: string | null;
   causa_de_falla: string | null;
-}
-
-interface MantenimientoResumen {
-  id_mantenimiento: string;
-  ident_mantenimiento: string | null;
-  fecha_inicio: string | null;
-  trabajo_realizado: string | null;
 }
 
 interface SistemaFondeo {
@@ -91,7 +107,6 @@ interface DatosDetalle {
   catalogos: CatalogosResponse;
   equipamientos: EquipamientoSenal[];
   fallas: FallaResumen[];
-  mantenimientos: MantenimientoResumen[];
 }
 
 type CatalogoClave = Exclude<keyof CatalogosResponse, 'tiposEquipamiento'>;
@@ -161,15 +176,12 @@ const CATALOGO_POR_CAMPO: Record<string, CatalogoClave> = {
 const FORMATO_ISO_FECHA = /^\d{4}-\d{2}-\d{2}T/;
 
 const cargarDatos = async (id: string): Promise<DatosDetalle> => {
-  const [senalRes, catalogos, equipamientoRes, fallasRes, mantenimientosRes] = await Promise.all([
+  const [senalRes, catalogos, equipamientoRes, fallasRes] = await Promise.all([
     senalesService.getSenalById(id),
     senalesService.getCatalogos(),
     senalesService.getEquipamientos(id),
     api.get<FallaResumen[]>(
       `/fallas?id_senal=eq.${id}&deleted_at=is.null&select=id_falla,fecha_falla,fecha_restablecer,causa_de_falla&order=fecha_falla.desc&limit=10`
-    ),
-    api.get<MantenimientoResumen[]>(
-      `/mantenimientos?id_senal=eq.${id}&deleted_at=is.null&select=id_mantenimiento,ident_mantenimiento,fecha_inicio,trabajo_realizado&order=fecha_inicio.desc&limit=10`
     ),
   ]);
 
@@ -184,7 +196,6 @@ const cargarDatos = async (id: string): Promise<DatosDetalle> => {
     catalogos,
     equipamientos: equipamientos ?? [],
     fallas: fallasRes.data,
-    mantenimientos: mantenimientosRes.data,
   };
 };
 
@@ -233,6 +244,11 @@ export default function SenalDetalle() {
   const [error, setError] = useState<string | null>(null);
   const [intento, setIntento] = useState(0);
   const [pestana, setPestana] = useState('generales');
+  const [bajaAbierta, setBajaAbierta] = useState(false);
+  const [reactivarAbierto, setReactivarAbierto] = useState(false);
+  const [reactivando, setReactivando] = useState(false);
+  const [accionError, setAccionError] = useState<string | null>(null);
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     let cancelado = false;
@@ -314,10 +330,25 @@ export default function SenalDetalle() {
     );
   }
 
-  const { catalogos, equipamientos, fallas, mantenimientos } = datos;
+  const { catalogos, equipamientos, fallas } = datos;
   const esBoya = nombreDe(catalogos.tipos, senal.id_tipo).toLowerCase() === 'boya';
   const luminica = senal.luminica ?? true;
   const fondeo = parsearFondeo(senal.sistema_fondeo);
+  const dadaDeBaja = Boolean(senal.fecha_retirada);
+
+  const reactivar = async () => {
+    setReactivando(true);
+    setAccionError(null);
+    const respuesta = await senalesService.reactivar(senal.id_senal);
+    setReactivando(false);
+
+    if (!respuesta.success) {
+      setAccionError(respuesta.message || 'Error desconocido');
+      return;
+    }
+    setReactivarAbierto(false);
+    setIntento((n) => n + 1);
+  };
 
   const formatearValorHistorial = (campo: string, valor: unknown): string => {
     const clave = CATALOGO_POR_CAMPO[campo];
@@ -337,21 +368,60 @@ export default function SenalDetalle() {
             <Badge variant="outline">{nombreDe(catalogos.estados, senal.id_estado)}</Badge>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" asChild>
             <Link to="/gestion-senales">
               <ArrowLeft />
               Volver
             </Link>
           </Button>
-          <Button asChild>
-            <Link to={`/gestion-senales/editar/${senal.id_senal}`}>
-              <Pencil />
-              Editar
-            </Link>
-          </Button>
+          {!dadaDeBaja && (
+            <Button
+              variant="outline"
+              onClick={() => setBajaAbierta(true)}
+              className="border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-gray-600 dark:text-amber-300 dark:hover:bg-gray-800"
+            >
+              <Ban />
+              Dar baja
+            </Button>
+          )}
+          {dadaDeBaja && isAdmin && (
+            <Button
+              variant="outline"
+              onClick={() => setReactivarAbierto(true)}
+              className="border-green-300 text-green-700 hover:bg-green-50 dark:border-gray-600 dark:text-green-300 dark:hover:bg-gray-800"
+            >
+              <RotateCcw />
+              Reactivar
+            </Button>
+          )}
+          {!dadaDeBaja && (
+            <Button asChild>
+              <Link to={`/gestion-senales/editar/${senal.id_senal}`}>
+                <Pencil />
+                Editar
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
+
+      {dadaDeBaja && (
+        <Alert className="bg-amber-50 border-amber-300 dark:bg-amber-900/20 dark:border-amber-700">
+          <Ban className="h-4 w-4 text-amber-700 dark:text-amber-400" />
+          <AlertDescription className="text-amber-900 dark:text-amber-200">
+            Retirada el {fechaLegible(senal.fecha_retirada)}
+            {senal.causa_retirada ? `. Causa: ${senal.causa_retirada}` : ''}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {accionError && (
+        <Alert className="bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
+          <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+          <AlertDescription className="text-red-700 dark:text-red-300">{accionError}</AlertDescription>
+        </Alert>
+      )}
 
       <Tabs value={pestana} onValueChange={setPestana}>
         <TabsList className="flex h-auto w-full flex-wrap justify-start bg-blue-100 dark:bg-gray-700">
@@ -367,11 +437,26 @@ export default function SenalDetalle() {
           <TabsTrigger value="equipamiento" disabled={!luminica} className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[disabled]:opacity-50 dark:text-gray-300">
             Equipamiento
           </TabsTrigger>
+          <TabsTrigger value="pronostico" disabled={!luminica} className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[disabled]:opacity-50 dark:text-gray-300">
+            Pronóstico
+          </TabsTrigger>
           <TabsTrigger value="fondeo" disabled={!esBoya} className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[disabled]:opacity-50 dark:text-gray-300">
             Sistema de Fondeo
           </TabsTrigger>
           <TabsTrigger value="fallas" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:text-gray-300">
-            Fallas y mantenimientos
+            Fallas
+          </TabsTrigger>
+          <TabsTrigger value="mantenimientos" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:text-gray-300">
+            Mantenimientos
+          </TabsTrigger>
+          <TabsTrigger value="radioelectrico" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:text-gray-300">
+            Radioeléctrico
+          </TabsTrigger>
+          <TabsTrigger value="lmf" disabled={!esBoya} className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[disabled]:opacity-50 dark:text-gray-300">
+            Leva, Mantenimiento y Fondeo (LMF)
+          </TabsTrigger>
+          <TabsTrigger value="hechos" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:text-gray-300">
+            Hechos
           </TabsTrigger>
           <TabsTrigger value="historial" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:text-gray-300">
             Historial
@@ -399,6 +484,7 @@ export default function SenalDetalle() {
             <Dato etiqueta={ETIQUETAS.control_distancia} valor={sinoNo(senal.control_distancia)} />
             <Dato etiqueta={ETIQUETAS.id_energia} valor={nombreDe(catalogos.energias, senal.id_energia)} />
             <Dato etiqueta={ETIQUETAS.id_marca_tope} valor={nombreDe(catalogos.marcasTope, senal.id_marca_tope)} />
+            <Dato etiqueta="Complejidad" valor={nombreDe(catalogos.complejidades, senal.id_complejidad)} />
             <div className="sm:col-span-2 lg:col-span-3">
               <Dato etiqueta={ETIQUETAS.observaciones} valor={texto(senal.observaciones)} />
             </div>
@@ -451,10 +537,19 @@ export default function SenalDetalle() {
                     <Dato etiqueta="Cantidad" valor={numero(equipo.cantidad)} />
                     <Dato etiqueta="N° inventario" valor={texto(equipo.num_inventario)} />
                   </dl>
+                  <VinculoEquipo
+                    idEquipamiento={equipo.id_equipamiento}
+                    idTipoEquipamiento={equipo.id_tipo_equipamiento}
+                    idEquipo={equipo.id_equipo ?? null}
+                  />
                 </li>
               ))}
             </ul>
           )}
+        </TabsContent>
+
+        <TabsContent value="pronostico" className="mt-4">
+          <TabPronostico key={senal.id_senal} idSenal={senal.id_senal} />
         </TabsContent>
 
         <TabsContent value="fondeo" className="mt-4">
@@ -505,9 +600,14 @@ export default function SenalDetalle() {
           <section className="space-y-2">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-blue-900 dark:text-gray-200">Fallas</h3>
-              <Link to="/gestion-fallas" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-                Ver todas
-              </Link>
+              <div className="flex items-center gap-4">
+                <Link to={`/gestion-fallas/nuevo?senal=${senal.id_senal}`} className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400">
+                  Registrar falla
+                </Link>
+                <Link to={`/gestion-fallas?senal=${senal.id_senal}`} className="text-sm text-blue-600 hover:underline dark:text-blue-400">
+                  Ver todas
+                </Link>
+              </div>
             </div>
             {fallas.length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-gray-400">—</p>
@@ -526,31 +626,22 @@ export default function SenalDetalle() {
               </ul>
             )}
           </section>
+        </TabsContent>
 
-          <section className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-blue-900 dark:text-gray-200">Mantenimientos</h3>
-              <Link to="/gestion-mant" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-                Ver todas
-              </Link>
-            </div>
-            {mantenimientos.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">—</p>
-            ) : (
-              <ul className="divide-y divide-blue-100 dark:divide-gray-700">
-                {mantenimientos.map((mantenimiento) => (
-                  <li key={mantenimiento.id_mantenimiento}>
-                    <Link to={`/gestion-mant/${mantenimiento.id_mantenimiento}`} className="flex flex-col gap-1 py-2 hover:bg-blue-50 dark:hover:bg-gray-800">
-                      <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                        {texto(mantenimiento.ident_mantenimiento)} · {fechaLegible(mantenimiento.fecha_inicio, true)}
-                      </span>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">{texto(mantenimiento.trabajo_realizado)}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+        <TabsContent value="mantenimientos" className="mt-4">
+          <TabMantenimientos idSenal={senal.id_senal} />
+        </TabsContent>
+
+        <TabsContent value="radioelectrico" className="mt-4">
+          <TabRacon idSenal={senal.id_senal} />
+        </TabsContent>
+
+        <TabsContent value="lmf" className="mt-4">
+          <TabLmf idSenal={senal.id_senal} />
+        </TabsContent>
+
+        <TabsContent value="hechos" className="mt-4">
+          <TabHechos idSenal={senal.id_senal} />
         </TabsContent>
 
         <TabsContent value="historial" className="mt-4">
@@ -562,6 +653,35 @@ export default function SenalDetalle() {
           />
         </TabsContent>
       </Tabs>
+
+      <DarBajaDialog
+        open={bajaAbierta}
+        onOpenChange={setBajaAbierta}
+        idSenal={senal.id_senal}
+        codigoLsm={senal.codigo_lsm}
+        onDadaDeBaja={() => setIntento((n) => n + 1)}
+      />
+
+      <AlertDialog open={reactivarAbierto} onOpenChange={setReactivarAbierto}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Reactivar la señal?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se borrarán la fecha y la causa de retirada de la señal.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={reactivando}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => void reactivar()}
+              disabled={reactivando}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              {reactivando ? 'Reactivando...' : 'Reactivar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

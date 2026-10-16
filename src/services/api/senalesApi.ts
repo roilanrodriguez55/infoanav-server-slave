@@ -1,5 +1,6 @@
 import api from '@/services/config/axiosConfig';
 import type { AxiosError } from 'axios';
+import { aTextoLocal } from '@/lib/planMantenimiento';
 
 export interface CatalogoItem {
   id: string;
@@ -27,6 +28,7 @@ export interface CatalogosResponse {
   mares: CatalogoItem[];
   coloresLuz: CatalogoItem[];
   marcasTope: CatalogoItem[];
+  complejidades: CatalogoItem[];
   caracteristicas: CatalogoItem[];
   tiposEquipamiento: TipoEquipamiento[];
 }
@@ -35,7 +37,12 @@ export interface SenalResponse {
   success: boolean;
   message: string;
   data: unknown;
+  codigoDuplicado?: boolean;
 }
+
+// PostgREST devuelve 23505 (unique_violation) en el cuerpo cuando el codigo_lsm ya existe
+const esCodigoDuplicado = (error: AxiosError<{ code?: string }>): boolean =>
+  error.response?.data?.code === '23505';
 
 export const senalesService = {
   getCatalogos: async (): Promise<CatalogosResponse> => {
@@ -56,6 +63,7 @@ export const senalesService = {
         mares,
         coloresLuz,
         marcasTope,
+        complejidades,
         caracteristicas,
         tiposEquipamiento,
       ] = await Promise.all([
@@ -74,6 +82,7 @@ export const senalesService = {
         api.get('/mares?select=id_mar,nombre'),
         api.get('/colores_luz?select=id_colorluz,nombre'),
         api.get('/marcas_tope?select=id_marca_tope,nombre'),
+        api.get('/complejidades?select=id_complejidad,nombre'),
         api.get('/caracteristicas?select=id_caracteristica,nombre'),
         api.get('/tipos_equipamiento?select=id_tipo_equipamiento,nombre'),
       ]);
@@ -94,6 +103,7 @@ export const senalesService = {
         mares: mares.data.map((m: Record<string, unknown>) => ({ id: m.id_mar, nombre: m.nombre })),
         coloresLuz: coloresLuz.data.map((c: Record<string, unknown>) => ({ id: c.id_colorluz, nombre: c.nombre })),
         marcasTope: marcasTope.data.map((m: Record<string, unknown>) => ({ id: m.id_marca_tope, nombre: m.nombre })),
+        complejidades: complejidades.data.map((c: Record<string, unknown>) => ({ id: c.id_complejidad, nombre: c.nombre })),
         caracteristicas: caracteristicas.data.map((c: Record<string, unknown>) => ({ id: c.id_caracteristica, nombre: c.nombre })),
         tiposEquipamiento: tiposEquipamiento.data.map((t: Record<string, unknown>) => ({ id_tipo_equipamiento: t.id_tipo_equipamiento as string, nombre: t.nombre as string })),
       };
@@ -136,9 +146,9 @@ export const senalesService = {
       });
       return { success: true, message: 'Senal creada', data: response.data };
     } catch (error: unknown) {
-      const axiosError = error as AxiosError<{ message?: string; hint?: string }>;
+      const axiosError = error as AxiosError<{ message?: string; hint?: string; code?: string }>;
       console.error('Error creando senal:', axiosError.response?.data);
-      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null, codigoDuplicado: esCodigoDuplicado(axiosError) };
     }
   },
 
@@ -155,9 +165,9 @@ export const senalesService = {
       );
       return { success: true, message: 'Senal actualizada', data: response.data };
     } catch (error: unknown) {
-      const axiosError = error as AxiosError<{ message?: string }>;
+      const axiosError = error as AxiosError<{ message?: string; code?: string }>;
       console.error('Error actualizando senal:', axiosError);
-      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null, codigoDuplicado: esCodigoDuplicado(axiosError) };
     }
   },
 
@@ -172,6 +182,45 @@ export const senalesService = {
     } catch (error: unknown) {
       const axiosError = error as AxiosError<{ message?: string }>;
       console.error('Error eliminando senal:', axiosError);
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
+    }
+  },
+
+  // Sin fecha se usa el momento actual; la causa vacia se guarda como null.
+  darBaja: async (id: string, datos: { fecha?: string; causa?: string }): Promise<SenalResponse> => {
+    try {
+      const response = await api.patch(
+        `/senales?id_senal=eq.${id}`,
+        {
+          fecha_retirada: datos.fecha ?? aTextoLocal(new Date()),
+          causa_retirada: datos.causa ?? null,
+          updated_at: new Date().toISOString(),
+        },
+        { headers: { 'Prefer': 'return=representation' } }
+      );
+      return { success: true, message: 'Senal dada de baja', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      console.error('Error dando de baja senal:', axiosError);
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
+    }
+  },
+
+  reactivar: async (id: string): Promise<SenalResponse> => {
+    try {
+      const response = await api.patch(
+        `/senales?id_senal=eq.${id}`,
+        {
+          fecha_retirada: null,
+          causa_retirada: null,
+          updated_at: new Date().toISOString(),
+        },
+        { headers: { 'Prefer': 'return=representation' } }
+      );
+      return { success: true, message: 'Senal reactivada', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      console.error('Error reactivando senal:', axiosError);
       return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
     }
   },

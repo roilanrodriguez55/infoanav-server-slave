@@ -3,14 +3,16 @@ import type { AxiosError } from 'axios';
 
 export interface MantenimientoData {
   id_senal?: string;
-  id_tipo_mant?: string;
+  id_tipo_mant?: string | null;
   ident_mantenimiento?: string | null;
   fecha_inicio?: string | null;
   fecha_finalizacion?: string | null;
-  tiempo_empleado?: string;
+  tiempo_empleado?: string | null;
   aseguro?: string | null;
-  id_estado_senal?: string;
-  trabajo_realizado?: string;
+  id_estado_senal?: string | null;
+  id_buque?: string | null;
+  vehiculo?: string | null;
+  trabajo_realizado?: string | null;
   costo_mn?: number;
   costo_mlc?: number;
   diesel_lit?: number;
@@ -43,6 +45,16 @@ export const mantenimientosService = {
     try {
       const response = await api.get(`/mantenimientos?id_mantenimiento=eq.${id}&deleted_at=is.null&select=*`);
       return { success: true, message: 'Mantenimiento obtenido', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
+    }
+  },
+
+  getBySenal: async (idSenal: string): Promise<MantenimientoResponse> => {
+    try {
+      const response = await api.get(`/mantenimientos?id_senal=eq.${idSenal}&deleted_at=is.null&select=*&order=fecha_inicio.desc`);
+      return { success: true, message: 'Mantenimientos de la señal obtenidos', data: response.data };
     } catch (error: unknown) {
       const axiosError = error as AxiosError<{ message?: string }>;
       return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
