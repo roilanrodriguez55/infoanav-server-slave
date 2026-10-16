@@ -1,0 +1,61 @@
+# Compose solo para desarrollo y demos. En produccion no se usa Docker.
+# ATENCION: los secretos por defecto (JWT_ACCESS_SECRET, POSTGREST_JWT_SECRET,
+# ADMIN_PASSWORD, POSTGRES_PASSWORD) son SOLO DE DEMO. Sobreescribelos por entorno o en .env.
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: infoanav-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: infoanav
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "${DB_HOST_PORT:-5437}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d infoanav"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - infoanav-network
+
+  # Gateway Node.js (incluye PostgREST como proceso hijo en 127.0.0.1:3000, no publicado)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: infoanav-api
+    environment:
+      PORT: 8080
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:admin@db:5432/infoanav
+      # DEMO: secreto de desarrollo, sobreescribir por entorno (minimo 32 caracteres)
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-demo-only-jwt-access-secret-change-me-32chars}
+      # DEMO: secreto de desarrollo para PostgREST, sobreescribir por entorno (minimo 32 caracteres)
+      POSTGREST_JWT_SECRET: ${POSTGREST_JWT_SECRET:-demo-only-postgrest-jwt-secret-change-me-32}
+      COOKIE_SECURE: "false"
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,http://localhost:8081}
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      START_POSTGREST: "true"
+      POSTGREST_URL: http://127.0.0.1:3000
+      # DEMO: usuario y contrasena administradores iniciales, sobreescribir por entorno
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin12345!}
+      ENABLE_DOCS: ${ENABLE_DOCS:-true}
+    ports:
+      - "${API_HOST_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - infoanav-network
+
+volumes:
+  postgres_data:
+
+networks:
+  infoanav-network:
+    driver: bridge

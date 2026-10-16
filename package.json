@@ -1,17 +1,42 @@
 {
-  "name": "swagger-ui",
-  "version": "1.0.0",
-  "description": "Servidor Express que sirve una interfaz Swagger UI para documentar APIs PostgREST, mostrando la documentación OpenAPI en /api-docs",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
+  "name": "infoanav-server",
+  "version": "0.1.0",
+  "description": "Servidor gateway de Infoanav: autenticacion, proxy a PostgREST y documentacion Swagger",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
   },
-  "keywords": [],
-  "author": "Roilan Rodriguez Castillo",
-  "license": "ISC",
+  "scripts": {
+    "start": "node src/start.ts",
+    "dev": "node --watch src/start.ts",
+    "typecheck": "tsc --noEmit",
+    "migrate": "prisma migrate deploy",
+    "migrate:status": "prisma migrate status",
+    "migration:new": "node scripts/new-migration.ts"
+  },
   "dependencies": {
-    "dotenv": "^17.3.1",
-    "express": "^5.2.1",
-    "swagger-ui-express": "^5.0.1"
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.23.1",
+    "prisma": "^7.10.0",
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
+    "@types/swagger-ui-express": "^4.1.8",
+    "typescript": "^7.0.2"
   }
 }

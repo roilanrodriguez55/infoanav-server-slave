@@ -1,0 +1,7 @@
+// Sin modelos ni bloque generator a proposito: las migraciones son SQL escrito a mano
+// en prisma/migrations. Prisma solo las aplica y registra en _prisma_migrations.
+// La URL de la base de datos se toma de prisma.config.ts (DATABASE_URL).
+
+datasource db {
+  provider = "postgresql"
+}
