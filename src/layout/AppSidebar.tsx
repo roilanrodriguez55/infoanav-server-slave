@@ -1,34 +1,39 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom"; 
-import { useSidebar } from "../context/SidebarContext";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useSidebar } from "@/context/SidebarContext";
+import { useAuth } from "@/context/AuthContext";
 
 // Iconos de Lucide React
-import { 
-  LayoutList, 
-  AlertTriangle, 
-  Wrench, 
-  FileText, 
+import {
+  AlertTriangle,
+  Wrench,
+  FileText,
   Grid3x3,
   Calculator,
   ChevronDown,
-  LayoutGrid,
   MoreHorizontal,
-  List,
   Anchor,
-  ClipboardList,
-  ShieldAlert,
-  Settings
+  LayoutDashboard,
+  Users,
+  Library,
 } from "lucide-react";
 
-type NavItem = {
+interface NavItem {
   name: string;
   icon: React.ReactNode;
   path?: string;
+  hidden?: boolean;
+  adminOnly?: boolean;
   subItems?: {icon: React.ReactNode; name: string; path: string; pro?: boolean; new?: boolean }[];
-};
+}
 
 // Single nav item for initial admin panel structure
 const navItems: NavItem[] = [
+  {
+    icon: <LayoutDashboard className="w-5 h-5" />,
+    name: "Dashboard",
+    path: "/",
+  },
   {
     icon: <Anchor className="w-5 h-5" />,
     name: "Señales",
@@ -48,23 +53,42 @@ const navItems: NavItem[] = [
     icon: <FileText className="w-5 h-5" />,
     name: "Documentación",
     path: "/documentacion",
+    hidden: true,
   },
   {
     icon: <Grid3x3 className="w-5 h-5" />,
     name: "Control de Equipamiento",
     path: "/cont-equipamiento",
+    hidden: true,
   },
   {
     icon: <Calculator className="w-5 h-5" />,
     name: "Cálculo de Parámetros",
     path: "/calculo-parametros",
+    hidden: true,
+  },
+  {
+    icon: <Users className="w-5 h-5" />,
+    name: "Usuarios",
+    path: "/usuarios",
+    adminOnly: true,
+  },
+  {
+    icon: <Library className="w-5 h-5" />,
+    name: "Catálogos",
+    path: "/catalogos",
+    adminOnly: true,
   },
 ];
 
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
+  const { isExpanded, isMobileOpen } = useSidebar();
+  const { isAdmin } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate(); 
+  const visibleNavItems = useMemo(
+    () => navItems.filter((nav) => !nav.hidden && (!nav.adminOnly || isAdmin)),
+    [isAdmin]
+  );
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
@@ -76,14 +100,20 @@ const AppSidebar: React.FC = () => {
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const isActive = useCallback(
-    (path: string) => location.pathname === path,
+    (path: string) => {
+      if (path === "/")
+        return (
+          location.pathname === "/" || location.pathname === "/dashboard"
+        );
+      return location.pathname === path;
+    },
     [location.pathname]
   );
 
   useEffect(() => {
     let nextOpenSubmenu: { type: "main" | "others"; index: number } | null =
       null;
-    const items = navItems;
+    const items = visibleNavItems;
     items.forEach((nav, index) => {
       if (nav.subItems) {
         nav.subItems.forEach((subItem) => {
@@ -96,7 +126,7 @@ const AppSidebar: React.FC = () => {
     
     // Usar setTimeout en lugar de queueMicrotask para mejor rendimiento
     setTimeout(() => setOpenSubmenu(nextOpenSubmenu), 0);
-  }, [location, isActive]);
+  }, [location, isActive, visibleNavItems]);
 
   useEffect(() => {
     if (openSubmenu !== null) {
@@ -104,7 +134,7 @@ const AppSidebar: React.FC = () => {
       if (subMenuRefs.current[key]) {
         setSubMenuHeight((prevHeights) => ({
           ...prevHeights,
-          [key]: subMenuRefs.current[key]?.scrollHeight || 0,
+          [key]: subMenuRefs.current[key]?.scrollHeight ?? 0,
         }));
       }
     }
@@ -113,18 +143,13 @@ const AppSidebar: React.FC = () => {
   const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
     setOpenSubmenu((prevOpenSubmenu) => {
       if (
-        prevOpenSubmenu &&
-        prevOpenSubmenu.type === menuType &&
-        prevOpenSubmenu.index === index
+        prevOpenSubmenu?.type === menuType &&
+        prevOpenSubmenu?.index === index
       ) {
         return null;
       }
       return { type: menuType, index };
     });
-  };
-
-  const handleGestionANAVClick = () => {
-    navigate("/gestion-anav");
   };
 
   const renderMenuItems = (items: NavItem[], menuType: "main" | "others") => (
@@ -208,11 +233,6 @@ const AppSidebar: React.FC = () => {
                           ? "menu-dropdown-item-active"
                           : "menu-dropdown-item-inactive"
                       }`}
-                      onClick={
-                        subItem.name === "Gestión de ANAV" 
-                          ? handleGestionANAVClick 
-                          : undefined
-                      }
                     >
                       <span className="flex items-center gap-2">
                         {subItem.icon && (
@@ -315,7 +335,7 @@ const AppSidebar: React.FC = () => {
                   <MoreHorizontal className="w-6 h-6" />
                 )}
               </h2>
-              {renderMenuItems(navItems, "main")}
+              {renderMenuItems(visibleNavItems, "main")}
             </div>
           </div>
         </nav>

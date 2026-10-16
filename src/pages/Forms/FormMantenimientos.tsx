@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { mantenimientosService } from '../../services/api/mantenApi';
-import { catalogosService } from '../../services/api/catalogApi';
-import { CommandSelectWithAdd } from '../../../@/components/ui/CommandSelectWithAdd';
-import { useAuth } from '../../context/AuthContext';
+import { mantenimientosService } from '@/services/api/mantenApi';
+import { senalesService } from '@/services/api/senalesApi';
+import { CommandSelect } from '@/components/ui/CommandSelect';
 
 // Componentes shadcn
-import { Button } from '../../../@/components/ui/button';
-import { Input } from '../../../@/components/ui/input';
-import { Textarea } from '../../../@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Card,
   CardContent,
@@ -16,10 +15,10 @@ import {
   CardFooter,
   CardHeader,
   CardTitle
-} from '../../../@/components/ui/card';
-import { Label } from '../../../@/components/ui/label';
-import { Alert, AlertDescription } from '../../../@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../@/components/ui/tabs';
+} from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertCircle,
   Save,
@@ -27,10 +26,9 @@ import {
   ArrowLeft,
   Wrench,
   Clock,
-  DollarSign,
-  Users,
   Loader2
 } from 'lucide-react';
+import { type AxiosError } from 'axios';
 
 // Interfaces
 interface CatalogoItem {
@@ -39,11 +37,12 @@ interface CatalogoItem {
 }
 
 interface FormMantenimientosData {
+  id_senal: string;
   id_tipo_mant: string;
   ident_mantenimiento: string;
   fecha_inicio: string;
   fecha_finalizacion: string;
-  tiempo_empleado: number;
+  tiempo_empleado: string;
   aseguro: string;
   id_estado_senal: string;
   trabajo_realizado: string;
@@ -59,25 +58,52 @@ interface FormMantenimientosData {
   tipoFallaCausa: string;
 }
 
+interface MantenimientoResponse {
+  success: boolean;
+  data?: {
+    id_senal: string;
+    id_tipo_mant: string;
+    ident_mantenimiento: string;
+    fecha_inicio: string;
+    fecha_finalizacion: string;
+    tiempo_empleado: string;
+    aseguro: string;
+    id_estado_senal: string;
+    trabajo_realizado: string;
+    costo_mn: string | number;
+    costo_mlc: string | number;
+    diesel_lit: string | number;
+    gasolina_lit: string | number;
+    informa: string;
+    transmite: string;
+    rg: string;
+    orden: string;
+    introdujo: string;
+    tipoFallaCausa: string;
+  };
+  message?: string;
+}
+
 const FormMantenimientos: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { authState } = useAuth();
   
   const isEditing = !!id;
   
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(isEditing);
+  const [senales, setSenales] = useState<CatalogoItem[]>([]);
   const [tiposMantenimiento, setTiposMantenimiento] = useState<CatalogoItem[]>([]);
   const [estadosSenal, setEstadosSenal] = useState<CatalogoItem[]>([]);
   const [tiposFalla, setTiposFalla] = useState<CatalogoItem[]>([]);
   
   const [formData, setFormData] = useState<FormMantenimientosData>({
+    id_senal: '',
     id_tipo_mant: '',
     ident_mantenimiento: '',
     fecha_inicio: '',
     fecha_finalizacion: '',
-    tiempo_empleado: 0,
+    tiempo_empleado: '',
     aseguro: '',
     id_estado_senal: '',
     trabajo_realizado: '',
@@ -102,23 +128,25 @@ const FormMantenimientos: React.FC = () => {
     const loadCatalogos = async () => {
       setLoading(true);
       try {
-        const [tiposRes, estadosRes, fallasRes] = await Promise.all([
-          mantenimientosService.getTiposMantenimiento(),
-          mantenimientosService.getEstadosSenal(),
-          mantenimientosService.getTiposFalla()
+        const [senalesRes, tiposRes, estadosRes] = await Promise.all([
+          senalesService.getSenales() as Promise<{ success: boolean; data: { id_senal: string; codigo_lsm: string; nombre: string }[] }>,
+          mantenimientosService.getTiposMantenimiento() as Promise<{ success: boolean; data: { id_tipo_mant: string; nombre: string }[] }>,
+          mantenimientosService.getEstadosSenal() as Promise<{ success: boolean; data: { id_estado_senal: string; nombre: string }[] }>,
         ]);
         
+        if (senalesRes.success) {
+          setSenales(((senalesRes.data) ?? []).map((item) => ({ id: item.id_senal, nombre: `${item.codigo_lsm} - ${item.nombre}` })));
+        }
+        
         if (tiposRes.success) {
-          setTiposMantenimiento(tiposRes.data || []);
+          setTiposMantenimiento(((tiposRes.data) ?? []).map((item) => ({ id: item.id_tipo_mant, nombre: item.nombre })));
         }
         
         if (estadosRes.success) {
-          setEstadosSenal(estadosRes.data || []);
+          setEstadosSenal(((estadosRes.data) ?? []).map((item) => ({ id: item.id_estado_senal, nombre: item.nombre })));
         }
         
-        if (fallasRes.success) {
-          setTiposFalla(fallasRes.data || []);
-        }
+        setTiposFalla([]);
       } catch (error) {
         console.error('Error cargando catálogos:', error);
       } finally {
@@ -126,7 +154,7 @@ const FormMantenimientos: React.FC = () => {
       }
     };
     
-    loadCatalogos();
+    void loadCatalogos();
   }, []);
 
   // Cargar datos del mantenimiento si estamos editando
@@ -136,86 +164,75 @@ const FormMantenimientos: React.FC = () => {
       
       setLoadingData(true);
       try {
-        console.log('Cargando mantenimiento para edición, ID:', id);
-        const response = await mantenimientosService.getById(id);
+        const response = await mantenimientosService.getById(id) as MantenimientoResponse;
         
         if (response.success && response.data) {
-          const data = response.data;
-          console.log('Datos recibidos:', data);
-          
-          const formatDateForInput = (dateStr?: string) => {
-            if (!dateStr) return '';
+          const items = response.data as unknown as { id_mantenimiento: string; [key: string]: unknown }[];
+          const data = items[0];
+          if (!data) {
+            alert('Error al cargar los datos del mantenimiento');
+            void navigate('/gestion-mant');
+            return;
+          }
+
+          const formatDateForInput = (dateStr?: unknown) => {
+            if (!dateStr || typeof dateStr !== 'string') return '';
             const date = new Date(dateStr);
             return date.toISOString().slice(0, 16);
           };
 
-          const getHoras = (tiempo: any): number => {
-            if (!tiempo) return 0;
-            if (typeof tiempo === 'number') return tiempo;
-            if (typeof tiempo === 'object') {
-              return tiempo.hours || 0;
-            }
-            return 0;
-          };
-
           setFormData({
-            id_tipo_mant: data.id_tipo_mant || '',
-            ident_mantenimiento: data.ident_mantenimiento || '',
+            id_senal: (data.id_senal as string | null) ?? '',
+            id_tipo_mant: (data.id_tipo_mant as string | null) ?? '',
+            ident_mantenimiento: (data.ident_mantenimiento as string | null) ?? '',
             fecha_inicio: formatDateForInput(data.fecha_inicio),
             fecha_finalizacion: formatDateForInput(data.fecha_finalizacion),
-            tiempo_empleado: getHoras(data.tiempo_empleado),
-            aseguro: data.aseguro || '',
-            id_estado_senal: data.id_estado_senal || '',
-            trabajo_realizado: data.trabajo_realizado || '',
-            costo_mn: parseFloat(data.costo_mn) || 0,
-            costo_mlc: parseFloat(data.costo_mlc) || 0,
-            diesel_lit: parseFloat(data.diesel_lit) || 0,
-            gasolina_lit: parseFloat(data.gasolina_lit) || 0,
-            informa: data.informa || '',
-            transmite: data.transmite || '',
-            rg: data.rg || '',
-            orden: data.orden || '',
-            introdujo: data.introdujo || '',
-            tipoFallaCausa: data.tipoFallaCausa || ''
+            tiempo_empleado: data.tiempo_empleado?.toString() ?? '',
+            aseguro: (data.aseguro as string | null) ?? '',
+            id_estado_senal: (data.id_estado_senal as string | null) ?? '',
+            trabajo_realizado: (data.trabajo_realizado as string | null) ?? '',
+            costo_mn: Number(data.costo_mn) || 0,
+            costo_mlc: Number(data.costo_mlc) || 0,
+            diesel_lit: Number(data.diesel_lit) || 0,
+            gasolina_lit: Number(data.gasolina_lit) || 0,
+            informa: (data.informa as string | null) ?? '',
+            transmite: (data.transmite as string | null) ?? '',
+            rg: (data.rg as string | null) ?? '',
+            orden: (data.orden as string | null) ?? '',
+            introdujo: (data.introdujo as string | null) ?? '',
+            tipoFallaCausa: (data.tipoFallaCausa as string | null) ?? ''
           });
         } else {
           alert('Error al cargar los datos del mantenimiento');
-          navigate('/gestion-mant');
+          void navigate('/gestion-mant');
         }
       } catch (error) {
         console.error('Error cargando mantenimiento:', error);
         alert('Error al conectar con el servidor');
-        navigate('/gestion-mant');
+        void navigate('/gestion-mant');
       } finally {
         setLoadingData(false);
       }
     };
 
     if (isEditing) {
-      loadMantenimiento();
+      void loadMantenimiento();
     }
   }, [id, isEditing, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     
-    if (type === 'number') {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value === '' ? 0 : Number(value)
-      }));
+    if (name === 'tiempo_empleado') {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    } else if (type === 'number') {
+      setFormData(prev => ({ ...prev, [name]: value === '' ? 0 : Number(value) }));
     } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+      setFormData(prev => ({ ...prev, [name]: value }));
     }
     
     if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
@@ -227,12 +244,13 @@ const FormMantenimientos: React.FC = () => {
   };
 
   const handleGoBack = () => {
-    navigate('/gestion-mant');
+    void navigate('/gestion-mant');
   };
 
   const validateForm = (): Record<string, string> => {
     const newErrors: Record<string, string> = {};
     
+    if (!formData.id_senal) newErrors.id_senal = 'La señal es requerida';
     if (!formData.id_tipo_mant) newErrors.id_tipo_mant = 'El tipo de mantenimiento es requerido';
     if (!formData.fecha_inicio) newErrors.fecha_inicio = 'La fecha de inicio es requerida';
     if (!formData.id_estado_senal) newErrors.id_estado_senal = 'El estado es requerido';
@@ -256,22 +274,20 @@ const FormMantenimientos: React.FC = () => {
       setIsSubmitting(true);
       
       try {
-        const userStr = localStorage.getItem('usuario');
-        const user = userStr ? JSON.parse(userStr) : null;
-        
-        const dataToSend: any = {
+        const dataToSend = {
+          id_senal: formData.id_senal || undefined,
           id_tipo_mant: formData.id_tipo_mant,
           ident_mantenimiento: formData.ident_mantenimiento || null,
-          fecha_inicio: formData.fecha_inicio || null,
-          fecha_finalizacion: formData.fecha_finalizacion || null,
-          tiempo_empleado: formData.tiempo_empleado || 0,
+          fecha_inicio: formData.fecha_inicio ? new Date(formData.fecha_inicio).toISOString() : null,
+          fecha_finalizacion: formData.fecha_finalizacion ? new Date(formData.fecha_finalizacion).toISOString() : null,
+          tiempo_empleado: formData.tiempo_empleado || undefined,
           aseguro: formData.aseguro || null,
           id_estado_senal: formData.id_estado_senal,
           trabajo_realizado: formData.trabajo_realizado,
-          costo_mn: formData.costo_mn || 0,
-          costo_mlc: formData.costo_mlc || 0,
-          diesel_lit: formData.diesel_lit || 0,
-          gasolina_lit: formData.gasolina_lit || 0,
+          costo_mn: formData.costo_mn ?? 0,
+          costo_mlc: formData.costo_mlc ?? 0,
+          diesel_lit: formData.diesel_lit ?? 0,
+          gasolina_lit: formData.gasolina_lit ?? 0,
           informa: formData.informa || null,
           transmite: formData.transmite || null,
           rg: formData.rg || null,
@@ -279,30 +295,23 @@ const FormMantenimientos: React.FC = () => {
           introdujo: formData.introdujo || null
         };
 
+        let response: { success: boolean; message?: string };
         if (isEditing) {
-          dataToSend.updateby = user?.usuario || 'sistema';
-        } else {
-          dataToSend.createby = user?.usuario || 'sistema';
-        }
-
-        console.log('Enviando datos:', dataToSend);
-        
-        let response;
-        if (isEditing) {
-          response = await mantenimientosService.update(id!, dataToSend);
+          response = await mantenimientosService.update(id, dataToSend);
         } else {
           response = await mantenimientosService.create(dataToSend);
         }
         
         if (response.success) {
           alert(`✅ Mantenimiento ${isEditing ? 'actualizado' : 'registrado'} con éxito`);
-          navigate('/gestion-mant');
+          void navigate('/gestion-mant');
         } else {
-          alert('❌ Error al guardar: ' + (response.message || 'Error desconocido'));
+          alert('❌ Error al guardar: ' + (response.message ?? 'Error desconocido'));
         }
-      } catch (error: any) {
-        console.error('Error detallado:', error);
-        alert('❌ Error al conectar con el servidor: ' + (error.message || 'Error desconocido'));
+      } catch (error: unknown) {
+        const axiosError = error as AxiosError<{ message?: string }>;
+        console.error('Error detallado:', axiosError);
+        alert('❌ Error al conectar con el servidor: ' + (axiosError.response?.data?.message ?? axiosError.message ?? 'Error desconocido'));
       } finally {
         setIsSubmitting(false);
       }
@@ -317,11 +326,12 @@ const FormMantenimientos: React.FC = () => {
       window.location.reload();
     } else {
       setFormData({
+        id_senal: '',
         id_tipo_mant: '',
         ident_mantenimiento: '',
         fecha_inicio: '',
         fecha_finalizacion: '',
-        tiempo_empleado: 0,
+        tiempo_empleado: '',
         aseguro: '',
         id_estado_senal: '',
         trabajo_realizado: '',
@@ -342,7 +352,7 @@ const FormMantenimientos: React.FC = () => {
 
   const loadFallaData = (): void => {
     const fallaEjemplo = tiposFalla.length > 0 
-      ? tiposFalla[Math.floor(Math.random() * tiposFalla.length)].nombre 
+      ? (tiposFalla[Math.floor(Math.random() * tiposFalla.length)]?.nombre ?? 'Falla en sistema eléctrico')
       : 'Falla en sistema eléctrico';
     
     setFormData(prev => ({
@@ -359,7 +369,7 @@ const FormMantenimientos: React.FC = () => {
     return hasError(fieldName) ? "border-red-500 focus-visible:ring-red-500" : "";
   };
 
-  if (loading || loadingData) {
+  if (loading ?? loadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
@@ -433,27 +443,35 @@ const FormMantenimientos: React.FC = () => {
                 {/* Pestaña Información General */}
                 <TabsContent value="general" className="space-y-6 mt-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Señal */}
+                    <div className="space-y-2">
+                      <CommandSelect
+                        value={formData.id_senal}
+                        onValueChange={(value) => handleSelectChange('id_senal', value)}
+                        placeholder="Seleccionar señal"
+                        searchPlaceholder="Buscar señal..."
+                        emptyMessage="No se encontraron señales"
+                        items={senales}
+                        label="Señal"
+                        required
+                      />
+                      {errors.id_senal && (
+                        <p className="text-sm text-red-500 flex items-center mt-1">
+                          <AlertCircle className="h-4 w-4 mr-1" />
+                          {errors.id_senal}
+                        </p>
+                      )}
+                    </div>
+
                     {/* Tipo de Mantenimiento */}
                     <div className="space-y-2">
-                      <Label htmlFor="id_tipo_mant" className="text-gray-700 dark:text-gray-300 font-medium">
-                        Tipo de Mantenimiento <span className="text-red-500">*</span>
-                      </Label>
-                      <CommandSelectWithAdd
+                      <CommandSelect
                         value={formData.id_tipo_mant}
                         onValueChange={(value) => handleSelectChange('id_tipo_mant', value)}
                         placeholder="Seleccionar tipo de mantenimiento"
                         searchPlaceholder="Buscar tipo..."
                         emptyMessage="No se encontraron tipos de mantenimiento"
                         items={tiposMantenimiento}
-                        onAddItem={async (nombre) => {
-                          const response = await catalogosService.createTipoMantenimiento(nombre);
-                          if (response.success) {
-                            const newItem = { id: response.data.id, nombre };
-                            setTiposMantenimiento(prev => [...prev, newItem]);
-                            return newItem;
-                          }
-                          throw new Error(response.message);
-                        }}
                         label="Tipo de Mantenimiento"
                         required
                       />
@@ -482,25 +500,13 @@ const FormMantenimientos: React.FC = () => {
 
                     {/* Estado de Señal */}
                     <div className="space-y-2">
-                      <Label htmlFor="id_estado_senal" className="text-gray-700 dark:text-gray-300 font-medium">
-                        Estado de la Señal <span className="text-red-500">*</span>
-                      </Label>
-                      <CommandSelectWithAdd
+                      <CommandSelect
                         value={formData.id_estado_senal}
                         onValueChange={(value) => handleSelectChange('id_estado_senal', value)}
                         placeholder="Seleccionar estado de señal"
                         searchPlaceholder="Buscar estado..."
                         emptyMessage="No se encontraron estados de señal"
                         items={estadosSenal}
-                        onAddItem={async (nombre) => {
-                          const response = await catalogosService.createEstadoSenal(nombre);
-                          if (response.success) {
-                            const newItem = { id: response.data.id, nombre };
-                            setEstadosSenal(prev => [...prev, newItem]);
-                            return newItem;
-                          }
-                          throw new Error(response.message);
-                        }}
                         label="Estado de la Señal"
                         required
                       />
@@ -640,7 +646,7 @@ const FormMantenimientos: React.FC = () => {
                     <Alert className="bg-gray-100 border-gray-200 dark:bg-gray-700 dark:border-gray-600">
                       <Clock className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                       <AlertDescription className="text-gray-700 dark:text-gray-300">
-                        Duración: {formData.tiempo_empleado || 0} horas
+                        Duración: {formData.tiempo_empleado ?? 0} horas
                       </AlertDescription>
                     </Alert>
                   )}

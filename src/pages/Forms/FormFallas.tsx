@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fallasService } from '../../services/api/fallasApi';
-import { catalogosService } from '../../services/api/catalogApi';
-import { CommandSelectWithAdd } from '../../../@/components/ui/CommandSelectWithAdd';
-import { useAuth } from '../../context/AuthContext';
+import { fallasService } from '@/services/api/fallasApi';
+import { senalesService } from '@/services/api/senalesApi';
+import { CommandSelect } from '@/components/ui/CommandSelect';
 
 // Componentes shadcn
-import { Button } from '../../../@/components/ui/button';
-import { Input } from '../../../@/components/ui/input';
-import { Textarea } from '../../../@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Card,
   CardContent,
@@ -16,18 +15,16 @@ import {
   CardFooter,
   CardHeader,
   CardTitle
-} from '../../../@/components/ui/card';
-import { Label } from '../../../@/components/ui/label';
-import { Checkbox } from '../../../@/components/ui/checkbox';
-import { Alert, AlertDescription } from '../../../@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../@/components/ui/tabs';
+} from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertCircle,
   Save,
   X,
   ArrowLeft,
-  Calendar,
-  User,
   Clock,
   Loader2
 } from 'lucide-react';
@@ -44,6 +41,7 @@ interface OrigenFalla {
 }
 
 interface FormData {
+  id_senal: string;
   fecha_falla: string;
   fecha_restablecer: string;
   fecha_pronost_restablecer: string;
@@ -61,21 +59,44 @@ interface FormData {
   rg: string;
 }
 
+interface FallaSubmitData {
+  id_senal?: string;
+  fecha_falla?: string;
+  fecha_restablecer?: string | null;
+  fecha_pronost_restablecer?: string | null;
+  id_tipo_falla?: string | null;
+  causa_de_falla?: string;
+  medidas?: string | null;
+  reporto?: string | null;
+  rescatada?: boolean;
+  observaciones?: string | null;
+  duracion_de_falla?: string | null;
+  diferencia_tiempo?: string | null;
+  id_origen_falla?: string | null;
+  transmite?: string | null;
+  anar?: string | null;
+  rg?: string | null;
+  updated_at?: string;
+  updated_by?: string;
+  created_at?: string;
+  created_by?: string;
+}
+
 const FormFallas: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { authState } = useAuth();
   
   const isEditing = !!id;
   
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(isEditing);
-  const [saving, setSaving] = useState(false);
   const [tiposFalla, setTiposFalla] = useState<TipoFalla[]>([]);
   const [origenesFalla, setOrigenesFalla] = useState<OrigenFalla[]>([]);
+  const [senales, setSenales] = useState<{ id: string; nombre: string }[]>([]);
   const [activeTab, setActiveTab] = useState('basicos');
   
   const [formData, setFormData] = useState<FormData>({
+    id_senal: '',
     fecha_falla: '',
     fecha_restablecer: '',
     fecha_pronost_restablecer: '',
@@ -101,23 +122,38 @@ const FormFallas: React.FC = () => {
     const loadCatalogos = async () => {
       setLoading(true);
       try {
-        const [tiposRes, origenesRes] = await Promise.all([
+        const [tiposRes, origenesRes, senalesRes] = await Promise.all([
           fallasService.getTiposFalla(),
           fallasService.getOrigenesFalla(),
+          senalesService.getSenales() as Promise<{
+            success: boolean;
+            data: { id_senal: string; codigo_lsm: string; nombre: string }[];
+          }>,
         ]);
 
         if (tiposRes.success) {
-          setTiposFalla(tiposRes.data.map((item: any) => ({
-            id: item.id,
-            nombre: item.nombre
+          const items = tiposRes.data as { id_tipo_falla: string; nombre: string }[];
+          setTiposFalla(items.map((item) => ({
+            id: item.id_tipo_falla,
+            nombre: item.nombre,
           })));
         }
         
         if (origenesRes.success) {
-          setOrigenesFalla(origenesRes.data.map((item: any) => ({
-            id: item.id,
-            nombre: item.nombre
+          const items = origenesRes.data as { id_origen_falla: string; nombre: string }[];
+          setOrigenesFalla(items.map((item) => ({
+            id: item.id_origen_falla,
+            nombre: item.nombre,
           })));
+        }
+
+        if (senalesRes.success) {
+          setSenales(
+            ((senalesRes.data) ?? []).map((item) => ({
+              id: item.id_senal,
+              nombre: `${item.codigo_lsm} - ${item.nombre}`,
+            }))
+          );
         }
       } catch (error) {
         console.error('Error cargando catálogos:', error);
@@ -127,7 +163,7 @@ const FormFallas: React.FC = () => {
       }
     };
 
-    loadCatalogos();
+    void loadCatalogos();
   }, []);
 
   // Cargar datos de la falla si estamos editando
@@ -137,13 +173,17 @@ const FormFallas: React.FC = () => {
       
       setLoadingData(true);
       try {
-        console.log('Cargando falla para edición, ID:', id);
         const response = await fallasService.getById(id);
         
         if (response.success && response.data) {
-          const data = response.data;
-          console.log('Datos recibidos:', data);
-          
+          const items = response.data as { id_falla: string; [key: string]: unknown }[];
+          const data = items[0];
+          if (!data) {
+            alert('Error al cargar los datos de la falla');
+            void navigate('/gestion-fallas');
+            return;
+          }
+
           const formatDateForInput = (dateStr?: string) => {
             if (!dateStr) return '';
             const date = new Date(dateStr);
@@ -151,37 +191,38 @@ const FormFallas: React.FC = () => {
           };
 
           setFormData({
-            fecha_falla: formatDateForInput(data.fecha_falla),
-            fecha_restablecer: formatDateForInput(data.fecha_restablecer),
-            fecha_pronost_restablecer: formatDateForInput(data.fecha_pronost_restablecer),
-            id_tipo_falla: data.id_tipo_falla || '',
-            causa_de_falla: data.causa_de_falla || '',
-            medidas: data.medidas || '',
-            reporto: data.reporto || '',
-            rescatada: data.rescatada || false,
-            observaciones: data.observaciones || '',
-            duracion_de_falla: data.duracion_de_falla || '',
-            diferencia_tiempo: data.diferencia_tiempo || '',
-            id_origen_falla: data.id_origen_falla || '',
-            transmite: data.transmite || '',
-            anar: data.anar || '',
-            rg: data.rg || ''
+            id_senal: (data.id_senal as string | null) ?? '',
+            fecha_falla: formatDateForInput(data.fecha_falla as string),
+            fecha_restablecer: formatDateForInput(data.fecha_restablecer as string | undefined),
+            fecha_pronost_restablecer: formatDateForInput(data.fecha_pronost_restablecer as string | undefined),
+            id_tipo_falla: (data.id_tipo_falla as string | null) ?? '',
+            causa_de_falla: (data.causa_de_falla as string | null) ?? '',
+            medidas: (data.medidas as string | null) ?? '',
+            reporto: (data.reporto as string | null) ?? '',
+            rescatada: (data.rescatada as boolean | null) ?? false,
+            observaciones: (data.observaciones as string | null) ?? '',
+            duracion_de_falla: (data.duracion_de_falla as string | null) ?? '',
+            diferencia_tiempo: (data.diferencia_tiempo as string | null) ?? '',
+            id_origen_falla: (data.id_origen_falla as string | null) ?? '',
+            transmite: (data.transmite as string | null) ?? '',
+            anar: (data.anar as string | null) ?? '',
+            rg: (data.rg as string | null) ?? ''
           });
         } else {
           alert('Error al cargar los datos de la falla');
-          navigate('/gestion-fallas');
+          void navigate('/gestion-fallas');
         }
       } catch (error) {
         console.error('Error cargando falla:', error);
         alert('Error al conectar con el servidor');
-        navigate('/gestion-fallas');
+        void navigate('/gestion-fallas');
       } finally {
         setLoadingData(false);
       }
     };
 
     if (isEditing) {
-      loadFalla();
+      void loadFalla();
     }
   }, [id, isEditing, navigate]);
 
@@ -195,6 +236,7 @@ const FormFallas: React.FC = () => {
       if (diffMs > 0) {
         const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
         const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial de datos
         setFormData(prev => ({
           ...prev,
           duracion_de_falla: `${diffHrs}h ${diffMins}m`
@@ -226,12 +268,13 @@ const FormFallas: React.FC = () => {
   };
 
   const handleGoBack = () => {
-    navigate('/gestion-fallas');
+    void navigate('/gestion-fallas');
   };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     
+    if (!formData.id_senal) newErrors.id_senal = 'La señal es requerida';
     if (!formData.fecha_falla) newErrors.fecha_falla = 'La fecha de falla es requerida';
     if (!formData.id_tipo_falla) newErrors.id_tipo_falla = 'El tipo de falla es requerido';
     if (!formData.causa_de_falla) newErrors.causa_de_falla = 'La causa de falla es requerida';
@@ -251,53 +294,48 @@ const FormFallas: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const userStr = localStorage.getItem('usuario');
-      const user = userStr ? JSON.parse(userStr) : null;
-      
-      const dataToSend: any = {
-        fecha_falla: formData.fecha_falla,
-        fecha_restablecer: formData.fecha_restablecer || null,
-        fecha_pronost_restablecer: formData.fecha_pronost_restablecer || null,
-        id_tipo_falla: formData.id_tipo_falla || null,
-        causa_de_falla: formData.causa_de_falla,
-        medidas: formData.medidas || null,
-        reporto: formData.reporto || null,
-        rescatada: formData.rescatada || false,
-        observaciones: formData.observaciones || null,
-        duracion_de_falla: formData.duracion_de_falla || null,
-        diferencia_tiempo: formData.diferencia_tiempo || null,
-        id_origen_falla: formData.id_origen_falla || null,
-        transmite: formData.transmite || null,
-        anar: formData.anar || null,
-        rg: formData.rg || null
+      const dataToSend: FallaSubmitData = {
+        ...(formData.id_senal && { id_senal: formData.id_senal }),
+        ...(formData.fecha_falla && { fecha_falla: new Date(formData.fecha_falla).toISOString() }),
+        ...(formData.fecha_restablecer && { fecha_restablecer: new Date(formData.fecha_restablecer).toISOString() }),
+        ...(formData.fecha_pronost_restablecer && { fecha_pronost_restablecer: new Date(formData.fecha_pronost_restablecer).toISOString() }),
+        ...(formData.id_tipo_falla && { id_tipo_falla: formData.id_tipo_falla }),
+        ...(formData.causa_de_falla && { causa_de_falla: formData.causa_de_falla }),
+        ...(formData.medidas && { medidas: formData.medidas }),
+        ...(formData.reporto && { reporto: formData.reporto }),
+        rescatada: formData.rescatada ?? false,
+        ...(formData.observaciones && { observaciones: formData.observaciones }),
+        ...(formData.duracion_de_falla && { duracion_de_falla: formData.duracion_de_falla }),
+        ...(formData.diferencia_tiempo && { diferencia_tiempo: formData.diferencia_tiempo }),
+        ...(formData.id_origen_falla && { id_origen_falla: formData.id_origen_falla }),
+        ...(formData.transmite && { transmite: formData.transmite }),
+        ...(formData.anar && { anar: formData.anar }),
+        ...(formData.rg && { rg: formData.rg })
       };
 
       if (isEditing) {
-        dataToSend.updateby = user?.usuario || 'sistema';
+        dataToSend.updated_at = new Date().toISOString();
       } else {
-        dataToSend.createby = user?.usuario || 'sistema';
+        dataToSend.created_at = new Date().toISOString();
       }
 
-      console.log('📤 Datos a enviar:', JSON.stringify(dataToSend, null, 2));
-      
       let response;
       if (isEditing) {
-        response = await fallasService.update(id!, dataToSend);
+        response = await fallasService.update(id, dataToSend);
       } else {
         response = await fallasService.create(dataToSend);
       }
       
-      console.log('🟢 Respuesta del servidor:', response);
-      
       if (response.success) {
         alert(`✅ Falla ${isEditing ? 'actualizada' : 'registrada'} correctamente`);
-        navigate('/gestion-fallas');
+        void navigate('/gestion-fallas');
       } else {
-        alert('❌ Error al guardar: ' + (response.message || 'Error desconocido'));
+        alert('❌ Error al guardar: ' + (response.message ?? 'Error desconocido'));
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('🔴 Error:', error);
-      alert('❌ Error al conectar con el servidor: ' + (error.message || 'Error desconocido'));
+      const message = error instanceof Error ? error.message : 'Error desconocido';
+      alert('❌ Error al conectar con el servidor: ' + message);
     } finally {
       setIsSubmitting(false);
     }
@@ -308,6 +346,7 @@ const FormFallas: React.FC = () => {
       window.location.reload();
     } else {
       setFormData({
+        id_senal: '',
         fecha_falla: '',
         fecha_restablecer: '',
         fecha_pronost_restablecer: '',
@@ -325,7 +364,7 @@ const FormFallas: React.FC = () => {
         rg: ''
       });
       setErrors({});
-      navigate('/gestion-fallas');
+      void navigate('/gestion-fallas');
     }
   };
 
@@ -340,7 +379,7 @@ const FormFallas: React.FC = () => {
       : baseClasses;
   };
 
-  if (loading || loadingData) {
+  if (loading ?? loadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
@@ -413,6 +452,25 @@ const FormFallas: React.FC = () => {
 
                 {/* Pestaña Datos Básicos */}
                 <TabsContent value="basicos" className="space-y-6 mt-4">
+                  <div className="space-y-2 md:max-w-xl">
+                    <CommandSelect
+                      value={formData.id_senal}
+                      onValueChange={(value) => handleSelectChange('id_senal', value)}
+                      placeholder="Seleccionar señal"
+                      searchPlaceholder="Buscar por código o nombre..."
+                      emptyMessage="No se encontraron señales"
+                      items={senales}
+                      label="Señal"
+                      required
+                    />
+                    {errors.id_senal && (
+                      <p className="text-sm text-red-500 flex items-center mt-1">
+                        <AlertCircle className="h-4 w-4 mr-1" />
+                        {errors.id_senal}
+                      </p>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Fecha de Falla */}
                     <div className="space-y-2">
@@ -437,22 +495,13 @@ const FormFallas: React.FC = () => {
 
                     {/* Tipo de Falla */}
                     <div className="space-y-2">
-                      <CommandSelectWithAdd
+                      <CommandSelect
                         value={formData.id_tipo_falla}
                         onValueChange={(value) => handleSelectChange('id_tipo_falla', value)}
                         placeholder="Seleccionar tipo de falla"
                         searchPlaceholder="Buscar tipo..."
                         emptyMessage="No se encontraron tipos de falla"
                         items={tiposFalla}
-                        onAddItem={async (nombre) => {
-                          const response = await catalogosService.createTipoFalla(nombre);
-                          if (response.success) {
-                            const newItem = { id: response.data.id, nombre };
-                            setTiposFalla(prev => [...prev, newItem]);
-                            return newItem;
-                          }
-                          throw new Error(response.message);
-                        }}
                         label="Tipo de Falla"
                         required
                       />
@@ -523,22 +572,13 @@ const FormFallas: React.FC = () => {
 
                     {/* Origen de Falla */}
                     <div className="space-y-2">
-                      <CommandSelectWithAdd
+                      <CommandSelect
                         value={formData.id_origen_falla}
                         onValueChange={(value) => handleSelectChange('id_origen_falla', value)}
                         placeholder="Seleccionar origen de falla"
                         searchPlaceholder="Buscar origen..."
                         emptyMessage="No se encontraron orígenes de falla"
                         items={origenesFalla}
-                        onAddItem={async (nombre) => {
-                          const response = await catalogosService.createOrigenFalla(nombre);
-                          if (response.success) {
-                            const newItem = { id: response.data.id, nombre };
-                            setOrigenesFalla(prev => [...prev, newItem]);
-                            return newItem;
-                          }
-                          throw new Error(response.message);
-                        }}
                         label="Origen de Falla"
                       />
                     </div>
@@ -681,7 +721,7 @@ const FormFallas: React.FC = () => {
                     <Alert className="bg-gray-100 border-gray-200 dark:bg-gray-700 dark:border-gray-600">
                       <Clock className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                       <AlertDescription className="text-gray-700 dark:text-gray-300">
-                        Duración calculada: {formData.duracion_de_falla || 'Calculando...'}
+                        Duración calculada: {formData.duracion_de_falla ?? 'Calculando...'}
                       </AlertDescription>
                     </Alert>
                   )}

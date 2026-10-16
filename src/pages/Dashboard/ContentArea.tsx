@@ -1,9 +1,8 @@
-import React from 'react';
 import { useLocation } from 'react-router-dom';
-import ListSenales from '../Tables/ListSenales';
-import ListFallas from '../Tables//ListFallas';
-import ListMantenimientos from '../Tables/ListManteniminetos';
-import Dashboard from '../Dashboard/Dashboard';
+import ListSenales from '@/pages/Tables/ListSenales';
+import ListFallas from '@/pages/Tables/ListFallas';
+import ListMantenimientos from '@/pages/Tables/ListMantenimientos';
+import Dashboard from '@/pages/Dashboard/Dashboard';
 
 const ContentArea = () => {
   const location = useLocation();
@@ -26,13 +25,7 @@ const ContentArea = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {getContent()}
-      </div>
-    </div>
-  );
+  return <div className="mx-auto">{getContent()}</div>;
 };
 
 export default ContentArea;

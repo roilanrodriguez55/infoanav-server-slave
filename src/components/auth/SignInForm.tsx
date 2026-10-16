@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { authService } from "../../services/api/authApi";
+import { useAuth } from "@/context/AuthContext";
 
 // Componentes shadcn
-import { Button } from "../../../@/components/ui/button";
-import { Input } from "../../../@/components/ui/input";
-import { Label } from "../../../@/components/ui/label";
-import { Alert, AlertDescription } from "../../../@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Iconos
 import { Eye, EyeOff, Lock, User } from "lucide-react";
@@ -15,12 +15,14 @@ export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     usuario: '',
-    contraseña: ''
+    contrasena: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+  const { login, authState, clearError } = useAuth();
   const navigate = useNavigate();
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- se mantiene || para tratar "" como vacio
+  const displayError = error || authState.error || '';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -29,34 +31,32 @@ export default function SignInForm() {
       [name]: value
     }));
     setError('');
+    clearError();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     
-    if (!formData.usuario.trim() || !formData.contraseña.trim()) {
+    if (!formData.usuario.trim() || !formData.contrasena.trim()) {
       setError('Por favor complete todos los campos');
       return;
     }
 
     setLoading(true);
     setError('');
+    clearError();
 
     try {
-      const response = await authService.login({
-        usuario: formData.usuario,
-        contraseña: formData.contraseña
-      });
-
-      if (response.success && response.data) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('usuario', JSON.stringify(response.data.usuario));
-        navigate('/dashboard');
+      const result = await login(formData.usuario, formData.contrasena);
+      if (result.ok) {
+        void navigate('/', { replace: true });
       } else {
-        setError(response.message || 'Error al iniciar sesión');
+        const raw = typeof result.message === 'string' ? result.message : '';
+        setError(raw.trim() || 'Credenciales incorrectas');
       }
-    } catch (err) {
-      setError('Error de conexión con el servidor');
+    } catch {
+      setError('No se pudo conectar. Verifique la red o intente más tarde.');
     } finally {
       setLoading(false);
     }
@@ -79,15 +79,14 @@ export default function SignInForm() {
           </p>
         </div>
 
-        {/* Mensaje de error */}
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertDescription>{error}</AlertDescription>
+        {displayError && (
+          <Alert variant="destructive" className="mb-6" data-testid="signin-error">
+            <AlertDescription>{displayError}</AlertDescription>
           </Alert>
         )}
 
         {/* Formulario - sin contenedor, solo los inputs */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={(e) => { void handleSubmit(e); }} className="space-y-6">
           {/* Campo Usuario */}
           <div className="space-y-2">
             <Label htmlFor="usuario" className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -111,17 +110,17 @@ export default function SignInForm() {
 
           {/* Campo Contraseña */}
           <div className="space-y-2">
-            <Label htmlFor="contraseña" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <Label htmlFor="contrasena" className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Contraseña
             </Label>
             <div className="relative">
               <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
               <Input
-                id="contraseña"
-                name="contraseña"
+                id="contrasena"
+                name="contrasena"
                 type={showPassword ? "text" : "password"}
                 placeholder="Ingrese su contraseña"
-                value={formData.contraseña}
+                value={formData.contrasena}
                 onChange={handleChange}
                 disabled={loading}
                 required
@@ -180,7 +179,7 @@ export default function SignInForm() {
 
         {/* Versión del sistema */}
         <p className="text-center mt-6 text-xs text-gray-400">
-          © 2024 InfoANAVDB - Todos los derechos reservados
+          © 2026 InfoANAVDB - Todos los derechos reservados
         </p>
       </div>
     </div>

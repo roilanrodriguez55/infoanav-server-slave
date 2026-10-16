@@ -1,72 +1,39 @@
-import api from '../config/axiosConfig';
+import { authHttp, refreshSession } from '@/services/config/axiosConfig'
+import { clearAccessToken, setAccessToken } from '@/services/config/tokenStore'
+import type { SesionResponse, UsuarioSesion } from '@/types/auth.types'
+import type { AxiosError } from 'axios'
 
-export interface LoginCredentials {
-  usuario: string;
-  contraseña: string;
-}
+export type LoginServiceResult =
+  | { success: true; data: SesionResponse }
+  | { success: false; message: string }
 
-export interface RegisterData {
-  usuario: string;
-  contraseña: string;
-  cargo_ocupa?: string;
-}
-
-export interface AuthResponse {
-  success: boolean;
-  message: string;
-  data?: {
-    usuario: {
-      id_usuario_sist: string;
-      usuario: string;
-      cargo_ocupa: string | null;
-    };
-    token: string;
-  };
+function mensajeLogin(error: AxiosError): string {
+  const status = error.response?.status
+  if (status === 401) return 'Usuario o contraseña incorrectos'
+  if (status === 429) return 'Demasiados intentos. Intenta de nuevo en unos minutos'
+  return 'No se pudo conectar con el servidor'
 }
 
 export const authService = {
-  // Login
-  login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    try {
-      const response = await api.post('/auth/login', credentials);
-      return response.data;
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Error al conectar con el servidor'
-      };
-    }
-  },
+  login: (usuario: string, contrasena: string): Promise<LoginServiceResult> =>
+    authHttp
+      .post<SesionResponse>('/auth/login', { usuario, contrasena })
+      .then((response) => {
+        setAccessToken(response.data.accessToken)
+        return { success: true as const, data: response.data }
+      })
+      .catch((error: AxiosError) => ({ success: false as const, message: mensajeLogin(error) })),
 
-  // REGISTER - Este es el que faltaba
-  register: async (userData: RegisterData): Promise<AuthResponse> => {
-    try {
-      const response = await api.post('/auth/register', userData);
-      return response.data;
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Error al registrar usuario'
-      };
-    }
-  },
+  refresh: (): Promise<SesionResponse> => refreshSession(),
 
-  // Logout
-  logout: (): void => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('usuario');
-  },
+  logout: (): Promise<void> =>
+    authHttp
+      .post('/auth/logout')
+      .then(() => undefined)
+      .catch(() => undefined)
+      .finally(() => {
+        clearAccessToken()
+      }),
 
-  // Verificar token (opcional)
-  verifyToken: async (): Promise<boolean> => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return false;
-      
-      const response = await api.get('/auth/verify');
-      return response.data.success;
-    } catch (error) {
-      return false;
-    }
-  }
-};
+  me: (): Promise<UsuarioSesion> => authHttp.get<UsuarioSesion>('/auth/me').then((response) => response.data),
+}

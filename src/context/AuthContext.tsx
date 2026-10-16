@@ -1,25 +1,25 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { authService, LoginCredentials, RegisterData } from '../services/api/authApi';
-
-interface Usuario {
-  id_usuario_sist: string;
-  usuario: string;
-  cargo_ocupa: string | null;
-}
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import { authService } from '@/services/api/authApi';
+import { setSessionHandlers } from '@/services/config/axiosConfig';
+import type { UsuarioSesion } from '@/types/auth.types';
 
 interface AuthState {
   isAuthenticated: boolean;
-  usuario: Usuario | null;
-  token: string | null;
+  usuario: UsuarioSesion | null;
   loading: boolean;
   error: string | null;
 }
 
+export type LoginResult =
+  | { ok: true }
+  | { ok: false; message: string };
+
 interface AuthContextProps {
   authState: AuthState;
-  login: (usuario: string, contraseña: string) => Promise<boolean>;
-  register: (usuario: string, contraseña: string, cargo_ocupa?: string) => Promise<boolean>;
-  logout: () => void;
+  isAdmin: boolean;
+  login: (usuario: string, contrasena: string) => Promise<LoginResult>;
+  logout: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -28,7 +28,6 @@ const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 const initialState: AuthState = {
   isAuthenticated: false,
   usuario: null,
-  token: null,
   loading: true,
   error: null
 };
@@ -36,128 +35,48 @@ const initialState: AuthState = {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>(initialState);
 
-  // Verificar sesión al cargar
+  // Refresh al arrancar: restaura la sesion con la cookie httpOnly si existe
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('token');
-      const storedUsuario = localStorage.getItem('usuario');
-      
-      if (token && storedUsuario) {
-        try {
-          const usuario = JSON.parse(storedUsuario);
-          setAuthState({
-            isAuthenticated: true,
-            usuario,
-            token,
-            loading: false,
-            error: null
-          });
-        } catch (error) {
-          // Si hay error al parsear, limpiamos localStorage
-          localStorage.removeItem('token');
-          localStorage.removeItem('usuario');
-          setAuthState({ ...initialState, loading: false });
-        }
-      } else {
+    setSessionHandlers({
+      onRefreshed: (data) => {
+        setAuthState(prev => ({ ...prev, isAuthenticated: true, usuario: data.usuario }));
+      },
+      onAuthFailure: () => {
         setAuthState({ ...initialState, loading: false });
+        window.location.assign('/signin');
       }
-    };
+    });
 
-    checkAuth();
+    authService.refresh()
+      .then((data) => {
+        setAuthState({ isAuthenticated: true, usuario: data.usuario, loading: false, error: null });
+      })
+      .catch(() => {
+        setAuthState({ ...initialState, loading: false });
+      });
   }, []);
 
-  const login = async (usuario: string, contraseña: string): Promise<boolean> => {
+  const login = async (usuario: string, contrasena: string): Promise<LoginResult> => {
     setAuthState(prev => ({ ...prev, loading: true, error: null }));
-    
-    try {
-      const response = await authService.login({ usuario, contraseña });
-      
-      if (response.success && response.data) {
-        // Guardar en localStorage
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('usuario', JSON.stringify(response.data.usuario));
-        
-        // Actualizar estado
-        setAuthState({
-          isAuthenticated: true,
-          usuario: response.data.usuario,
-          token: response.data.token,
-          loading: false,
-          error: null
-        });
-        
-        return true;
-      } else {
-        setAuthState(prev => ({
-          ...prev,
-          loading: false,
-          error: response.message
-        }));
-        return false;
-      }
-    } catch (error) {
-      setAuthState(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Error de conexión'
-      }));
-      return false;
-    }
-  };
 
-  // NUEVO: Método register corregido
-  const register = async (usuario: string, contraseña: string, cargo_ocupa?: string): Promise<boolean> => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-    
-    try {
-      const response = await authService.register({ 
-        usuario, 
-        contraseña, 
-        cargo_ocupa 
+    const response = await authService.login(usuario, contrasena);
+
+    if (response.success) {
+      setAuthState({
+        isAuthenticated: true,
+        usuario: response.data.usuario,
+        loading: false,
+        error: null
       });
-      
-      if (response.success && response.data) {
-        // Guardar en localStorage
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('usuario', JSON.stringify(response.data.usuario));
-        
-        // Actualizar estado
-        setAuthState({
-          isAuthenticated: true,
-          usuario: response.data.usuario,
-          token: response.data.token,
-          loading: false,
-          error: null
-        });
-        
-        return true;
-      } else {
-        setAuthState(prev => ({
-          ...prev,
-          loading: false,
-          error: response.message
-        }));
-        return false;
-      }
-    } catch (error) {
-      setAuthState(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Error de conexión'
-      }));
-      return false;
+      return { ok: true };
     }
+    setAuthState(prev => ({ ...prev, loading: false, error: response.message }));
+    return { ok: false, message: response.message };
   };
 
-  const logout = () => {
-    authService.logout();
-    setAuthState({
-      isAuthenticated: false,
-      usuario: null,
-      token: null,
-      loading: false,
-      error: null
-    });
+  const logout = async (): Promise<void> => {
+    await authService.logout();
+    setAuthState({ ...initialState, loading: false });
   };
 
   const clearError = () => {
@@ -165,12 +84,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      authState, 
-      login, 
-      register, 
+    <AuthContext.Provider value={{
+      authState,
+      isAdmin: authState.usuario?.rol === 'administrador',
+      login,
       logout,
-      clearError 
+      clearError
     }}>
       {children}
     </AuthContext.Provider>

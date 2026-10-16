@@ -1,7 +1,9 @@
-import api from '../config/axiosConfig';
+import api from '@/services/config/axiosConfig';
+import type { AxiosError } from 'axios';
 
 export interface FallaData {
-  fecha_falla: string;
+  id_senal?: string;
+  fecha_falla?: string;
   fecha_restablecer?: string | null;
   fecha_pronost_restablecer?: string | null;
   id_tipo_falla?: string | null;
@@ -16,118 +18,102 @@ export interface FallaData {
   transmite?: string | null;
   anar?: string | null;
   rg?: string | null;
-  // Campos de auditoría
-  createby?: string;
-  updateby?: string;
-  deleteby?: string;
+}
+
+export interface FallaResponse {
+  success: boolean;
+  message: string;
+  data: unknown;
 }
 
 export const fallasService = {
-  // Obtener tipos de falla
-  getTiposFalla: async () => {
+  getAll: async (): Promise<FallaResponse> => {
     try {
-      const response = await api.get('/fallas/tipos-falla');
-      return response.data;
-    } catch (error: any) {
-      console.error('Error en getTiposFalla:', error);
-      return { success: false, message: error.message };
+      const response = await api.get('/fallas?deleted_at=is.null&select=*');
+      return { success: true, message: 'Fallas obtenidas', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
     }
   },
 
-  // Obtener orígenes de falla
-  getOrigenesFalla: async () => {
+  getById: async (id: string): Promise<FallaResponse> => {
     try {
-      const response = await api.get('/fallas/origenes-falla');
-      return response.data;
-    } catch (error: any) {
-      console.error('Error en getOrigenesFalla:', error);
-      return { success: false, message: error.message };
+      const response = await api.get(`/fallas?id_falla=eq.${id}&deleted_at=is.null&select=*`);
+      return { success: true, message: 'Falla obtenida', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
     }
   },
 
-  // Crear nueva falla
-  create: async (data: FallaData) => {
+  create: async (data: FallaData): Promise<FallaResponse> => {
     try {
-      const response = await api.post('/fallas', data);
-      return response.data;
-    } catch (error: any) {
-      console.error('Error en create:', error);
-      return { success: false, message: error.response?.data?.message || error.message };
-    }
-  },
-
-  // Obtener todas las fallas
-  getAll: async () => {
-    try {
-      const response = await api.get('/fallas');
-      return response.data;
-    } catch (error: any) {
-      console.error('Error en getAll:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || error.message 
-      };
-    }
-  },
-
-  // Obtener una falla por ID
-  getById: async (id: string) => {
-    try {
-      console.log('🔍 Solicitando falla con ID:', id);
-      const response = await api.get(`/fallas/${id}`);
-      console.log('✅ Respuesta recibida:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error en getById:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || error.message 
-      };
-    }
-  },
-
-  // Actualizar falla
-  update: async (id: string, data: FallaData) => {
-    try {
-      console.log('📤 Enviando update para ID:', id);
-      console.log('📦 Datos:', data);
-      const response = await api.put(`/fallas/${id}`, data);
-      console.log('📥 Respuesta:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error en update:', error);
-      console.error('Detalles:', error.response?.data);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || error.message 
-      };
-    }
-  },
-
-  // Eliminar falla
-  delete: async (id: string) => {
-    try {
-      const userStr = localStorage.getItem('usuario');
-      const user = userStr ? JSON.parse(userStr) : null;
-      
-      const response = await api.delete(`/fallas/${id}`, {
-        data: { deleteby: user?.usuario || 'sistema' }
+      const response = await api.post('/fallas', {
+        ...data,
+        created_at: new Date().toISOString(),
+      }, {
+        headers: { 'Prefer': 'return=representation' },
       });
-      return response.data;
-    } catch (error: any) {
-      console.error('Error en delete:', error);
-      return { success: false, message: error.message };
+      return { success: true, message: 'Falla creada', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      console.error('Error en create:', axiosError);
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
     }
   },
 
-  // Buscar fallas
-  searchFallas: async (term: string) => {
+  update: async (id: string, data: FallaData): Promise<FallaResponse> => {
     try {
-      const response = await api.get(`/fallas?search=${encodeURIComponent(term)}`);
-      return response.data;
-    } catch (error: any) {
-      console.error('Error en search:', error);
-      return { success: false, message: error.message };
+      const response = await api.patch(
+        `/fallas?id_falla=eq.${id}`,
+        {
+          ...data,
+          updated_at: new Date().toISOString(),
+        },
+        { headers: { 'Prefer': 'return=representation' } }
+      );
+      return { success: true, message: 'Falla actualizada', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      console.error('Error en update:', axiosError);
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
     }
-  }
+  },
+
+  delete: async (id: string): Promise<FallaResponse> => {
+    try {
+      await api.patch(
+        `/fallas?id_falla=eq.${id}`,
+        {
+          deleted_at: new Date().toISOString(),
+        },
+        { headers: { 'Prefer': 'return=representation' } }
+      );
+      return { success: true, message: 'Falla eliminada', data: null };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
+    }
+  },
+
+  getTiposFalla: async (): Promise<FallaResponse> => {
+    try {
+      const response = await api.get('/tipos_falla?select=id_tipo_falla,nombre');
+      return { success: true, message: 'Tipos de falla obtenidos', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
+    }
+  },
+
+  getOrigenesFalla: async (): Promise<FallaResponse> => {
+    try {
+      const response = await api.get('/origenes_falla?select=id_origen_falla,nombre');
+      return { success: true, message: 'Origenes de falla obtenidos', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
+    }
+  },
 };

@@ -1,33 +1,13 @@
-export interface UsuarioSistema {
-  id_usuario_sist: string
+export type Rol = 'administrador' | 'usuario'
+
+export interface UsuarioSesion {
+  id: string
   usuario: string
+  rol: Rol
   cargo_ocupa: string | null
 }
 
-export interface LoginCredentials {
-  usuario: string
-  contraseña: string
-}
-
-export interface RegisterData {
-  usuario: string
-  contraseña: string
-  cargo_ocupa?: string
-}
-
-export interface AuthResponse {
-  success: boolean
-  message: string
-  data?: {
-    usuario: UsuarioSistema
-    token: string
-  }
-}
-
-export interface AuthState {
-  isAuthenticated: boolean
-  usuario: UsuarioSistema | null
-  token: string | null
-  loading: boolean
-  error: string | null
+export interface SesionResponse {
+  accessToken: string
+  usuario: UsuarioSesion
 }

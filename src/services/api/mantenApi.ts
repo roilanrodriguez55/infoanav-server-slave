@@ -1,11 +1,13 @@
-import api from '../config/axiosConfig';
+import api from '@/services/config/axiosConfig';
+import type { AxiosError } from 'axios';
 
 export interface MantenimientoData {
+  id_senal?: string;
   id_tipo_mant?: string;
   ident_mantenimiento?: string | null;
   fecha_inicio?: string | null;
   fecha_finalizacion?: string | null;
-  tiempo_empleado?: number;
+  tiempo_empleado?: string;
   aseguro?: string | null;
   id_estado_senal?: string;
   trabajo_realizado?: string;
@@ -18,126 +20,102 @@ export interface MantenimientoData {
   rg?: string | null;
   orden?: string | null;
   introdujo?: string | null;
-  // Campos de auditoría (opcionales para el tipo de datos)
-  createby?: string;
-  updateby?: string;
-  deleteby?: string;
+}
+
+export interface MantenimientoResponse {
+  success: boolean;
+  message: string;
+  data: unknown;
 }
 
 export const mantenimientosService = {
-  // Obtener tipos de mantenimiento
-  getTiposMantenimiento: async () => {
+  getAll: async (): Promise<MantenimientoResponse> => {
     try {
-      const response = await api.get('/mantenimientos/tipos-mantenimiento');
-      return response.data;
-    } catch (error: any) {
-      console.error('Error en getTiposMantenimiento:', error);
-      return { success: false, message: error.message };
+      const response = await api.get('/mantenimientos?deleted_at=is.null&select=*');
+      return { success: true, message: 'Mantenimientos obtenidos', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
     }
   },
 
-  // Obtener estados de señal
-  getEstadosSenal: async () => {
+  getById: async (id: string): Promise<MantenimientoResponse> => {
     try {
-      const response = await api.get('/mantenimientos/estados-senal');
-      return response.data;
-    } catch (error: any) {
-      console.error('Error en getEstadosSenal:', error);
-      return { success: false, message: error.message };
+      const response = await api.get(`/mantenimientos?id_mantenimiento=eq.${id}&deleted_at=is.null&select=*`);
+      return { success: true, message: 'Mantenimiento obtenido', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
     }
   },
 
-  // Obtener tipos de falla
-  getTiposFalla: async () => {
+  create: async (data: MantenimientoData): Promise<MantenimientoResponse> => {
     try {
-      const response = await api.get('/mantenimientos/tipos-falla');
-      return response.data;
-    } catch (error: any) {
-      console.error('Error en getTiposFalla:', error);
-      return { success: false, message: error.message };
-    }
-  },
-
-  // Crear nuevo mantenimiento
-  create: async (data: MantenimientoData) => {
-    try {
-      // No necesitas incluir createby aquí porque ya viene en data
-      const response = await api.post('/mantenimientos', data);
-      return response.data;
-    } catch (error: any) {
-      console.error('Error en create:', error);
-      return { success: false, message: error.response?.data?.message || error.message };
-    }
-  },
-
-  // Obtener todos los mantenimientos
-  getAll: async () => {
-    try {
-      const response = await api.get('/mantenimientos');
-      return response.data;
-    } catch (error: any) {
-      console.error('Error en getAll:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || error.message 
-      };
-    }
-  },
-
-  // Obtener un mantenimiento por ID
-  getById: async (id: string) => {
-    try {
-      console.log('🔍 Solicitando mantenimiento con ID:', id);
-      const response = await api.get(`/mantenimientos/${id}`);
-      console.log('✅ Respuesta recibida:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error en getById:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || error.message 
-      };
-    }
-  },
-
-  // Actualizar mantenimiento
-  update: async (id: string, data: MantenimientoData) => {
-    try {
-      const response = await api.put(`/mantenimientos/${id}`, data);
-      return response.data;
-    } catch (error: any) {
-      console.error('Error en update:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || error.message 
-      };
-    }
-  },
-
-  // Eliminar mantenimiento
-  delete: async (id: string) => {
-    try {
-      const userStr = localStorage.getItem('usuario');
-      const user = userStr ? JSON.parse(userStr) : null;
-      
-      const response = await api.delete(`/mantenimientos/${id}`, {
-        data: { deleteby: user?.usuario || 'sistema' }
+      const response = await api.post('/mantenimientos', {
+        ...data,
+        created_at: new Date().toISOString(),
+      }, {
+        headers: { 'Prefer': 'return=representation' },
       });
-      return response.data;
-    } catch (error: any) {
-      console.error('Error en delete:', error);
-      return { success: false, message: error.message };
+      return { success: true, message: 'Mantenimiento creado', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      console.error('Error en create:', axiosError);
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
     }
   },
 
-  // Buscar mantenimientos
-  search: async (term: string) => {
+  update: async (id: string, data: MantenimientoData): Promise<MantenimientoResponse> => {
     try {
-      const response = await api.get(`/mantenimientos?search=${encodeURIComponent(term)}`);
-      return response.data;
-    } catch (error: any) {
-      console.error('Error en search:', error);
-      return { success: false, message: error.message };
+      const response = await api.patch(
+        `/mantenimientos?id_mantenimiento=eq.${id}`,
+        {
+          ...data,
+          updated_at: new Date().toISOString(),
+        },
+        { headers: { 'Prefer': 'return=representation' } }
+      );
+      return { success: true, message: 'Mantenimiento actualizado', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      console.error('Error en update:', axiosError);
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
     }
-  }
+  },
+
+  delete: async (id: string): Promise<MantenimientoResponse> => {
+    try {
+      await api.patch(
+        `/mantenimientos?id_mantenimiento=eq.${id}`,
+        {
+          deleted_at: new Date().toISOString(),
+        },
+        { headers: { 'Prefer': 'return=representation' } }
+      );
+      return { success: true, message: 'Mantenimiento eliminado', data: null };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
+    }
+  },
+
+  getTiposMantenimiento: async (): Promise<MantenimientoResponse> => {
+    try {
+      const response = await api.get('/tipos_mantenimiento?select=id_tipo_mant,nombre');
+      return { success: true, message: 'Tipos de mantenimiento obtenidos', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
+    }
+  },
+
+  getEstadosSenal: async (): Promise<MantenimientoResponse> => {
+    try {
+      const response = await api.get('/estados_senal?select=id_estado_senal,nombre');
+      return { success: true, message: 'Estados de senal obtenidos', data: response.data };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      return { success: false, message: axiosError.response?.data?.message ?? axiosError.message, data: null };
+    }
+  },
 };
