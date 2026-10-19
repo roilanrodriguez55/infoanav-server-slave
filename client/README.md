@@ -6,7 +6,7 @@ Frontend del Sistema de Gestion INFOANAV: senales, fallas, mantenimientos, catal
 
 El cliente habla solo con el gateway Node, bajo el prefijo `/api`. Nunca llama a PostgREST. Las peticiones de datos van a `/api/data`, las de sesion a `/api/auth` y las de usuarios a `/api/users`.
 
-El servidor vive en su propio repositorio (`infoanav-server-slave`). Su `README.md` describe el gateway, los permisos y las migraciones.
+El servidor vive en la raiz de este mismo repositorio. Su `README.md` y la carpeta `../docs/` describen el sistema completo, el gateway, los permisos y las migraciones.
 
 ## 2. Requisitos y arranque en desarrollo
 
@@ -31,8 +31,8 @@ Vite lee las variables al arrancar. Si cambias `.env`, reinicia `npm run dev`.
 
 | Variable | Donde se usa | Descripcion |
 |---|---|---|
-| `VITE_API_URL` | Cliente (build y dev) | Base de la API. Por defecto `/api`. Relativa: en dev la resuelve el proxy de Vite, en produccion nginx. Absoluta (por ejemplo `https://api.ejemplo.com`): dominios separados, y el servidor necesita `CORS_ORIGIN`. Vite la incrusta en el build, asi que en produccion cambiarla exige recompilar. |
-| `SERVER_COMPOSE` | `docker-compose.yml` de este repo | Ruta al `docker-compose.yml` del servidor. Por defecto `../infoanav-server-slave/docker-compose.yml`, relativa al repo. En un worktree conviene la ruta absoluta. |
+| `VITE_API_URL` | Cliente (build y dev) | Base de la API. Por defecto `/api`. Relativa: en dev la resuelve el proxy de Vite, en produccion nginx. Absoluta (por ejemplo `https://api.ejemplo.com/api`): dominios separados, y el servidor necesita `CORS_ORIGIN`. Vite la incrusta en el build, asi que en produccion cambiarla exige recompilar. |
+| `SERVER_COMPOSE` | `docker-compose.yml` de este repo | Ruta al `docker-compose.yml` del servidor. Por defecto `../docker-compose.yml`, relativa a client/. En un worktree conviene la ruta absoluta. |
 | `WEB_HOST_PORT` | `docker-compose.yml` de este repo | Puerto del host para el frontend. Por defecto `8081`. |
 | `API_UPSTREAM` | Contenedor `web` | Destino del proxy de nginx. El compose lo fija en `http://api:8080`. |
 
@@ -72,7 +72,7 @@ Que ve cada rol:
 - `usuario`: Dashboard, Senales, Fallas y Mantenimientos, con sus listas, detalles y formularios. No ve Usuarios ni Catalogos en el menu. El servidor tambien rechaza las escrituras en catalogos con 403.
 - `administrador`: lo mismo mas Usuarios (`/usuarios`) y Catalogos (`/catalogos`).
 
-Modulos ocultos. En `navItems` de `src/layout/AppSidebar.tsx` hay tres entradas con `hidden: true`: Documentacion (`/documentacion`), Control de Equipamiento (`/cont-equipamiento`) y Calculo de Parametros (`/calculo-parametros`). No tienen pantalla ni ruta, y quedan fuera del alcance actual. Para activar una, quita `hidden: true` de su entrada y agrega la ruta y su pantalla en `src/App.tsx`.
+Modulos ocultos. `navItems` en `src/layout/AppSidebar.tsx` acepta `hidden: true` para esconder una entrada del menu. Hoy ninguna entrada lo usa, asi que todos los modulos con ruta aparecen en el menu segun el rol.
 
 ## 6. Listas con filtros de servidor
 
@@ -122,7 +122,7 @@ Detalle e historial. Las pantallas `SenalDetalle`, `FallaDetalle` y `Mantenimien
 
 ## 7. Catalogos
 
-`/catalogos` es una pantalla unica para el administrador. Los botones de la parte superior eligen el catalogo, que sale de la lista `CATALOGOS` de `src/config/catalogos.ts` (21 entradas hoy). Dentro de cada catalogo se puede listar, crear (campo "Nuevo registro"), renombrar y dar de baja, con confirmacion. Las llamadas van a `/api/data/<tabla>` desde `src/services/api/catalogosAdminApi.ts`.
+`/catalogos` es una pantalla unica para el administrador. Los botones de la parte superior eligen el catalogo, que sale de la lista `CATALOGOS` de `src/config/catalogos.ts`. Dentro de cada catalogo se puede listar, crear (campo "Nuevo registro"), renombrar y dar de baja, con confirmacion. Las llamadas van a `/api/data/<tabla>` desde `src/services/api/catalogosAdminApi.ts`.
 
 Los selects de los formularios solo eligen valores que ya existen. No permiten crear uno nuevo: para eso se usa la pantalla de Catalogos.
 
@@ -186,7 +186,7 @@ nginx del contenedor `web` sirve el SPA y hace proxy de `/api` a `api:8080`. `we
 Si el repo del servidor no esta al lado de este (por ejemplo, en un worktree), indica la ruta absoluta de su compose:
 
 ```sh
-SERVER_COMPOSE=/ruta/absoluta/infoanav-server-slave/docker-compose.yml docker compose up --build
+SERVER_COMPOSE=/ruta/absoluta/docker-compose.yml docker compose up --build
 ```
 
 Usuario de demo: `admin` con contrasena `Admin12345!`. Son los valores del compose del servidor. Solo para demo: cambialos antes de cualquier uso real.
@@ -227,7 +227,7 @@ server {
    `nginx/default.conf.template` del repo es la referencia que usa la imagen Docker. Ademas de este fallback, cachea `/assets/` con `max-age=31536000`, porque Vite les pone hash en el nombre.
 
 3. Dominios separados. Si el cliente vive en `app.ejemplo.com` y la API en `api.ejemplo.com`:
-   - Antes de `npm run build`, define `VITE_API_URL=https://api.ejemplo.com`. Es absoluta y se incrusta en el build.
+   - Antes de `npm run build`, define `VITE_API_URL=https://api.ejemplo.com/api`. Es absoluta y se incrusta en el build.
    - En el servidor, `CORS_ORIGIN=https://app.ejemplo.com`.
    - Los dos subdominios tienen que ser del mismo sitio. La cookie tiene `SameSite=Strict`, asi que con dominios de sitios distintos el navegador no la envia y el refresh falla. Ese caso no esta soportado por el servidor.
 

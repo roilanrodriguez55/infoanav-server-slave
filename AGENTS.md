@@ -30,11 +30,11 @@ Gateway en Node.js y TypeScript sobre PostgREST y PostgreSQL. Node autentica y a
 
 - `src/config/env.ts`: variables. `src/app.ts`: rutas y middlewares. `src/start.ts`: arranque y apagado.
 - `src/modules/{auth,users,data}`: modulos. La matriz de permisos esta en `src/modules/data/policy.ts`. Tokens en `src/lib/tokens.ts`.
-- `docs/postgrest.md`: guia de PostgREST. `README.md`: instalacion, produccion y flujo de desarrollo.
+- `docs/tecnica/02-servidor-avanzado.md`: configuracion avanzada y guia de PostgREST. `README.md`: instalacion, produccion y flujo de desarrollo.
 
 ## No hacer
 
 - No publicar ni enlazar PostgREST fuera de 127.0.0.1.
 - No editar migraciones ya aplicadas ni tocar `policy.ts` sin revisar la matriz en `README.md`, seccion 5.
-- No anadir RLS, roles de PostgreSQL ni JWT nuevos sin leer `docs/postgrest.md`.
+- No anadir RLS, roles de PostgreSQL ni JWT nuevos sin leer `docs/tecnica/02-servidor-avanzado.md` (seccion 5).
 - No subir `.env` ni secretos.

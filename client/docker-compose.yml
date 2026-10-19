@@ -1,9 +1,9 @@
 # Compose de desarrollo y demos (no es de produccion).
 # Levanta db + api (compose del servidor) y web (este repo).
-# La ruta por defecto asume repos hermanos (infoanav-client-slave y infoanav-server-slave).
+# La ruta por defecto asume que el cliente vive en client/ dentro del repo del servidor.
 # En un worktree hay que ajustarla con SERVER_COMPOSE (ver .env.example).
 include:
-  - path: ${SERVER_COMPOSE:-../infoanav-server-slave/docker-compose.yml}
+  - path: ${SERVER_COMPOSE:-../docker-compose.yml}
 
 services:
   web:

@@ -4,7 +4,7 @@
 
 Gateway en Node.js y TypeScript que se pone delante de PostgREST y PostgreSQL. Node se encarga de la autenticacion (login, tokens y sesiones) y de la autorizacion (que recurso y que metodo puede usar cada rol). PostgREST nunca se expone: escucha solo en 127.0.0.1 y el unico que le habla es el gateway.
 
-El servidor no sirve el cliente. El frontend se despliega aparte (ver la seccion 6).
+El servidor no sirve el cliente. El frontend vive en `client/` (mismo repositorio) y se despliega aparte (ver la seccion 6). Documentacion completa en `docs/`: guia tecnica (`docs/tecnica/`) y manual de usuario (`docs/manual-usuario/`).
 
 ```
 Cliente --HTTP--> Node (gateway, :8080) --HTTP--> PostgREST (127.0.0.1:3000) --SQL--> PostgreSQL
@@ -240,7 +240,7 @@ server {
 
 10. Dominios separados. Si el cliente vive en `app.example.com` y la API en `api.example.com` (mismo sitio, distinto subdominio):
 
-- En el build del cliente: `VITE_API_URL=https://api.example.com`, absoluta.
+- En el build del cliente: `VITE_API_URL=https://api.example.com/api`, absoluta.
 - En `.env` del gateway: `CORS_ORIGIN=https://app.example.com`.
 - El cliente envia las peticiones con credenciales incluidas, porque la cookie de refresh viaja con ellas.
 - `SameSite=Strict` permite la cookie entre subdominios del mismo sitio. Si los dominios son de sitios distintos (por ejemplo `example.com` y `otro.com`), el navegador no envia la cookie y el refresh falla. Ese caso no esta soportado.
@@ -466,7 +466,7 @@ prisma/
   migrations/           migraciones SQL escritas a mano
 prisma.config.ts        URL de la base de datos para Prisma
 scripts/new-migration.ts
-docs/postgrest.md       guia de PostgREST para este proyecto
+docs/                   documentacion tecnica (tecnica/) y manual de usuario (manual-usuario/)
 bin/                    binario de PostgREST (START_POSTGREST=true)
 ```
 
