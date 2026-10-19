@@ -9,8 +9,10 @@ Gateway en Node.js y TypeScript sobre PostgREST y PostgreSQL. Node autentica y a
 - `npm start`: aplica migraciones, crea el admin inicial si corresponde, lanza PostgREST y arranca el servidor.
 - `npm run dev`: igual que `start`, con recarga al guardar.
 - `npm run typecheck`: `tsc --noEmit`, unico chequeo de tipos.
-- `npm run migrate` y `npm run migrate:status`: aplicar y revisar migraciones.
-- `npm run migration:new -- nombre_snake_case`: crea la carpeta de una migracion.
+- `npm run migrate:create -- --name nombre_snake_case`: genera una migracion desde `prisma/schema.prisma` sin aplicarla.
+- `npm run migrate:dev` (solo desarrollo) y `npm run migrate` (produccion), mas `npm run migrate:status`: aplicar y revisar migraciones.
+- `npm run migration:new -- nombre_snake_case`: crea la carpeta de una migracion con SQL vacio, para cambios que no tocan tablas.
+- `npm run schema:validate` y `npm run schema:format`: validar y formatear el schema.
 
 ## Codigo
 
@@ -19,8 +21,11 @@ Gateway en Node.js y TypeScript sobre PostgREST y PostgreSQL. Node autentica y a
 
 ## Migraciones
 
-- SQL plano en `prisma/migrations/<timestamp>_<nombre>/migration.sql`.
+- El modelo de datos esta en `prisma/schema.prisma`: modelos de `api` y `auth`, multiSchema. El bloque `generator` existe solo para habilitar `partialIndexes`. Un cambio de tabla empieza ahi, no con `CREATE TABLE` a mano.
+- Flujo: editar el schema, `npm run migrate:create -- --name <nombre>`, revisar el SQL y completar a mano lo que Prisma no modela (funciones, triggers, vistas, grants, reglas).
+- Migraciones en `prisma/migrations/<timestamp>_<nombre>/migration.sql`. Las 14 existentes son historial.
 - Una migracion aplicada no se edita nunca. Un cambio nuevo va en otra migracion.
+- `migrate:dev` solo en desarrollo, nunca contra produccion.
 - Idempotentes cuando se pueda (`IF NOT EXISTS`, `DROP ... IF EXISTS`, `CREATE OR REPLACE`). Un cambio logico por migracion.
 - Todo cambio en `api` termina con `NOTIFY pgrst, 'reload schema';`.
 - Tabla operativa nueva: columnas de auditoria, trigger `trg_set_audit_fields` y regla `rl_soft_delete` con `RETURNING *`.

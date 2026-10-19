@@ -12,7 +12,11 @@
     "dev": "node --watch src/start.ts",
     "typecheck": "tsc --noEmit",
     "migrate": "prisma migrate deploy",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:create": "prisma migrate dev --create-only",
     "migrate:status": "prisma migrate status",
+    "schema:validate": "prisma validate",
+    "schema:format": "prisma format",
     "migration:new": "node scripts/new-migration.ts",
     "seed": "node scripts/seed.ts"
   },

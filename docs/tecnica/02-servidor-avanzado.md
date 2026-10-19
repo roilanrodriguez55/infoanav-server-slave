@@ -582,14 +582,18 @@ Si el cliente vive en `app.example.com` y la API en `api.example.com`:
 
 ## 7. Migraciones Prisma
 
-Las migraciones son SQL escrito a mano en `prisma/migrations/<timestamp>_<nombre>/migration.sql`. El schema de Prisma no tiene modelos: solo sirve para que Prisma aplique y registre las migraciones en `_prisma_migrations`. La URL viene de `prisma.config.ts` (`DATABASE_URL`).
+El modelo de datos esta en `prisma/schema.prisma`: los modelos de las tablas de `api` y `auth`, con `multiSchema`. El bloque `generator` es minimo y solo habilita `partialIndexes`; no se usa `@prisma/client` ni `prisma generate`. PostgREST sigue funcionando porque solo necesita el esquema y las funciones, vistas, grants y reglas en la base, y eso va como SQL dentro de las migraciones. Las migraciones estan en `prisma/migrations/<timestamp>_<nombre>/migration.sql`. Prisma genera el SQL de las tablas a partir del schema. Lo que no modela (funciones, triggers, vistas, grants, reglas, check constraints, columnas `interval` como `Unsupported` e indices unicos por expresion como `lower(...)`) se escribe a mano en la misma migracion. Las 14 migraciones existentes son el historial y no se editan. La URL viene de `prisma.config.ts` (`DATABASE_URL`).
 
 Scripts:
 
 ```sh
-npm run migrate                       # prisma migrate deploy
+npm run migrate:create -- --name nombre_snake  # prisma migrate dev --create-only: genera la migracion sin aplicarla
+npm run migrate:dev                   # prisma migrate dev: aplica en desarrollo (base sombra; puede pedir reset)
+npm run migrate                       # prisma migrate deploy: aplica en produccion
 npm run migrate:status                # estado; debe responder "Database schema is up to date!"
-npm run migration:new -- nombre_snake # crea la carpeta con un SQL vacio
+npm run migration:new -- nombre_snake # crea la carpeta con un SQL vacio, para cambios que no tocan tablas
+npm run schema:validate               # prisma validate
+npm run schema:format                 # prisma format
 ```
 
 Migraciones del repositorio, en orden:
@@ -611,9 +615,11 @@ Migraciones del repositorio, en orden:
 
 ### Reglas
 
+- Un cambio de tabla empieza en `prisma/schema.prisma`. No escribir `CREATE TABLE` a mano para una tabla que ya esta en el schema.
 - Una migracion aplicada no se edita nunca. Un cambio posterior va en una migracion nueva.
 - Idempotente cuando se pueda: `IF NOT EXISTS`, `DROP ... IF EXISTS`, `CREATE OR REPLACE`.
 - Un cambio logico por migracion.
+- `migrate:dev` solo en desarrollo. Nunca contra produccion, donde se usa `npm run migrate`.
 - Todo cambio en `api` termina con `NOTIFY pgrst, 'reload schema';`.
 - Una tabla operativa nueva lleva columnas de auditoria (`created_at`, `created_by`, `updated_at`, `updated_by`, `deleted_at`, `deleted_by`), el trigger `trg_set_audit_fields` y la regla `rl_soft_delete` con `RETURNING *`.
 - Una migracion que anada columnas a una tabla con `rl_soft_delete` recrea la regla al final, con el mismo bloque `DO` que `20261016173527_recrear_reglas_soft_delete`. Si no, el `DELETE` falla por una lista de columnas desactualizada.
@@ -623,8 +629,8 @@ Migraciones del repositorio, en orden:
 
 El ejemplo completo (tabla `api.inspecciones` y funcion de conteo) esta en la seccion 7 del `README.md` de la raiz. Los pasos son:
 
-1. Crear la migracion con `npm run migration:new -- <nombre>` y escribir la tabla, los triggers, la regla de baja logica, los `GRANT` y el `NOTIFY`.
-2. Aplicarla con `npm run migrate` y comprobarla con `npm run migrate:status`.
+1. Agregar el modelo a `prisma/schema.prisma` y generar la migracion con `npm run migrate:create -- --name <nombre>`. Completar a mano en esa migracion los triggers, la regla de baja logica, los `GRANT` y el `NOTIFY`.
+2. Aplicarla con `npm run migrate:dev` (desarrollo) o `npm run migrate` (produccion) y comprobarla con `npm run migrate:status`.
 3. Permitir el recurso en `src/modules/data/policy.ts`. Elige la lista segun quien puede escribir: `RECURSOS_OPERATIVOS` (lectura y escritura para ambos roles), `CATALOGOS` (escritura solo administrador), `CATALOGOS_ABIERTOS` (alta para ambos), `HISTORIAL_CAMBIOS` o `VISTAS` (solo lectura). Las funciones RPC van en `RPC_PERMITIDAS`.
 4. Reiniciar el gateway. Los permisos se leen al arrancar. Con `npm run dev` se recarga solo al guardar.
 
@@ -686,9 +692,13 @@ Requisito: las migraciones deben estar aplicadas, porque el seed escribe en las 
 | `npm start` | `node src/start.ts` | Migraciones, admin inicial, PostgREST y servidor. |
 | `npm run dev` | `node --watch src/start.ts` | Igual que `start`, con recarga al guardar. |
 | `npm run typecheck` | `tsc --noEmit` | Comprueba tipos. No genera nada. |
-| `npm run migrate` | `prisma migrate deploy` | Aplica las migraciones pendientes. |
+| `npm run migrate:create -- --name <nombre>` | `prisma migrate dev --create-only` | Genera la migracion desde `prisma/schema.prisma` sin aplicarla. |
+| `npm run migrate:dev` | `prisma migrate dev` | Aplica las pendientes en desarrollo. Usa base sombra y puede pedir reset. Nunca en produccion. |
+| `npm run migrate` | `prisma migrate deploy` | Aplica las migraciones pendientes (produccion). |
 | `npm run migrate:status` | `prisma migrate status` | Muestra el estado de las migraciones. |
 | `npm run migration:new -- <nombre>` | `node scripts/new-migration.ts` | Crea una carpeta de migracion con un SQL vacio. El nombre va en snake_case. |
+| `npm run schema:validate` | `prisma validate` | Valida `prisma/schema.prisma`. |
+| `npm run schema:format` | `prisma format` | Formatea `prisma/schema.prisma`. |
 | `npm run seed` | `node scripts/seed.ts` | Carga catalogos y modelos de equipo. |
 
 Estructura de `src/`:

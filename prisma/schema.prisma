@@ -1,7 +1,1267 @@
-// Sin modelos ni bloque generator a proposito: las migraciones son SQL escrito a mano
-// en prisma/migrations. Prisma solo las aplica y registra en _prisma_migrations.
-// La URL de la base de datos se toma de prisma.config.ts (DATABASE_URL).
+// Los modelos reflejan tablas, columnas, relaciones, enums e indices (incluidos los
+// parciales y los trigram GIN) de los schemas api y auth. Se generan con `prisma db pull`
+// y se ajustan a mano si hace falta.
+//
+// Lo que Prisma no modela se mantiene como SQL manual en prisma/migrations:
+// check constraints, indices unicos por expresion (uq_senales_codigo_lsm,
+// uq_equipos_tipo_inventario, uq_modelos_equipo_tipo_nombre), columnas interval (quedan como Unsupported), funciones
+// (get_dashboard_stats, get_fault_analytics, get_status_by_zone, log_changes,
+// prevent_delete_if_referenced, set_audit_fields), triggers, vistas
+// (v_alistamiento_buques, v_equipos, v_libros, v_senales_estadisticas), grants,
+// reglas de soft delete y el rol api_service.
+//
+// El bloque generator existe solo para habilitar previewFeatures = ["partialIndexes"].
+// No se usa @prisma/client ni se ejecuta `prisma generate`.
+//
+// Flujo: editar este archivo -> `prisma migrate dev --create-only` -> completar el SQL manual.
+// La URL de la base viene de prisma.config.ts (DATABASE_URL), no va aqui.
+
+generator client {
+  provider        = "prisma-client"
+  output          = "../generated"
+  previewFeatures = ["partialIndexes"]
+}
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["api", "auth"]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model alistamiento_buques {
+  id_alistamiento      String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_buque             String              @db.Uuid
+  ano                  Int
+  mes                  Int                 @db.SmallInt
+  id_tipo_alistamiento String?             @db.Uuid
+  descripcion          String?
+  observaciones        String?
+  fecha_fs             DateTime?           @db.Date
+  fecha_alistamiento   DateTime?           @db.Date
+  dias_mision_mes      Int?
+  dias_fs_mes          Int?
+  created_at           DateTime?           @default(now()) @db.Timestamptz(6)
+  created_by           String?
+  updated_at           DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_by           String?
+  deleted_at           DateTime?           @db.Timestamptz(6)
+  deleted_by           String?
+  buques               buques              @relation(fields: [id_buque], references: [id_buque], onDelete: NoAction, onUpdate: NoAction)
+  tipos_alistamiento   tipos_alistamiento? @relation(fields: [id_tipo_alistamiento], references: [id_tipo_alistamiento], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([id_buque, ano, mes], map: "uq_alistamiento_buques_buque_ano_mes", where: raw("(deleted_at IS NULL)"))
+  @@index([id_tipo_alistamiento], map: "idx_alistamiento_buques_id_tipo_alistamiento")
+  @@schema("api")
+}
+
+model buque_maquinas {
+  id_buque_maquina String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_buque         String    @db.Uuid
+  tipo             String?   @db.VarChar(150)
+  ano              Int?
+  serie            String?   @db.VarChar(100)
+  ncc              String?   @db.VarChar(50)
+  ncl              String?   @db.VarChar(50)
+  potencia         Decimal?  @db.Decimal(10, 2)
+  rpm              Int?
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+  created_by       String?
+  updated_at       DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by       String?
+  deleted_at       DateTime? @db.Timestamptz(6)
+  deleted_by       String?
+  buques           buques    @relation(fields: [id_buque], references: [id_buque], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_buque], map: "idx_buque_maquinas_id_buque")
+  @@schema("api")
+}
+
+model buque_plantas {
+  id_buque_planta String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_buque        String    @db.Uuid
+  tipo            String?   @db.VarChar(150)
+  ano             Int?
+  serie           String?   @db.VarChar(100)
+  voltaje         Decimal?  @db.Decimal(8, 2)
+  ncc             String?   @db.VarChar(50)
+  ncl             String?   @db.VarChar(50)
+  created_at      DateTime? @default(now()) @db.Timestamptz(6)
+  created_by      String?
+  updated_at      DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by      String?
+  deleted_at      DateTime? @db.Timestamptz(6)
+  deleted_by      String?
+  buques          buques    @relation(fields: [id_buque], references: [id_buque], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_buque], map: "idx_buque_plantas_id_buque")
+  @@schema("api")
+}
+
+model buques {
+  id_buque                         String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  buque                            String                @db.VarChar(100)
+  proyecto                         String?               @db.VarChar(100)
+  id_empresa                       String?               @db.Uuid
+  propuesto_baja                   Boolean               @default(false)
+  nombre_buque                     String?               @db.VarChar(150)
+  numero_inventario                String?               @db.VarChar(50)
+  ano_construccion                 Int?
+  material_casco                   String?               @db.VarChar(100)
+  basificacion                     String?               @db.VarChar(150)
+  especialidad                     String?               @db.VarChar(100)
+  autonomia                        Decimal?              @db.Decimal(10, 2)
+  valor_inicial                    Decimal?              @db.Decimal(14, 2)
+  vida_economica                   Decimal?              @db.Decimal(10, 2)
+  lista                            String?               @db.VarChar(50)
+  tarifa_mn                        Decimal?              @db.Decimal(12, 2)
+  tarifa_mlc                       Decimal?              @db.Decimal(12, 2)
+  horas_trabajo                    Decimal?              @db.Decimal(12, 2)
+  desplazamiento                   Decimal?              @db.Decimal(10, 2)
+  velocidad                        Decimal?              @db.Decimal(8, 2)
+  folio                            String?               @db.VarChar(50)
+  color                            String?               @db.VarChar(100)
+  tripulantes                      Int?
+  no_tripulantes                   Int?
+  eslora                           Decimal?              @db.Decimal(8, 2)
+  manga                            Decimal?              @db.Decimal(8, 2)
+  calado                           Decimal?              @db.Decimal(8, 2)
+  puntal                           Decimal?              @db.Decimal(8, 2)
+  franco_borda                     Decimal?              @db.Decimal(8, 2)
+  capacidad_combustible            Decimal?              @db.Decimal(10, 2)
+  capacidad_aceite                 Decimal?              @db.Decimal(10, 2)
+  capacidad_agua                   Decimal?              @db.Decimal(10, 2)
+  area_bodega                      Decimal?              @db.Decimal(10, 2)
+  tipo_propela                     String?               @db.VarChar(100)
+  cantidad_propelas                Int?
+  cantidad_motores                 Int?
+  izaje_principal_mecanismo        String?               @db.VarChar(100)
+  izaje_principal_largo_brazo      Decimal?              @db.Decimal(8, 2)
+  izaje_principal_capacidad        Decimal?              @db.Decimal(10, 2)
+  izaje_auxiliar_mecanismo         String?               @db.VarChar(100)
+  izaje_auxiliar_largo_brazo       Decimal?              @db.Decimal(8, 2)
+  izaje_auxiliar_capacidad         Decimal?              @db.Decimal(10, 2)
+  area_navegacion                  String?               @db.VarChar(50)
+  numeral                          String?               @db.VarChar(50)
+  puerto_matricula                 String?               @db.VarChar(100)
+  registro                         String?               @db.VarChar(100)
+  arqueo_bruto                     Decimal?              @db.Decimal(10, 2)
+  arqueo_neto                      Decimal?              @db.Decimal(10, 2)
+  cert_navegabilidad_inspeccion    DateTime?             @db.Date
+  cert_navegabilidad_expedicion    DateTime?             @db.Date
+  cert_navegabilidad_vence         DateTime?             @db.Date
+  cert_linea_carga_inspeccion      DateTime?             @db.Date
+  cert_linea_carga_expedicion      DateTime?             @db.Date
+  cert_linea_carga_vence           DateTime?             @db.Date
+  cert_clase_inspeccion            DateTime?             @db.Date
+  cert_clase_expedicion            DateTime?             @db.Date
+  cert_clase_vence                 DateTime?             @db.Date
+  notacion_clase                   String?
+  visado                           String?               @db.VarChar(100)
+  fecha_visado                     DateTime?             @db.Date
+  vigencia_visado                  DateTime?             @db.Date
+  lugar_visado                     String?               @db.VarChar(150)
+  condicionamientos                String?
+  equipo_hf                        String?               @db.VarChar(100)
+  equipo_vhf                       String?               @db.VarChar(100)
+  chalecos                         Int?
+  aros                             Int?
+  embarcacion_salvamento           String?               @db.VarChar(150)
+  capacidad_embarcacion_salvamento Int?
+  extintores_agua                  Int?
+  extintores_co2                   Int?
+  extintores_espuma                Int?
+  extintores_polvo                 Int?
+  created_at                       DateTime?             @default(now()) @db.Timestamptz(6)
+  created_by                       String?
+  updated_at                       DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_by                       String?
+  deleted_at                       DateTime?             @db.Timestamptz(6)
+  deleted_by                       String?
+  alistamiento_buques              alistamiento_buques[]
+  buque_maquinas                   buque_maquinas[]
+  buque_plantas                    buque_plantas[]
+  empresas                         empresas?             @relation(fields: [id_empresa], references: [id_empresa], onDelete: NoAction, onUpdate: NoAction)
+  lmf                              lmf[]
+  mantenimientos                   mantenimientos[]
+
+  @@index([id_empresa], map: "idx_buques_id_empresa")
+  @@schema("api")
+}
+
+model caracteristicas {
+  id_caracteristica String    @id(map: "caracteristica_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre            String?   @db.VarChar(100)
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+  created_by        String?
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by        String?
+  deleted_at        DateTime? @db.Timestamptz(6)
+  deleted_by        String?
+  senales           senales[]
+
+  @@schema("api")
+}
+
+model categorias {
+  id_categoria String    @id(map: "categoria_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre       String    @db.VarChar(100)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  created_by   String?
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by   String?
+  deleted_at   DateTime? @db.Timestamptz(6)
+  deleted_by   String?
+  senales      senales[]
+
+  @@schema("api")
+}
+
+model colores {
+  id_color   String    @id(map: "color_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre     String?   @db.VarChar(50)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  created_by String?
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by String?
+  deleted_at DateTime? @db.Timestamptz(6)
+  deleted_by String?
+  senales    senales[]
+
+  @@schema("api")
+}
+
+model colores_luz {
+  id_colorluz String    @id(map: "color_luz_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre      String?   @db.VarChar(50)
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  created_by  String?
+  updated_at  DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by  String?
+  deleted_at  DateTime? @db.Timestamptz(6)
+  deleted_by  String?
+  senales     senales[]
+
+  @@schema("api")
+}
+
+model complejidades {
+  id_complejidad String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre         String?   @db.VarChar(100)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+  created_by     String?
+  updated_at     DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by     String?
+  deleted_at     DateTime? @db.Timestamptz(6)
+  deleted_by     String?
+  senales        senales[]
+
+  @@schema("api")
+}
+
+model editoriales {
+  id_editorial String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre       String?   @db.VarChar(100)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  created_by   String?
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by   String?
+  deleted_at   DateTime? @db.Timestamptz(6)
+  deleted_by   String?
+  libros       libros[]
+
+  @@schema("api")
+}
+
+model empresas {
+  id_empresa       String             @id(map: "empresa_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre           String?            @db.VarChar(100)
+  created_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  created_by       String?
+  updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_by       String?
+  deleted_at       DateTime?          @db.Timestamptz(6)
+  deleted_by       String?
+  buques           buques[]
+  equipos          equipos[]
+  personal         personal[]
+  plantas          plantas[]
+  racon            racon[]
+  senales          senales[]
+  usuarios_sistema usuarios_sistema[]
+
+  @@schema("api")
+}
+
+model energias {
+  id_energia String    @id(map: "energia_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre     String?   @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  created_by String?
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by String?
+  deleted_at DateTime? @db.Timestamptz(6)
+  deleted_by String?
+  senales    senales[]
+
+  @@schema("api")
+}
+
+model equipamientos_senal {
+  id_equipamiento                                      String              @id(map: "equipamiento_señal_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_tipo_equipamiento                                 String?             @db.Uuid
+  nombre                                               String?             @db.VarChar(100)
+  cantidad                                             Int?
+  num_inventario                                       String?             @db.VarChar(50)
+  created_at                                           DateTime?           @default(now()) @db.Timestamptz(6)
+  created_by                                           String?
+  updated_at                                           DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_by                                           String?
+  deleted_at                                           DateTime?           @db.Timestamptz(6)
+  deleted_by                                           String?
+  id_senal                                             String?             @db.Uuid
+  id_equipo                                            String?             @db.Uuid
+  tipos_equipamiento                                   tipos_equipamiento? @relation(fields: [id_tipo_equipamiento], references: [id_tipo_equipamiento], onDelete: NoAction, onUpdate: NoAction, map: "equipamiento_señal_id_tipo_equipamiento_fkey")
+  equipos                                              equipos?            @relation(fields: [id_equipo], references: [id_equipo], onDelete: NoAction, onUpdate: NoAction)
+  senales_equipamientos_senal_id_senalTosenales        senales?            @relation("equipamientos_senal_id_senalTosenales", fields: [id_senal], references: [id_senal], onDelete: NoAction, onUpdate: NoAction)
+  senales_senales_id_equipamientoToequipamientos_senal senales[]           @relation("senales_id_equipamientoToequipamientos_senal")
+
+  @@index([id_equipo], map: "idx_equipamientos_senal_id_equipo")
+  @@index([id_senal], map: "idx_equipamientos_senal_id_senal")
+  @@schema("api")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model equipo_ubicaciones {
+  id_equipo_ubicacion String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_equipo           String            @unique(map: "uq_equipo_ubicaciones_abierta", where: raw("((fecha_fin IS NULL) AND (deleted_at IS NULL))")) @db.Uuid
+  id_ubicacion_medio  String            @db.Uuid
+  id_senal            String?           @db.Uuid
+  fecha_inicio        DateTime          @default(now()) @db.Timestamp(6)
+  fecha_fin           DateTime?         @db.Timestamp(6)
+  causa               String?
+  observaciones       String?
+  created_at          DateTime?         @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  updated_at          DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_by          String?
+  deleted_at          DateTime?         @db.Timestamptz(6)
+  deleted_by          String?
+  equipos             equipos           @relation(fields: [id_equipo], references: [id_equipo], onDelete: NoAction, onUpdate: NoAction)
+  senales             senales?          @relation(fields: [id_senal], references: [id_senal], onDelete: NoAction, onUpdate: NoAction)
+  ubicaciones_medio   ubicaciones_medio @relation(fields: [id_ubicacion_medio], references: [id_ubicacion_medio], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_equipo], map: "idx_equipo_ubicaciones_id_equipo")
+  @@index([id_senal], map: "idx_equipo_ubicaciones_id_senal")
+  @@index([id_ubicacion_medio], map: "idx_equipo_ubicaciones_id_ubicacion_medio")
+  @@schema("api")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model equipos {
+  id_equipo             String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_tipo_equipamiento  String                @db.Uuid
+  numero_inventario     String                @db.VarChar(50)
+  id_modelo_equipo      String?               @db.Uuid
+  id_empresa            String?               @db.Uuid
+  fecha_inicio_servicio DateTime?             @db.Date
+  proveedor             String?               @db.VarChar(150)
+  garantia              String?               @db.VarChar(100)
+  vida_util_dias        Int?
+  id_senal_inicial      String?               @db.Uuid
+  observaciones         String?
+  created_at            DateTime?             @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  updated_at            DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_by            String?
+  deleted_at            DateTime?             @db.Timestamptz(6)
+  deleted_by            String?
+  equipamientos_senal   equipamientos_senal[]
+  equipo_ubicaciones    equipo_ubicaciones?
+  empresas              empresas?             @relation(fields: [id_empresa], references: [id_empresa], onDelete: NoAction, onUpdate: NoAction)
+  modelos_equipo        modelos_equipo?       @relation(fields: [id_modelo_equipo], references: [id_modelo_equipo], onDelete: NoAction, onUpdate: NoAction)
+  senales               senales?              @relation(fields: [id_senal_inicial], references: [id_senal], onDelete: NoAction, onUpdate: NoAction)
+  tipos_equipamiento    tipos_equipamiento    @relation(fields: [id_tipo_equipamiento], references: [id_tipo_equipamiento], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_empresa], map: "idx_equipos_id_empresa")
+  @@index([id_modelo_equipo], map: "idx_equipos_id_modelo_equipo")
+  @@index([id_senal_inicial], map: "idx_equipos_id_senal_inicial")
+  @@index([id_tipo_equipamiento], map: "idx_equipos_id_tipo_equipamiento")
+  @@schema("api")
+}
+
+model estaciones {
+  id_estacion String    @id(map: "estacion_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre      String?   @db.VarChar(100)
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  created_by  String?
+  updated_at  DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by  String?
+  deleted_at  DateTime? @db.Timestamptz(6)
+  deleted_by  String?
+  racon       racon[]
+  senales     senales[]
+
+  @@schema("api")
+}
+
+model estados {
+  id_estado  String    @id(map: "estado_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre     String?   @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  created_by String?
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by String?
+  deleted_at DateTime? @db.Timestamptz(6)
+  deleted_by String?
+  senales    senales[]
+
+  @@schema("api")
+}
+
+model estados_senal {
+  id_estado_senal String           @id(map: "estado_senal_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre          String?          @db.VarChar(100)
+  created_at      DateTime?        @default(now()) @db.Timestamptz(6)
+  created_by      String?
+  updated_at      DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_by      String?
+  deleted_at      DateTime?        @db.Timestamptz(6)
+  deleted_by      String?
+  mantenimientos  mantenimientos[]
+
+  @@schema("api")
+}
+
+model fallas {
+  id_falla                  String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fecha_falla               DateTime?                @db.Timestamp(6)
+  fecha_restablecer         DateTime?                @db.Timestamp(6)
+  fecha_pronost_restablecer DateTime?                @db.Timestamp(6)
+  id_tipo_falla             String?                  @db.Uuid
+  causa_de_falla            String?
+  medidas                   String?
+  reporto                   String?                  @db.VarChar(100)
+  rescatada                 Boolean?
+  observaciones             String?
+  duracion_de_falla         Unsupported("interval")?
+  diferencia_tiempo         Unsupported("interval")?
+  id_origen_falla           String?                  @db.Uuid
+  transmite                 String?                  @db.VarChar(100)
+  anar                      String?                  @db.VarChar(50)
+  rg                        String?                  @db.VarChar(50)
+  created_at                DateTime?                @default(now()) @db.Timestamptz(6)
+  created_by                String?
+  updated_at                DateTime?                @default(now()) @db.Timestamptz(6)
+  updated_by                String?
+  deleted_at                DateTime?                @db.Timestamptz(6)
+  deleted_by                String?
+  id_senal                  String                   @db.Uuid
+  origenes_falla            origenes_falla?          @relation(fields: [id_origen_falla], references: [id_origen_falla], onDelete: NoAction, onUpdate: NoAction)
+  senales                   senales                  @relation(fields: [id_senal], references: [id_senal], onDelete: NoAction, onUpdate: NoAction)
+  tipos_falla               tipos_falla?             @relation(fields: [id_tipo_falla], references: [id_tipo_falla], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([fecha_falla], map: "idx_fallas_fecha")
+  @@index([id_senal], map: "idx_fallas_id_senal")
+  @@index([id_tipo_falla], map: "idx_fallas_id_tipo_falla")
+  @@schema("api")
+}
+
+model formas {
+  id_forma   String    @id(map: "forma_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre     String?   @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  created_by String?
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by String?
+  deleted_at DateTime? @db.Timestamptz(6)
+  deleted_by String?
+  senales    senales[]
+
+  @@schema("api")
+}
+
+model hechos {
+  id_hecho                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_senal                    String    @db.Uuid
+  fecha                       DateTime? @db.Date
+  hora                        DateTime? @db.Time(6)
+  hecho                       String?
+  reporta                     String?   @db.VarChar(150)
+  ogo                         String?   @db.VarChar(150)
+  medidas                     String?
+  perdidas                    String?
+  costo_mn                    Decimal?  @db.Decimal(12, 2)
+  costo_mlc                   Decimal?  @db.Decimal(12, 2)
+  rg                          String?   @db.VarChar(50)
+  vandalico                   Boolean   @default(false)
+  concluso                    Boolean   @default(false)
+  fecha_pronostico_conclusion DateTime? @db.Date
+  fecha_conclusion            DateTime? @db.Date
+  observaciones               String?
+  created_at                  DateTime? @default(now()) @db.Timestamptz(6)
+  created_by                  String?
+  updated_at                  DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by                  String?
+  deleted_at                  DateTime? @db.Timestamptz(6)
+  deleted_by                  String?
+  senales                     senales   @relation(fields: [id_senal], references: [id_senal], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_senal], map: "idx_hechos_id_senal")
+  @@schema("api")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model historial_cambios {
+  id_historial String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tabla        String
+  id_registro  String   @db.Uuid
+  operacion    String
+  usuario      String
+  fecha        DateTime @default(now()) @db.Timestamptz(6)
+  cambios      Json
+
+  @@index([id_registro, fecha(sort: Desc)], map: "idx_historial_registro")
+  @@index([tabla, fecha(sort: Desc)], map: "idx_historial_tabla")
+  @@schema("api")
+}
+
+model idiomas {
+  id_idioma  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre     String?   @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  created_by String?
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by String?
+  deleted_at DateTime? @db.Timestamptz(6)
+  deleted_by String?
+  libros     libros[]
+
+  @@schema("api")
+}
+
+model libros {
+  id_libro          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  titulo            String           @db.VarChar(300)
+  id_tema           String?          @db.Uuid
+  autor_nombre      String?          @db.VarChar(150)
+  autor_apellidos   String?          @db.VarChar(150)
+  codigo            String?          @db.VarChar(100)
+  id_tipo_documento String?          @db.Uuid
+  id_pais           String?          @db.Uuid
+  ano_publicacion   Int?
+  id_editorial      String?          @db.Uuid
+  paginas           String?          @db.VarChar(50)
+  nivel             String?          @db.VarChar(100)
+  id_idioma         String?          @db.Uuid
+  estado_tecnico    String?          @db.VarChar(50)
+  notas             String?
+  precio            Decimal?         @db.Decimal(12, 2)
+  tipo_portada      String?          @db.VarChar(100)
+  fecha_compra      DateTime?        @db.Date
+  ubicacion         String?          @db.VarChar(150)
+  created_at        DateTime?        @default(now()) @db.Timestamptz(6)
+  created_by        String?
+  updated_at        DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_by        String?
+  deleted_at        DateTime?        @db.Timestamptz(6)
+  deleted_by        String?
+  editoriales       editoriales?     @relation(fields: [id_editorial], references: [id_editorial], onDelete: NoAction, onUpdate: NoAction)
+  idiomas           idiomas?         @relation(fields: [id_idioma], references: [id_idioma], onDelete: NoAction, onUpdate: NoAction)
+  paises            paises?          @relation(fields: [id_pais], references: [id_pais], onDelete: NoAction, onUpdate: NoAction)
+  temas             temas?           @relation(fields: [id_tema], references: [id_tema], onDelete: NoAction, onUpdate: NoAction)
+  tipos_documento   tipos_documento? @relation(fields: [id_tipo_documento], references: [id_tipo_documento], onDelete: NoAction, onUpdate: NoAction)
+  prestamos         prestamos?
+
+  @@index([autor_apellidos(ops: raw("gin_trgm_ops"))], map: "idx_libros_autor_apellidos_trgm", type: Gin)
+  @@index([id_editorial], map: "idx_libros_id_editorial")
+  @@index([id_idioma], map: "idx_libros_id_idioma")
+  @@index([id_pais], map: "idx_libros_id_pais")
+  @@index([id_tema], map: "idx_libros_id_tema")
+  @@index([id_tipo_documento], map: "idx_libros_id_tipo_documento")
+  @@index([titulo(ops: raw("gin_trgm_ops"))], map: "idx_libros_titulo_trgm", type: Gin)
+  @@schema("api")
+}
+
+model lmf {
+  id_lmf                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_senal                 String    @db.Uuid
+  fecha_leva               DateTime? @db.Timestamp(6)
+  fecha_fondeo             DateTime? @db.Timestamp(6)
+  marea                    String?   @db.VarChar(100)
+  mar                      String?   @db.VarChar(100)
+  viento                   String?   @db.VarChar(100)
+  estado_tiempo            String?   @db.VarChar(100)
+  metodo_posicion          String?   @db.VarChar(100)
+  dirigente                String?   @db.VarChar(150)
+  observaciones            String?
+  buque_ejecutor           String?   @db.VarChar(150)
+  capitan                  String?   @db.VarChar(150)
+  responsable              String?   @db.VarChar(150)
+  tipo_fondo               String?   @db.VarChar(100)
+  latitud                  Float?
+  longitud                 Float?
+  profundidad              Decimal?  @db.Decimal(8, 2)
+  cadena_cantidad          Int?
+  cadena_diametro          Decimal?  @db.Decimal(8, 2)
+  pesos_muertos_cantidad   Int?
+  pesos_muertos_tipo       String?   @db.VarChar(100)
+  grilletes_union_cantidad Int?
+  grilletes_union_tipo     String?   @db.VarChar(100)
+  grillete_giratorio       String?   @db.VarChar(100)
+  brida_tipo               String?   @db.VarChar(100)
+  brida_cantidad           Int?
+  created_at               DateTime? @default(now()) @db.Timestamptz(6)
+  created_by               String?
+  updated_at               DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by               String?
+  deleted_at               DateTime? @db.Timestamptz(6)
+  deleted_by               String?
+  id_buque_ejecutor        String?   @db.Uuid
+  buques                   buques?   @relation(fields: [id_buque_ejecutor], references: [id_buque], onDelete: NoAction, onUpdate: NoAction)
+  senales                  senales   @relation(fields: [id_senal], references: [id_senal], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_buque_ejecutor], map: "idx_lmf_id_buque_ejecutor")
+  @@index([id_senal], map: "idx_lmf_id_senal")
+  @@schema("api")
+}
+
+model mantenimientos {
+  id_mantenimiento    String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_tipo_mant        String?                  @db.Uuid
+  ident_mantenimiento String?                  @db.VarChar(50)
+  fecha_inicio        DateTime?                @db.Timestamp(6)
+  fecha_finalizacion  DateTime?                @db.Timestamp(6)
+  tiempo_empleado     Unsupported("interval")?
+  aseguro             String?                  @db.VarChar(100)
+  id_estado_senal     String?                  @db.Uuid
+  trabajo_realizado   String?
+  costo_mn            Decimal?                 @db.Decimal(12, 2)
+  costo_mlc           Decimal?                 @db.Decimal(12, 2)
+  diesel_lit          Decimal?                 @db.Decimal(10, 2)
+  gasolina_lit        Decimal?                 @db.Decimal(10, 2)
+  informa             String?                  @db.VarChar(100)
+  transmite           String?                  @db.VarChar(100)
+  rg                  String?                  @db.VarChar(50)
+  orden               String?                  @db.VarChar(50)
+  introdujo           String?                  @db.VarChar(100)
+  created_at          DateTime?                @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  updated_at          DateTime?                @default(now()) @db.Timestamptz(6)
+  updated_by          String?
+  deleted_at          DateTime?                @db.Timestamptz(6)
+  deleted_by          String?
+  id_senal            String                   @db.Uuid
+  id_buque            String?                  @db.Uuid
+  vehiculo            String?                  @db.VarChar(150)
+  buques              buques?                  @relation(fields: [id_buque], references: [id_buque], onDelete: NoAction, onUpdate: NoAction)
+  estados_senal       estados_senal?           @relation(fields: [id_estado_senal], references: [id_estado_senal], onDelete: NoAction, onUpdate: NoAction)
+  senales             senales                  @relation(fields: [id_senal], references: [id_senal], onDelete: NoAction, onUpdate: NoAction)
+  tipos_mantenimiento tipos_mantenimiento?     @relation(fields: [id_tipo_mant], references: [id_tipo_mant], onDelete: NoAction, onUpdate: NoAction)
+  plan_mantenimiento  plan_mantenimiento[]
+
+  @@index([fecha_inicio], map: "idx_mantenimientos_fecha")
+  @@index([id_buque], map: "idx_mantenimientos_id_buque")
+  @@index([id_senal], map: "idx_mantenimientos_id_senal")
+  @@index([id_tipo_mant], map: "idx_mantenimientos_id_tipo_mant")
+  @@schema("api")
+}
+
+model marcas_tope {
+  id_marca_tope String    @id(map: "marca_tope_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre        String?   @db.VarChar(100)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  created_by    String?
+  updated_at    DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by    String?
+  deleted_at    DateTime? @db.Timestamptz(6)
+  deleted_by    String?
+  senales       senales[]
+
+  @@schema("api")
+}
+
+model mares {
+  id_mar     String    @id(map: "mar_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre     String?   @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  created_by String?
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by String?
+  deleted_at DateTime? @db.Timestamptz(6)
+  deleted_by String?
+  senales    senales[]
+
+  @@schema("api")
+}
+
+model materiales {
+  id_material String    @id(map: "material_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre      String?   @db.VarChar(100)
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  created_by  String?
+  updated_at  DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by  String?
+  deleted_at  DateTime? @db.Timestamptz(6)
+  deleted_by  String?
+  senales     senales[]
+
+  @@schema("api")
+}
+
+model misiones_buque {
+  id_mision_buque String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre          String?   @db.VarChar(100)
+  codigo          String?   @db.VarChar(10)
+  created_at      DateTime? @default(now()) @db.Timestamptz(6)
+  created_by      String?
+  updated_at      DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by      String?
+  deleted_at      DateTime? @db.Timestamptz(6)
+  deleted_by      String?
+
+  @@schema("api")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model modelos_equipo {
+  id_modelo_equipo     String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_tipo_equipamiento String             @db.Uuid
+  nombre               String             @db.VarChar(150)
+  pais                 String?            @db.VarChar(100)
+  voltaje              Decimal?           @db.Decimal(8, 2)
+  vatios               Decimal?           @db.Decimal(8, 2)
+  consumo              String?            @db.VarChar(50)
+  created_at           DateTime?          @default(now()) @db.Timestamptz(6)
+  created_by           String?
+  updated_at           DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_by           String?
+  deleted_at           DateTime?          @db.Timestamptz(6)
+  deleted_by           String?
+  equipos              equipos[]
+  tipos_equipamiento   tipos_equipamiento @relation(fields: [id_tipo_equipamiento], references: [id_tipo_equipamiento], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_tipo_equipamiento], map: "idx_modelos_equipo_id_tipo_equipamiento")
+  @@schema("api")
+}
+
+model modelos_senal {
+  id_modelo  String    @id(map: "modelo_señal_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre     String?   @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  created_by String?
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by String?
+  deleted_at DateTime? @db.Timestamptz(6)
+  deleted_by String?
+  senales    senales[]
+
+  @@schema("api")
+}
+
+model origenes_falla {
+  id_origen_falla String    @id(map: "origen_falla_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre          String?   @db.VarChar(100)
+  created_at      DateTime? @default(now()) @db.Timestamptz(6)
+  created_by      String?
+  updated_at      DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by      String?
+  deleted_at      DateTime? @db.Timestamptz(6)
+  deleted_by      String?
+  fallas          fallas[]
+
+  @@schema("api")
+}
+
+model paises {
+  id_pais    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre     String?   @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  created_by String?
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by String?
+  deleted_at DateTime? @db.Timestamptz(6)
+  deleted_by String?
+  libros     libros[]
+
+  @@schema("api")
+}
+
+model personal {
+  id_persona        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_empresa        String?   @db.Uuid
+  nombre            String?   @db.VarChar(100)
+  primer_apellido   String?   @db.VarChar(100)
+  segundo_apellido  String?   @db.VarChar(100)
+  cargo             String?   @db.VarChar(150)
+  radica_en         String?   @db.VarChar(150)
+  telefono          String?   @db.VarChar(50)
+  carne_identidad   String?   @db.VarChar(20)
+  fecha_nacimiento  DateTime? @db.Date
+  salario           Decimal?  @db.Decimal(12, 2)
+  escolaridad       String?   @db.VarChar(100)
+  cargos_anteriores String?
+  cursos_recibidos  String?
+  necesidad_cursos  String?
+  fecha_baja        DateTime? @db.Date
+  causa_baja        String?
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+  created_by        String?
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by        String?
+  deleted_at        DateTime? @db.Timestamptz(6)
+  deleted_by        String?
+  empresas          empresas? @relation(fields: [id_empresa], references: [id_empresa], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_empresa], map: "idx_personal_id_empresa")
+  @@schema("api")
+}
+
+model plan_mantenimiento {
+  id_plan_mantenimiento String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_senal              String               @db.Uuid
+  id_tipo_mant          String?              @db.Uuid
+  fecha_plan            DateTime?            @db.Timestamp(6)
+  trabajo_medios        String?
+  observaciones         String?
+  fecha_cumplida        DateTime?            @db.Timestamp(6)
+  id_mantenimiento      String?              @db.Uuid
+  created_at            DateTime?            @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  updated_at            DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_by            String?
+  deleted_at            DateTime?            @db.Timestamptz(6)
+  deleted_by            String?
+  mantenimientos        mantenimientos?      @relation(fields: [id_mantenimiento], references: [id_mantenimiento], onDelete: NoAction, onUpdate: NoAction)
+  senales               senales              @relation(fields: [id_senal], references: [id_senal], onDelete: NoAction, onUpdate: NoAction)
+  tipos_mantenimiento   tipos_mantenimiento? @relation(fields: [id_tipo_mant], references: [id_tipo_mant], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_mantenimiento], map: "idx_plan_mantenimiento_id_mantenimiento")
+  @@index([id_senal], map: "idx_plan_mantenimiento_id_senal")
+  @@index([id_tipo_mant], map: "idx_plan_mantenimiento_id_tipo_mant")
+  @@schema("api")
+}
+
+model plantas {
+  id_planta      String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  marca          String?          @db.VarChar(100)
+  modelo         String?          @db.VarChar(100)
+  potencia       String?          @db.VarChar(50)
+  numero         String?          @db.VarChar(50)
+  id_senal       String?          @db.Uuid
+  faro_texto     String?          @db.VarChar(150)
+  inventario     String?          @db.VarChar(50)
+  consumo        String?          @db.VarChar(50)
+  voltaje        String?          @db.VarChar(50)
+  frecuencia     String?          @db.VarChar(50)
+  serie          String?          @db.VarChar(100)
+  id_empresa     String?          @db.Uuid
+  observaciones  String?
+  created_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  created_by     String?
+  updated_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_by     String?
+  deleted_at     DateTime?        @db.Timestamptz(6)
+  deleted_by     String?
+  empresas       empresas?        @relation(fields: [id_empresa], references: [id_empresa], onDelete: NoAction, onUpdate: NoAction)
+  senales        senales?         @relation(fields: [id_senal], references: [id_senal], onDelete: NoAction, onUpdate: NoAction)
+  plantas_fallas plantas_fallas[]
+
+  @@index([id_empresa], map: "idx_plantas_id_empresa")
+  @@index([id_senal], map: "idx_plantas_id_senal")
+  @@schema("api")
+}
+
+model plantas_fallas {
+  id_planta_falla        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_planta              String    @db.Uuid
+  fecha_fs               DateTime? @db.Timestamp(6)
+  fecha_restablecimiento DateTime? @db.Timestamp(6)
+  causa                  String?
+  created_at             DateTime? @default(now()) @db.Timestamptz(6)
+  created_by             String?
+  updated_at             DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by             String?
+  deleted_at             DateTime? @db.Timestamptz(6)
+  deleted_by             String?
+  plantas                plantas   @relation(fields: [id_planta], references: [id_planta], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_planta], map: "idx_plantas_fallas_id_planta")
+  @@schema("api")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model prestamos {
+  id_prestamo       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_libro          String    @unique(map: "ux_prestamos_libro_abierto", where: raw("((fecha_devolucion IS NULL) AND (deleted_at IS NULL))")) @db.Uuid
+  fecha_prestamo    DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
+  fecha_a_devolver  DateTime? @db.Date
+  fecha_devolucion  DateTime? @db.Date
+  quien_presta      String?   @db.VarChar(150)
+  a_quien           String?   @db.VarChar(150)
+  estado_entrega    String?   @db.VarChar(100)
+  estado_devolucion String?   @db.VarChar(100)
+  observaciones     String?
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+  created_by        String?
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by        String?
+  deleted_at        DateTime? @db.Timestamptz(6)
+  deleted_by        String?
+  libros            libros    @relation(fields: [id_libro], references: [id_libro], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_libro], map: "idx_prestamos_id_libro")
+  @@schema("api")
+}
+
+model pronosticos_senal {
+  id_pronostico               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_senal                    String    @unique(map: "uq_pronosticos_senal_id_senal", where: raw("(deleted_at IS NULL)")) @db.Uuid
+  disponibilidad_deseada      String?
+  criterios_bateria           String?
+  panel                       String?
+  destellador_bombillo        String?
+  tmef_1                      String?
+  tmef_2                      String?
+  tmef_3                      String?
+  tmef_senal                  String?
+  tmpr_pronosticado           String?
+  tmrf                        String?
+  tmpr_real                   String?
+  disponibilidad_pronosticada String?
+  tiempo_informacion          String?
+  tiempo_preparacion          String?
+  tiempo_travesia             String?
+  tiempo_reposicion           String?
+  created_at                  DateTime? @default(now()) @db.Timestamptz(6)
+  created_by                  String?
+  updated_at                  DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by                  String?
+  deleted_at                  DateTime? @db.Timestamptz(6)
+  deleted_by                  String?
+  senales                     senales   @relation(fields: [id_senal], references: [id_senal], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("api")
+}
+
+model racon {
+  id_racon                 String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_senal                 String      @db.Uuid
+  numero_orden             String?     @db.VarChar(50)
+  nombre                   String?     @db.VarChar(150)
+  id_empresa               String?     @db.Uuid
+  id_estacion              String?     @db.Uuid
+  tipo                     String?     @db.VarChar(100)
+  banda                    String?     @db.VarChar(50)
+  frecuencia               String?     @db.VarChar(50)
+  barrido                  String?     @db.VarChar(50)
+  supresion_lobulo_lateral String?     @db.VarChar(50)
+  pulso                    String?     @db.VarChar(50)
+  modo_servicio            String?     @db.VarChar(100)
+  identificador            String?     @db.VarChar(50)
+  largo_identificador      String?     @db.VarChar(50)
+  alcance                  Decimal?    @db.Decimal(8, 2)
+  sensibilidad             String?     @db.VarChar(50)
+  retardo_pulso            String?     @db.VarChar(50)
+  antena_tipo              String?     @db.VarChar(100)
+  antena_ganancia          String?     @db.VarChar(50)
+  antena_directividad      String?     @db.VarChar(100)
+  antena_polarizacion      String?     @db.VarChar(100)
+  dimensiones              String?     @db.VarChar(100)
+  peso                     String?     @db.VarChar(50)
+  color                    String?     @db.VarChar(50)
+  energia                  String?     @db.VarChar(100)
+  consumo                  String?     @db.VarChar(50)
+  fecha_inicio             DateTime?   @db.Timestamp(6)
+  fecha_baja               DateTime?   @db.Timestamp(6)
+  created_at               DateTime?   @default(now()) @db.Timestamptz(6)
+  created_by               String?
+  updated_at               DateTime?   @default(now()) @db.Timestamptz(6)
+  updated_by               String?
+  deleted_at               DateTime?   @db.Timestamptz(6)
+  deleted_by               String?
+  empresas                 empresas?   @relation(fields: [id_empresa], references: [id_empresa], onDelete: NoAction, onUpdate: NoAction)
+  estaciones               estaciones? @relation(fields: [id_estacion], references: [id_estacion], onDelete: NoAction, onUpdate: NoAction)
+  senales                  senales     @relation(fields: [id_senal], references: [id_senal], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_empresa], map: "idx_racon_id_empresa")
+  @@index([id_estacion], map: "idx_racon_id_estacion")
+  @@index([id_senal], map: "idx_racon_id_senal")
+  @@schema("api")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model senales {
+  id_senal                                                         String                @id(map: "señales_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo_lsm                                                       String                @db.VarChar(150)
+  id_tipo                                                          String?               @db.Uuid
+  id_categoria                                                     String?               @db.Uuid
+  nombre                                                           String?               @db.VarChar(150)
+  id_modelo                                                        String?               @db.Uuid
+  id_empresa                                                       String?               @db.Uuid
+  id_estacion                                                      String?               @db.Uuid
+  luminica                                                         Boolean?
+  secreta                                                          Boolean?
+  fecha_instalacion                                                DateTime?             @db.Timestamp(6)
+  id_usuario_navegacion                                            String?               @db.Uuid
+  monitoreo                                                        String?               @db.VarChar(100)
+  id_zona                                                          String?               @db.Uuid
+  reflector_radar                                                  Boolean?
+  repeticion                                                       Boolean?
+  id_estado                                                        String?               @db.Uuid
+  id_material                                                      String?               @db.Uuid
+  control_distancia                                                Boolean?
+  id_energia                                                       String?               @db.Uuid
+  id_marca_tope                                                    String?               @db.Uuid
+  observaciones                                                    String?               @db.VarChar(200)
+  id_color                                                         String?               @db.Uuid
+  id_forma                                                         String?               @db.Uuid
+  altura                                                           Decimal?              @db.Decimal(8, 2)
+  elevacion                                                        Decimal?              @db.Decimal(8, 2)
+  profundidad                                                      Decimal?              @db.Decimal(8, 2)
+  alcancegeografico                                                Decimal?              @db.Decimal(8, 2)
+  latitud                                                          Float?
+  longitud                                                         Float?
+  id_mar                                                           String?               @db.Uuid
+  ubicacion                                                        String?               @db.VarChar(100)
+  alcanceluminico                                                  Decimal?              @db.Decimal(8, 2)
+  intensidadluminica                                               Decimal?              @db.Decimal(10, 2)
+  id_colorluz                                                      String?               @db.Uuid
+  id_caracteristica                                                String?               @db.Uuid
+  periodo                                                          Decimal?              @db.Decimal(8, 2)
+  oscuridad                                                        Decimal?              @db.Decimal(8, 2)
+  tiempoluz                                                        Decimal?              @db.Decimal(8, 2)
+  potenciabombillo                                                 Int?
+  voltagebombillo                                                  Int?
+  consumodestellador                                               Decimal?              @db.Decimal(8, 2)
+  id_equipamiento                                                  String?               @db.Uuid
+  sistema_fondeo                                                   String?
+  created_at                                                       DateTime?             @default(now()) @db.Timestamptz(6)
+  created_by                                                       String?
+  updated_at                                                       DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_by                                                       String?
+  deleted_at                                                       DateTime?             @db.Timestamptz(6)
+  deleted_by                                                       String?
+  fecha_retirada                                                   DateTime?             @db.Timestamp(6)
+  causa_retirada                                                   String?
+  id_complejidad                                                   String?               @db.Uuid
+  equipamientos_senal_equipamientos_senal_id_senalTosenales        equipamientos_senal[] @relation("equipamientos_senal_id_senalTosenales")
+  equipo_ubicaciones                                               equipo_ubicaciones[]
+  equipos                                                          equipos[]
+  fallas                                                           fallas[]
+  hechos                                                           hechos[]
+  lmf                                                              lmf[]
+  mantenimientos                                                   mantenimientos[]
+  plan_mantenimiento                                               plan_mantenimiento[]
+  plantas                                                          plantas[]
+  pronosticos_senal                                                pronosticos_senal?
+  racon                                                            racon[]
+  complejidades                                                    complejidades?        @relation(fields: [id_complejidad], references: [id_complejidad], onDelete: NoAction, onUpdate: NoAction)
+  caracteristicas                                                  caracteristicas?      @relation(fields: [id_caracteristica], references: [id_caracteristica], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_caracteristica_fkey")
+  categorias                                                       categorias?           @relation(fields: [id_categoria], references: [id_categoria], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_categoria_fkey")
+  colores                                                          colores?              @relation(fields: [id_color], references: [id_color], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_color_fkey")
+  colores_luz                                                      colores_luz?          @relation(fields: [id_colorluz], references: [id_colorluz], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_colorluz_fkey")
+  empresas                                                         empresas?             @relation(fields: [id_empresa], references: [id_empresa], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_empresa_fkey")
+  energias                                                         energias?             @relation(fields: [id_energia], references: [id_energia], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_energia_fkey")
+  equipamientos_senal_senales_id_equipamientoToequipamientos_senal equipamientos_senal?  @relation("senales_id_equipamientoToequipamientos_senal", fields: [id_equipamiento], references: [id_equipamiento], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_equipamiento_fkey")
+  estaciones                                                       estaciones?           @relation(fields: [id_estacion], references: [id_estacion], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_estacion_fkey")
+  estados                                                          estados?              @relation(fields: [id_estado], references: [id_estado], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_estado_fkey")
+  formas                                                           formas?               @relation(fields: [id_forma], references: [id_forma], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_forma_fkey")
+  mares                                                            mares?                @relation(fields: [id_mar], references: [id_mar], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_mar_fkey")
+  marcas_tope                                                      marcas_tope?          @relation(fields: [id_marca_tope], references: [id_marca_tope], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_marca_tope_fkey")
+  materiales                                                       materiales?           @relation(fields: [id_material], references: [id_material], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_material_fkey")
+  modelos_senal                                                    modelos_senal?        @relation(fields: [id_modelo], references: [id_modelo], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_modelo_fkey")
+  tipos_senal                                                      tipos_senal?          @relation(fields: [id_tipo], references: [id_tipo], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_tipo_fkey")
+  usuarios_navegacion                                              usuarios_navegacion?  @relation(fields: [id_usuario_navegacion], references: [id_usuario_navegacion], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_usuario_navegacion_fkey")
+  zonas                                                            zonas?                @relation(fields: [id_zona], references: [id_zona], onDelete: NoAction, onUpdate: NoAction, map: "señales_id_zona_fkey")
+
+  @@index([codigo_lsm(ops: raw("gin_trgm_ops"))], map: "idx_senales_codigo_lsm_trgm", type: Gin)
+  @@index([id_estado], map: "idx_senales_estado", where: raw("(deleted_at IS NULL)"))
+  @@index([fecha_retirada], map: "idx_senales_fecha_retirada")
+  @@index([id_complejidad], map: "idx_senales_id_complejidad")
+  @@index([nombre(ops: raw("gin_trgm_ops"))], map: "idx_senales_nombre_trgm", type: Gin)
+  @@index([ubicacion(ops: raw("gin_trgm_ops"))], map: "idx_senales_ubicacion_trgm", type: Gin)
+  @@schema("api")
+}
+
+model temas {
+  id_tema    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre     String?   @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  created_by String?
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by String?
+  deleted_at DateTime? @db.Timestamptz(6)
+  deleted_by String?
+  libros     libros[]
+
+  @@schema("api")
+}
+
+model tipos_alistamiento {
+  id_tipo_alistamiento String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre               String?               @db.VarChar(100)
+  created_at           DateTime?             @default(now()) @db.Timestamptz(6)
+  created_by           String?
+  updated_at           DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_by           String?
+  deleted_at           DateTime?             @db.Timestamptz(6)
+  deleted_by           String?
+  alistamiento_buques  alistamiento_buques[]
+
+  @@schema("api")
+}
+
+model tipos_documento {
+  id_tipo_documento String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre            String?   @db.VarChar(100)
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+  created_by        String?
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by        String?
+  deleted_at        DateTime? @db.Timestamptz(6)
+  deleted_by        String?
+  libros            libros[]
+
+  @@schema("api")
+}
+
+model tipos_equipamiento {
+  id_tipo_equipamiento String                @id(map: "tipo_equipamiento_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre               String?               @db.VarChar(100)
+  created_at           DateTime?             @default(now()) @db.Timestamptz(6)
+  created_by           String?
+  updated_at           DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_by           String?
+  deleted_at           DateTime?             @db.Timestamptz(6)
+  deleted_by           String?
+  equipamientos_senal  equipamientos_senal[]
+  equipos              equipos[]
+  modelos_equipo       modelos_equipo[]
+
+  @@schema("api")
+}
+
+model tipos_falla {
+  id_tipo_falla String    @id(map: "tipo_falla_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre        String?   @db.VarChar(100)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  created_by    String?
+  updated_at    DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by    String?
+  deleted_at    DateTime? @db.Timestamptz(6)
+  deleted_by    String?
+  fallas        fallas[]
+
+  @@schema("api")
+}
+
+model tipos_mantenimiento {
+  id_tipo_mant       String               @id(map: "tipo_mantenimiento_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre             String?              @db.VarChar(100)
+  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  created_by         String?
+  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_by         String?
+  deleted_at         DateTime?            @db.Timestamptz(6)
+  deleted_by         String?
+  mantenimientos     mantenimientos[]
+  plan_mantenimiento plan_mantenimiento[]
+
+  @@schema("api")
+}
+
+model tipos_senal {
+  id_tipo    String    @id(map: "tipo_señal_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre     String    @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  created_by String?
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by String?
+  deleted_at DateTime? @db.Timestamptz(6)
+  deleted_by String?
+  senales    senales[]
+
+  @@schema("api")
+}
+
+model ubicaciones_medio {
+  id_ubicacion_medio String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre             String?              @db.VarChar(100)
+  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  created_by         String?
+  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_by         String?
+  deleted_at         DateTime?            @db.Timestamptz(6)
+  deleted_by         String?
+  fuera_servicio     Boolean              @default(true)
+  equipo_ubicaciones equipo_ubicaciones[]
+
+  @@schema("api")
+}
+
+model usuarios_navegacion {
+  id_usuario_navegacion String    @id(map: "usuario_navegacion_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre                String?   @db.VarChar(100)
+  created_at            DateTime? @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  updated_at            DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by            String?
+  deleted_at            DateTime? @db.Timestamptz(6)
+  deleted_by            String?
+  senales               senales[]
+
+  @@schema("api")
+}
+
+model zonas {
+  id_zona    String    @id(map: "zona_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre     String?   @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  created_by String?
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_by String?
+  deleted_at DateTime? @db.Timestamptz(6)
+  deleted_by String?
+  senales    senales[]
+
+  @@schema("api")
+}
+
+model refresh_tokens {
+  id                   String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_usuario_sist      String           @db.Uuid
+  token_hash           String           @unique
+  familia              String           @db.Uuid
+  expira               DateTime         @db.Timestamptz(6)
+  revocado             Boolean          @default(false)
+  reemplazado_por      String?          @db.Uuid
+  creado               DateTime         @default(now()) @db.Timestamptz(6)
+  usuarios_sistema     usuarios_sistema @relation(fields: [id_usuario_sist], references: [id_usuario_sist], onDelete: Cascade, onUpdate: NoAction)
+  refresh_tokens       refresh_tokens?  @relation("refresh_tokensTorefresh_tokens", fields: [reemplazado_por], references: [id], onUpdate: NoAction)
+  other_refresh_tokens refresh_tokens[] @relation("refresh_tokensTorefresh_tokens")
+
+  @@index([familia], map: "idx_refresh_tokens_familia")
+  @@index([id_usuario_sist], map: "idx_refresh_tokens_usuario")
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model usuarios_sistema {
+  id_usuario_sist String           @id(map: "usuario_sistema_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario         String           @unique(map: "usuario_sistema_usuario_key") @db.VarChar(50)
+  contrasena      String
+  cargo_ocupa     String?          @db.VarChar(100)
+  created_at      DateTime?        @default(now()) @db.Timestamptz(6)
+  created_by      String?
+  updated_at      DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_by      String?
+  deleted_at      DateTime?        @db.Timestamptz(6)
+  deleted_by      String?
+  id_empresa      String?          @db.Uuid
+  rol             String           @default("usuario")
+  refresh_tokens  refresh_tokens[]
+  empresas        empresas?        @relation(fields: [id_empresa], references: [id_empresa], onDelete: Cascade, map: "usuarios_sistema_empresas_fk")
+
+  @@schema("auth")
 }

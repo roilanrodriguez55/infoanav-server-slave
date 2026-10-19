@@ -103,3 +103,6 @@ bin/
 
 # Config local de PostgREST (contiene secretos)
 postgrest.conf
+
+# Salida de prisma generate (no se usa)
+generated/
