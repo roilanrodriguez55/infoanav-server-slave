@@ -100,3 +100,6 @@ dist/
 bin/
 
 .agents
+
+# Config local de PostgREST (contiene secretos)
+postgrest.conf
