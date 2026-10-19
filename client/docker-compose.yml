@@ -1,0 +1,23 @@
+# Compose de desarrollo y demos (no es de produccion).
+# Levanta db + api (compose del servidor) y web (este repo).
+# La ruta por defecto asume repos hermanos (infoanav-client-slave y infoanav-server-slave).
+# En un worktree hay que ajustarla con SERVER_COMPOSE (ver .env.example).
+include:
+  - path: ${SERVER_COMPOSE:-../infoanav-server-slave/docker-compose.yml}
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    container_name: infoanav-web
+    environment:
+      API_UPSTREAM: http://api:8080
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - infoanav-network
+    ports:
+      - "${WEB_HOST_PORT:-8081}:80"
