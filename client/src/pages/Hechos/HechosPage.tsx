@@ -10,6 +10,8 @@ import {
 } from '@/services/api/hechosApi';
 import type { Filter } from '@/lib/postgrest';
 import { etiquetaSenal } from '@/lib/utils';
+import { DatePickerField } from '@/components/common/DatePickerField';
+import { DebouncedInput } from '@/components/common/DebouncedInput';
 import { DetailPanel } from '@/components/common/DetailPanel';
 import { EmptyState } from '@/components/common/EmptyState';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
@@ -185,30 +187,30 @@ export default function HechosPage() {
           </FilterField>
 
           <FilterField label="Año" className="w-full md:w-28">
-            <Input
+            <DebouncedInput
               type="number"
               value={filters.anio}
-              onChange={(e) => setFilter('anio', e.target.value)}
+              onValueChange={(valor) => setFilter('anio', valor)}
               placeholder="Ej. 2026"
               className="w-full dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
             />
           </FilterField>
 
           <FilterField label="Desde" className="w-full md:w-44">
-            <Input
-              type="date"
+            <DatePickerField
               value={filters.desde}
-              onChange={(e) => setFilter('desde', e.target.value)}
-              className="w-full dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              onChange={(valor) => setFilter('desde', valor)}
+              aria-label="Desde"
+              className="w-full"
             />
           </FilterField>
 
           <FilterField label="Hasta" className="w-full md:w-44">
-            <Input
-              type="date"
+            <DatePickerField
               value={filters.hasta}
-              onChange={(e) => setFilter('hasta', e.target.value)}
-              className="w-full dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              onChange={(valor) => setFilter('hasta', valor)}
+              aria-label="Hasta"
+              className="w-full"
             />
           </FilterField>
 

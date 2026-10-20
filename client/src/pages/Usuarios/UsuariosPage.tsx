@@ -4,7 +4,7 @@ import { usersService, type Usuario } from '@/services/api/usersApi';
 import UsuarioDialog from './UsuarioDialog';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DebouncedInput } from '@/components/common/DebouncedInput';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import {
@@ -183,10 +183,10 @@ const UsuariosPage = () => {
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-5 w-5 text-icon" />
           </div>
-          <Input
+          <DebouncedInput
             value={busqueda}
-            onChange={(e) => {
-              setBusqueda(e.target.value);
+            onValueChange={(valor) => {
+              setBusqueda(valor);
               paginado.setPage(1);
             }}
             placeholder="Buscar por usuario, cargo o rol"

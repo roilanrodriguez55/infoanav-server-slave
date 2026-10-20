@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/select';
 import { EmptyState } from '@/components/common/EmptyState';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
+import { DatePickerField } from '@/components/common/DatePickerField';
 import { ListCard } from '@/components/common/ListCard';
 import { Pagination } from '@/components/common/Pagination';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -350,20 +351,20 @@ const ListFallas = () => {
           </FilterField>
 
           <FilterField label="Fecha desde" className="w-full md:w-40">
-            <Input
-              type="date"
+            <DatePickerField
               value={filters.desde}
-              onChange={(e) => setFilter('desde', e.target.value)}
-              className="w-full dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              onChange={(valor) => setFilter('desde', valor)}
+              aria-label="Fecha desde"
+              className="w-full dark:text-white"
             />
           </FilterField>
 
           <FilterField label="Fecha hasta" className="w-full md:w-40">
-            <Input
-              type="date"
+            <DatePickerField
               value={filters.hasta}
-              onChange={(e) => setFilter('hasta', e.target.value)}
-              className="w-full dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              onChange={(valor) => setFilter('hasta', valor)}
+              aria-label="Fecha hasta"
+              className="w-full dark:text-white"
             />
           </FilterField>
         </FilterBar>

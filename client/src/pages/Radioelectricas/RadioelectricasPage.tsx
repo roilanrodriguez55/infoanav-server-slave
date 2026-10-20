@@ -10,6 +10,7 @@ import {
 } from '@/services/api/raconApi';
 import type { CatalogoItem } from '@/services/api/senalesApi';
 import type { Filter } from '@/lib/postgrest';
+import { DebouncedInput } from '@/components/common/DebouncedInput';
 import { DetailPanel } from '@/components/common/DetailPanel';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
 import { Pagination } from '@/components/common/Pagination';
@@ -184,9 +185,9 @@ export default function RadioelectricasPage() {
           </FilterField>
 
           <FilterField label="Banda" className="w-full md:w-40">
-            <Input
+            <DebouncedInput
               value={filters.banda}
-              onChange={(e) => setFilter('banda', e.target.value)}
+              onValueChange={(valor) => setFilter('banda', valor)}
               placeholder="Ej. X"
               className="w-full dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
             />

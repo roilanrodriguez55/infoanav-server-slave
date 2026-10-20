@@ -2,10 +2,10 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useServerList } from '@/hooks/useServerList';
 import { dateRangeFilters, type Filter } from '@/lib/postgrest';
+import { DatePickerField } from '@/components/common/DatePickerField';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
 import { Pagination } from '@/components/common/Pagination';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -181,20 +181,20 @@ export function ListaPlan({ senales, tipos, version, onEditar, onEliminar }: Lis
           </FilterField>
 
           <FilterField label="Fecha desde" className="w-full md:w-40">
-            <Input
-              type="date"
+            <DatePickerField
               value={filters.desde}
-              onChange={(e) => setFilter('desde', e.target.value)}
-              className="w-full dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              onChange={(valor) => setFilter('desde', valor)}
+              aria-label="Fecha desde"
+              className="w-full"
             />
           </FilterField>
 
           <FilterField label="Fecha hasta" className="w-full md:w-40">
-            <Input
-              type="date"
+            <DatePickerField
               value={filters.hasta}
-              onChange={(e) => setFilter('hasta', e.target.value)}
-              className="w-full dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              onChange={(valor) => setFilter('hasta', valor)}
+              aria-label="Fecha hasta"
+              className="w-full"
             />
           </FilterField>
         </FilterBar>

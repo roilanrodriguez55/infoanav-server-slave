@@ -5,11 +5,11 @@ import { BarChart3 } from 'lucide-react';
 import PageMeta from '@/components/common/PageMeta';
 import { PageHeader } from '@/components/common/PageHeader';
 import { ExportarTabla, type CeldaExport, type ColumnaExport } from '@/components/common/ExportarTabla';
+import { DebouncedInput } from '@/components/common/DebouncedInput';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -320,14 +320,14 @@ export default function EstadisticasPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Input
+                    <DebouncedInput
                       type="number"
                       step="any"
                       placeholder="Valor exacto"
                       className="w-32"
                       disabled={dimCampo === ''}
                       value={dimValor}
-                      onChange={(evento) => setDimValor(evento.target.value)}
+                      onValueChange={setDimValor}
                     />
                   </div>
                 </FilterField>

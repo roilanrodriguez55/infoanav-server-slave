@@ -8,6 +8,7 @@ import {
 import type { Filter } from '@/lib/postgrest';
 import { DetailPanel } from '@/components/common/DetailPanel';
 import { EmptyState } from '@/components/common/EmptyState';
+import { DebouncedInput } from '@/components/common/DebouncedInput';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
 import { ListCard } from '@/components/common/ListCard';
 import { Pagination } from '@/components/common/Pagination';
@@ -179,17 +180,17 @@ export default function LibrosTab() {
           />
 
           <FilterField label="Estado técnico" className="w-full md:w-40">
-            <Input
+            <DebouncedInput
               value={filters.estado_tecnico}
-              onChange={(e) => setFilter('estado_tecnico', e.target.value)}
+              onValueChange={(valor) => setFilter('estado_tecnico', valor)}
               className="w-full dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             />
           </FilterField>
 
           <FilterField label="Ubicación" className="w-full md:w-40">
-            <Input
+            <DebouncedInput
               value={filters.ubicacion}
-              onChange={(e) => setFilter('ubicacion', e.target.value)}
+              onValueChange={(valor) => setFilter('ubicacion', valor)}
               className="w-full dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             />
           </FilterField>
@@ -214,20 +215,20 @@ export default function LibrosTab() {
 
           {filters.anio_modo !== '' && (
             <FilterField label={filters.anio_modo === 'rango' ? 'Año desde' : 'Año'} className="w-full md:w-28">
-              <Input
+              <DebouncedInput
                 type="number"
                 value={filters.anio_a}
-                onChange={(e) => setFilter('anio_a', e.target.value)}
+                onValueChange={(valor) => setFilter('anio_a', valor)}
                 className="w-full dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               />
             </FilterField>
           )}
           {filters.anio_modo === 'rango' && (
             <FilterField label="Año hasta" className="w-full md:w-28">
-              <Input
+              <DebouncedInput
                 type="number"
                 value={filters.anio_b}
-                onChange={(e) => setFilter('anio_b', e.target.value)}
+                onValueChange={(valor) => setFilter('anio_b', valor)}
                 className="w-full dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               />
             </FilterField>

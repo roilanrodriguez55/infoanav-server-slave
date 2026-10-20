@@ -36,6 +36,8 @@ import {
 } from '@/components/ui/select';
 import { EmptyState } from '@/components/common/EmptyState';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
+import { DatePickerField } from '@/components/common/DatePickerField';
+import { DebouncedInput } from '@/components/common/DebouncedInput';
 import { ListCard } from '@/components/common/ListCard';
 import { Pagination } from '@/components/common/Pagination';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -294,11 +296,11 @@ const ListSenales = () => {
 // Campo numerico para valor exacto (altura, elevacion, profundidad).
 const campoNumerico = (etiqueta: string, clave: 'altura' | 'elevacion' | 'profundidad') => (
     <FilterField label={etiqueta} className="w-full md:w-32">
-      <Input
+      <DebouncedInput
         type="number"
         step="any"
         value={filters[clave]}
-        onChange={(e) => setFilter(clave, e.target.value)}
+        onValueChange={(valor) => setFilter(clave, valor)}
         placeholder="Valor exacto"
         className="w-full border-blue-200 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
       />
@@ -585,20 +587,20 @@ return (
           )}
 
           <FilterField label="Creación desde" className="w-full md:w-40">
-            <Input
-              type="date"
+            <DatePickerField
               value={filters.desde}
-              onChange={(e) => setFilter('desde', e.target.value)}
-              className="w-full border-blue-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              onChange={(valor) => setFilter('desde', valor)}
+              aria-label="Creación desde"
+              className="w-full dark:text-white"
             />
           </FilterField>
 
           <FilterField label="Creación hasta" className="w-full md:w-40">
-            <Input
-              type="date"
+            <DatePickerField
               value={filters.hasta}
-              onChange={(e) => setFilter('hasta', e.target.value)}
-              className="w-full border-blue-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              onChange={(valor) => setFilter('hasta', valor)}
+              aria-label="Creación hasta"
+              className="w-full dark:text-white"
             />
           </FilterField>
         </FilterBar>

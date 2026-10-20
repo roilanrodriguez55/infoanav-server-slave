@@ -15,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { DebouncedInput } from '@/components/common/DebouncedInput';
 import { Pagination } from '@/components/common/Pagination';
 import { usePagedItems } from '@/hooks/usePagedItems';
 import { Check, Pencil, Plus, RefreshCw, Search, Trash2, X } from 'lucide-react';
@@ -158,10 +159,10 @@ export default function CatalogoTabla({ def }: CatalogoTablaProps) {
 
       <div className="relative">
         <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-icon" />
-        <Input
+        <DebouncedInput
           value={busqueda}
-          onChange={(event) => {
-            setBusqueda(event.target.value);
+          onValueChange={(valor) => {
+            setBusqueda(valor);
             paginado.setPage(1);
           }}
           placeholder="Buscar en este catálogo"

@@ -10,6 +10,8 @@ import {
   type TipoEquipo,
 } from '@/services/api/equiposApi';
 import type { Filter } from '@/lib/postgrest';
+import { DatePickerField } from '@/components/common/DatePickerField';
+import { DebouncedInput } from '@/components/common/DebouncedInput';
 import { DetailPanel } from '@/components/common/DetailPanel';
 import { EmptyState } from '@/components/common/EmptyState';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
@@ -19,7 +21,6 @@ import { PillTabs } from '@/components/common/PillTabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { etiquetaSenal } from '@/lib/utils';
@@ -164,9 +165,9 @@ function ListaEquipos({ tipo, catalogos }: ListaEquiposProps) {
 
       <FilterBar onReset={limpiarFiltros} activeCount={filtrosActivos}>
         <FilterField label="Inventario" className="w-full md:w-44">
-          <Input
+          <DebouncedInput
             value={filters.inventario}
-            onChange={(e) => setFilter('inventario', e.target.value)}
+            onValueChange={(valor) => setFilter('inventario', valor)}
             placeholder="Número de inventario"
             className="w-full dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
           />
@@ -189,9 +190,9 @@ function ListaEquipos({ tipo, catalogos }: ListaEquiposProps) {
         </FilterField>
 
         <FilterField label="Proveedor" className="w-full md:w-40">
-          <Input
+          <DebouncedInput
             value={filters.proveedor}
-            onChange={(e) => setFilter('proveedor', e.target.value)}
+            onValueChange={(valor) => setFilter('proveedor', valor)}
             className="w-full dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           />
         </FilterField>
@@ -227,20 +228,20 @@ function ListaEquipos({ tipo, catalogos }: ListaEquiposProps) {
         </FilterField>
 
         <FilterField label="Inicio de servicio desde" className="w-full md:w-44">
-          <Input
-            type="date"
+          <DatePickerField
             value={filters.desde}
-            onChange={(e) => setFilter('desde', e.target.value)}
-            className="w-full dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            onChange={(valor) => setFilter('desde', valor)}
+            aria-label="Inicio de servicio desde"
+            className="w-full"
           />
         </FilterField>
 
         <FilterField label="Hasta" className="w-full md:w-44">
-          <Input
-            type="date"
+          <DatePickerField
             value={filters.hasta}
-            onChange={(e) => setFilter('hasta', e.target.value)}
-            className="w-full dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            onChange={(valor) => setFilter('hasta', valor)}
+            aria-label="Inicio de servicio hasta"
+            className="w-full"
           />
         </FilterField>
       </FilterBar>

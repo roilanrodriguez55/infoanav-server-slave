@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, AlertTriangle, CalendarClock, Plus, Search, Ship } from 'lucide-react';
+import { DebouncedInput } from '@/components/common/DebouncedInput';
 import { DetailPanel } from '@/components/common/DetailPanel';
 import { EmptyState } from '@/components/common/EmptyState';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
@@ -7,7 +8,6 @@ import { ListCard } from '@/components/common/ListCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   DIAS_AVISO_CERTIFICADO,
@@ -143,9 +143,9 @@ export default function BuquesTab() {
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <Search className="h-5 w-5 text-icon" />
             </div>
-            <Input
+            <DebouncedInput
               value={busqueda}
-              onChange={(evento) => setBusqueda(evento.target.value)}
+              onValueChange={(valor) => setBusqueda(valor)}
               placeholder="Buscar por buque o nombre"
               className="w-full pl-10 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
             />
