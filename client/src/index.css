@@ -808,6 +808,7 @@ span.flatpickr-weekday,
 */
 
 :root {
+  color-scheme: light;
   --background: #f3f7fd;
   --foreground: #0f1b2e;
   --card: #ffffff;
@@ -853,6 +854,7 @@ span.flatpickr-weekday,
 */
 
 .dark {
+  color-scheme: dark;
   --background: #0b1730;
   --foreground: #eaf1fb;
   --card: #12213f;

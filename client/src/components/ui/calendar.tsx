@@ -39,7 +39,8 @@ function Calendar({
         dropdowns: 'flex items-center gap-1.5',
         dropdown_root:
           'relative inline-flex h-8 items-center rounded-md border border-border bg-background focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50',
-        dropdown: 'absolute inset-0 w-full cursor-pointer opacity-0',
+        dropdown:
+          'absolute inset-0 w-full cursor-pointer bg-popover text-popover-foreground opacity-0 [&>option]:bg-popover [&>option]:text-popover-foreground',
         nav: 'absolute inset-x-3 top-3 flex items-center justify-between',
         button_previous:
           'inline-flex size-8 items-center justify-center rounded-md text-icon transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50',
