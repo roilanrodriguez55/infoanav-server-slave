@@ -59,7 +59,7 @@ const FormANAV = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+          <Loader2 className="h-12 w-12 animate-spin text-icon mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-300">Cargando catálogos...</p>
         </div>
       </div>
@@ -71,7 +71,7 @@ const FormANAV = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 p-4">
         <Card className="max-w-md w-full">
           <CardHeader>
-            <CardTitle className="text-red-600 flex items-center gap-2">
+            <CardTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
               <AlertCircle className="h-5 w-5" />
               Error
             </CardTitle>
@@ -152,7 +152,7 @@ const FormANAV = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200 dark:bg-gray-700 dark:border-gray-600">
                 <div className="space-y-2">
                   <Label htmlFor="codigo_lsm" className="text-blue-900 dark:text-gray-200 font-medium">
-                    Código LSM <span className="text-red-500">*</span>
+                    Código LSM <span className="text-red-600 dark:text-red-400">*</span>
                   </Label>
                   <Input
                     id="codigo_lsm"

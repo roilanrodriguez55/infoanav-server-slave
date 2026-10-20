@@ -361,7 +361,7 @@ export default function TabLmf({ idSenal }: TabLmfProps) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-800 dark:text-white">
-            <Anchor className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <Anchor className="h-5 w-5 text-icon-strong" />
             Leva, Mantenimiento y Fondeo (LMF)
           </h3>
         </div>

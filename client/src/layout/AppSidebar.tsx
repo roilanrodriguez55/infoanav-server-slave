@@ -219,7 +219,7 @@ const AppSidebar: React.FC = () => {
                   className={`ml-auto w-5 h-5 transition-transform duration-200 ${
                     openSubmenu?.type === menuType &&
                     openSubmenu?.index === index
-                      ? "rotate-180 text-brand-500"
+                      ? "rotate-180 text-icon-strong"
                       : ""
                     }`}
                 />
@@ -312,7 +312,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
+      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-card text-foreground h-screen transition-all duration-300 ease-in-out z-50 border-r border-border
         ${isExpanded || isMobileOpen ? "w-[290px]" : "w-[90px]"}
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}
@@ -335,9 +335,9 @@ const AppSidebar: React.FC = () => {
                 alt="Logo"
                 width={50}
               />
-              <div className="lg:flex flex-col leading-tight text-gray-700 dark:text-gray-300">
+              <div className="lg:flex flex-col leading-tight text-foreground">
                 <span className="font-bold text-lg">INFOANAV</span>
-                <span className="font-normal text-gray-400 text-[14px] dark:text-gray-400">
+                <span className="font-normal text-muted-foreground text-[14px]">
                   Sistema de Gestión
                 </span>
               </div>
@@ -360,7 +360,7 @@ const AppSidebar: React.FC = () => {
             {groupedNavItems.map(([groupName, items]) => (
               <div key={groupName}>
                 <h2
-                  className={`mb-2 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                  className={`mb-2 text-xs uppercase flex leading-[20px] text-muted-foreground ${
                     !isExpanded && !isMobileOpen
                       ? "lg:justify-center"
                       : "justify-start"
@@ -369,7 +369,7 @@ const AppSidebar: React.FC = () => {
                   {isExpanded || isMobileOpen ? (
                     groupName
                   ) : (
-                    <span className="my-2 block h-px w-8 bg-gray-200 dark:bg-gray-700" />
+                    <span className="my-2 block h-px w-8 bg-border" />
                   )}
                 </h2>
                 {renderMenuItems(items, "main")}

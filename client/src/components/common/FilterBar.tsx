@@ -35,7 +35,7 @@ export function FilterBar({ children, onReset, activeCount = 0 }: FilterBarProps
 export function FilterField({ label, children, className }: FilterFieldProps) {
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
-      <Label className="text-xs font-medium text-gray-600 dark:text-gray-400">{label}</Label>
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
       {children}
     </div>
   )

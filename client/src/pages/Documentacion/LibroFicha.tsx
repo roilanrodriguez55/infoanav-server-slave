@@ -32,7 +32,7 @@ export default function LibroFicha({ libro, onEditar, onCambio }: LibroFichaProp
     <div className="space-y-6">
       <div className="space-y-2">
         <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-800 dark:text-white">
-          <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <BookOpen className="h-5 w-5 text-icon-strong" />
           {libro.titulo}
         </h3>
         {libro.prestado ? (
@@ -78,15 +78,15 @@ export default function LibroFicha({ libro, onEditar, onCambio }: LibroFichaProp
         </Button>
         {libro.prestado ? (
           <Button
+            variant="brand"
             onClick={() => setDialogo('devolver')}
             disabled={!libro.id_prestamo_abierto}
-            className="bg-blue-600 text-white hover:bg-blue-700"
           >
             <Undo2 className="mr-2 h-4 w-4" />
             Devolver
           </Button>
         ) : (
-          <Button onClick={() => setDialogo('prestar')} className="bg-blue-600 text-white hover:bg-blue-700">
+          <Button variant="brand" onClick={() => setDialogo('prestar')}>
             <HandCoins className="mr-2 h-4 w-4" />
             Prestar
           </Button>

@@ -10,7 +10,6 @@ export default function FlotaPage() {
     <div className="w-full min-w-0">
       <PageHeader
         icon={<Ship />}
-        iconClassName="text-blue-600 dark:text-blue-400"
         title="Flota y personal"
         subtitle="Buques, alistamiento mensual y personal"
       />

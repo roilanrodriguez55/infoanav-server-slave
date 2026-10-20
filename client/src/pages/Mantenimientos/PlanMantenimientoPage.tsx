@@ -82,7 +82,6 @@ export default function PlanMantenimientoPage() {
     <div className="w-full min-w-0 space-y-6">
       <PageHeader
         icon={<Wrench />}
-        iconClassName="text-blue-600 dark:text-blue-400"
         title="Gestión de Mantenimientos"
         subtitle="Administre los mantenimientos de las señales marítimas"
         actions={

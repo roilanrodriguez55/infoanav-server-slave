@@ -117,7 +117,7 @@ export default function RadioelectricasPage() {
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-xl font-bold text-gray-800 dark:text-white">
-            <Radio className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <Radio className="h-5 w-5 text-icon-strong" />
             Radioeléctricas (RACON)
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -138,7 +138,7 @@ export default function RadioelectricasPage() {
           <FilterField label="Buscar" className="w-full md:w-72">
             <div className="relative w-full">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                <Search className="h-5 w-5 text-icon" />
               </div>
               <Input
                 value={filters.texto}

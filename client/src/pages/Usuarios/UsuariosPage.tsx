@@ -141,7 +141,7 @@ const UsuariosPage = () => {
         actions={
           <>
             <Button variant="neutral" onClick={recargar} className="w-full sm:w-auto">
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <RefreshCw className="h-4 w-4 mr-2 text-icon" />
               Actualizar
             </Button>
             <Button
@@ -181,7 +181,7 @@ const UsuariosPage = () => {
       <div className="mb-6 flex flex-col md:flex-row md:items-end gap-4">
         <div className="relative w-full md:w-72">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-blue-400 dark:text-gray-500" />
+            <Search className="h-5 w-5 text-icon" />
           </div>
           <Input
             value={busqueda}
@@ -329,7 +329,7 @@ const UsuariosPage = () => {
       )}
 
       <AlertDialog open={aDarDeBaja !== null} onOpenChange={(abierto) => { if (!abierto) setADarDeBaja(null); }}>
-        <AlertDialogContent className="dark:bg-gray-800 dark:border-gray-700">
+        <AlertDialogContent className="dark:bg-popover dark:border-gray-700">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-gray-800 dark:text-white">
               Dar de baja a {aDarDeBaja?.usuario}

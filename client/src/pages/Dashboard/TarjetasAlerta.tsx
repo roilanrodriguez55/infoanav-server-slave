@@ -57,7 +57,7 @@ function TarjetaAlerta({ titulo, detalle, to, tono, valor, cargando }: TarjetaAl
       to={to}
       className="relative block rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-white/5"
     >
-      {cargando && <Loader2 className="absolute top-2 right-2 h-4 w-4 animate-spin text-gray-400" />}
+      {cargando && <Loader2 className="absolute top-2 right-2 h-4 w-4 animate-spin text-icon" />}
       <p className="text-xs text-gray-500 dark:text-gray-400">{titulo}</p>
       <p className={`mt-1 text-2xl font-semibold ${color}`}>
         {cargando ? "..." : valor ?? "—"}

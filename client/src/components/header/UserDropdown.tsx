@@ -16,8 +16,8 @@ export default function UserDropdown() {
     <div className="relative flex items-center gap-3">
       {usuario && (
         <div className="hidden flex-col items-end leading-tight sm:flex">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{usuario.usuario}</span>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
+          <span className="text-sm font-medium text-foreground">{usuario.usuario}</span>
+          <span className="text-xs text-muted-foreground">
             {usuario.rol === 'administrador' ? 'Administrador' : 'Usuario'}
           </span>
         </div>
@@ -25,11 +25,11 @@ export default function UserDropdown() {
       <button
         type="button"
         onClick={() => void handleLogout()}
-        className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-white/5"
+        className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground shadow-theme-xs hover:bg-muted"
         aria-label="Cerrar sesión"
       >
         <svg
-          className="h-5 w-5 shrink-0 text-gray-500 dark:text-gray-400"
+          className="h-5 w-5 shrink-0 text-icon"
           viewBox="0 0 24 24"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"

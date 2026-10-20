@@ -95,7 +95,7 @@ export function CalendarioPlan({ senales, tipos, version, onSeleccionar }: Calen
         </Button>
         <h3 className="flex items-center gap-2 text-lg font-semibold capitalize text-gray-800 dark:text-white">
           {format(mes, 'MMMM yyyy', { locale: es })}
-          {cargando && <Loader2 className="h-4 w-4 animate-spin text-gray-500" />}
+          {cargando && <Loader2 className="h-4 w-4 animate-spin text-icon" />}
         </h3>
         <Button variant="outline" size="icon" aria-label="Mes siguiente" onClick={() => cambiarMes(1)}>
           <ChevronRight />

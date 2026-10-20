@@ -94,7 +94,7 @@ export default function HistorialCambios({ tabla, idRegistro, etiquetas, formate
 
   if (cargando) {
     return (
-      <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         Cargando historial...
       </div>
@@ -116,7 +116,7 @@ export default function HistorialCambios({ tabla, idRegistro, etiquetas, formate
   }
 
   if (registros.length === 0) {
-    return <p className="text-sm text-gray-500 dark:text-gray-400">Sin cambios registrados</p>;
+    return <p className="text-sm text-muted-foreground">Sin cambios registrados</p>;
   }
 
   return (
@@ -124,14 +124,14 @@ export default function HistorialCambios({ tabla, idRegistro, etiquetas, formate
       {registros.map((registro) => {
         const lineas = lineasCambio(registro, etiquetas, formatearValor);
         return (
-          <li key={registro.id_historial} className="rounded-lg border border-blue-100 p-3 dark:border-gray-700">
+          <li key={registro.id_historial} className="rounded-lg border border-border p-3">
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <Badge className={CLASE_OPERACION[registro.operacion]}>{ETIQUETA_OPERACION[registro.operacion]}</Badge>
-              <span className="text-gray-700 dark:text-gray-200">{formatearFechaHora(registro.fecha)}</span>
-              <span className="text-gray-500 dark:text-gray-400">por {registro.usuario ?? '—'}</span>
+              <span className="text-foreground">{formatearFechaHora(registro.fecha)}</span>
+              <span className="text-muted-foreground">por {registro.usuario ?? '—'}</span>
             </div>
             {lineas.length > 0 && (
-              <ul className="mt-2 space-y-1 text-sm text-gray-700 dark:text-gray-300">
+              <ul className="mt-2 space-y-1 text-sm text-foreground">
                 {lineas.map((linea, indice) => (
                   <li key={indice}>{linea}</li>
                 ))}

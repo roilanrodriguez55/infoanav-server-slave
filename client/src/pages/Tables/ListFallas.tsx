@@ -239,7 +239,6 @@ const ListFallas = () => {
     <div className="w-full min-w-0">
       <PageHeader
         icon={<AlertTriangle />}
-        iconClassName="text-red-500"
         title="Gestión de Fallas"
         subtitle="Administre las fallas registradas en el sistema"
         actions={
@@ -270,7 +269,7 @@ const ListFallas = () => {
           <FilterField label="Buscar" className="w-full md:w-72">
             <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                <Search className="h-5 w-5 text-icon" />
               </div>
               <Input
                 value={filters.texto}
@@ -464,7 +463,7 @@ const ListFallas = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <User className="h-3 w-3 text-gray-500" />
+                        <User className="h-3 w-3 text-icon" />
                         <span>{falla.reporto ?? '-'}</span>
                       </div>
                     </TableCell>
@@ -486,7 +485,7 @@ const ListFallas = () => {
                           size="icon"
                           aria-label="Ver detalle de falla"
                           onClick={() => handleDetail(falla.id_falla)}
-                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                          className="text-icon hover:text-icon-strong"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>

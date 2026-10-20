@@ -26,7 +26,7 @@ export function SortableHead({ column, label, order, onSort, className }: Sortab
         className="-ml-2 h-8 px-2 font-medium text-foreground dark:text-gray-300"
       >
         {label}
-        <Icon className={cn('h-3.5 w-3.5', isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400')} />
+        <Icon className={cn('h-3.5 w-3.5', isActive ? 'text-icon-strong' : 'text-icon/60')} />
       </Button>
     </TableHead>
   )

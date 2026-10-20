@@ -276,7 +276,7 @@ export default function SenalDetalle() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
-          <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-blue-600 dark:text-blue-400" />
+          <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-icon" />
           <p className="text-gray-600 dark:text-gray-300">Cargando señal...</p>
         </div>
       </div>
@@ -287,7 +287,7 @@ export default function SenalDetalle() {
     return (
       <Card className="mx-auto mt-8 max-w-md">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-600">
+          <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
             <AlertCircle className="h-5 w-5" />
             Error
           </CardTitle>

@@ -175,8 +175,8 @@ export default function LibroForm({ libro, catalogos, crearEn, onTerminado, onCa
         </Button>
         <Button
           type="submit"
+          variant="brand"
           disabled={guardando || esVacio(valores.titulo)}
-          className="bg-blue-600 text-white hover:bg-blue-700"
         >
           {guardando ? 'Guardando...' : 'Guardar'}
         </Button>

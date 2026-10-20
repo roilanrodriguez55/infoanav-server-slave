@@ -157,7 +157,7 @@ export default function CatalogoTabla({ def }: CatalogoTablaProps) {
       </form>
 
       <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+        <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-icon" />
         <Input
           value={busqueda}
           onChange={(event) => {
@@ -184,7 +184,7 @@ export default function CatalogoTabla({ def }: CatalogoTablaProps) {
             <AlertDescription>{errorCarga}</AlertDescription>
           </Alert>
           <Button variant="outline" onClick={reintentar}>
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className="h-4 w-4 text-icon" />
             Reintentar
           </Button>
         </div>
@@ -216,7 +216,7 @@ export default function CatalogoTabla({ def }: CatalogoTablaProps) {
                     disabled={guardando}
                     onClick={() => guardarEdicion(registro)}
                   >
-                    <Check className="h-4 w-4" />
+                    <Check className="h-4 w-4 text-icon" />
                   </Button>
                   <Button
                     size="icon"
@@ -225,7 +225,7 @@ export default function CatalogoTabla({ def }: CatalogoTablaProps) {
                     disabled={guardando}
                     onClick={() => setEditandoId(null)}
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-4 w-4 text-icon" />
                   </Button>
                 </>
               ) : (
@@ -238,7 +238,7 @@ export default function CatalogoTabla({ def }: CatalogoTablaProps) {
                     disabled={guardando}
                     onClick={() => iniciarEdicion(registro)}
                   >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className="h-4 w-4 text-icon" />
                   </Button>
                   <Button
                     size="icon"

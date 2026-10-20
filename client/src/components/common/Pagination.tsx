@@ -24,7 +24,7 @@ export function Pagination({ page, pageSize, total, onPageChange, loading = fals
   return (
     <nav
       aria-label="Paginación"
-      className="flex flex-col sm:flex-row items-center justify-between gap-3 py-3 text-sm text-gray-600 dark:text-gray-400"
+      className="flex flex-col sm:flex-row items-center justify-between gap-3 py-3 text-sm text-muted-foreground"
     >
       <span>{total === 0 ? 'Sin resultados' : `Mostrando ${from}-${to} de ${total}`}</span>
 

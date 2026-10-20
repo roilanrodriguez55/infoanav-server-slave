@@ -63,7 +63,7 @@ export default function SignInForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col items-center justify-center px-4">
       {/* Fondo con patrón sutil (opcional, puedes eliminarlo si prefieres) */}
       <div className="absolute inset-0 bg-grid-slate-200 dark:bg-grid-slate-800 [mask-image:linear-gradient(0deg,transparent,black)] pointer-events-none" />
       
@@ -74,7 +74,7 @@ export default function SignInForm() {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent mb-2">
             InfoANAV
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-muted-foreground">
             Ingresa tus credenciales para acceder al sistema
           </p>
         </div>
@@ -89,11 +89,11 @@ export default function SignInForm() {
         <form onSubmit={(e) => { void handleSubmit(e); }} className="space-y-6">
           {/* Campo Usuario */}
           <div className="space-y-2">
-            <Label htmlFor="usuario" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <Label htmlFor="usuario" className="text-sm font-medium text-foreground">
               Usuario
             </Label>
             <div className="relative">
-              <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+              <User className="absolute left-3 top-2.5 h-5 w-5 text-icon" />
               <Input
                 id="usuario"
                 name="usuario"
@@ -103,18 +103,18 @@ export default function SignInForm() {
                 onChange={handleChange}
                 disabled={loading}
                 required
-                className="pl-10 h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-all dark:bg-slate-800 dark:border-gray-700 dark:text-white"
+                className="pl-10 h-12 border-border focus:border-blue-500 focus:ring-blue-500 transition-all bg-card text-foreground"
               />
             </div>
           </div>
 
           {/* Campo Contraseña */}
           <div className="space-y-2">
-            <Label htmlFor="contrasena" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <Label htmlFor="contrasena" className="text-sm font-medium text-foreground">
               Contraseña
             </Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+              <Lock className="absolute left-3 top-2.5 h-5 w-5 text-icon" />
               <Input
                 id="contrasena"
                 name="contrasena"
@@ -124,12 +124,12 @@ export default function SignInForm() {
                 onChange={handleChange}
                 disabled={loading}
                 required
-                className="pl-10 pr-10 h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-all dark:bg-slate-800 dark:border-gray-700 dark:text-white"
+                className="pl-10 pr-10 h-12 border-border focus:border-blue-500 focus:ring-blue-500 transition-all bg-card text-foreground"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-icon hover:text-icon-strong"
               >
                 {showPassword ? (
                   <EyeOff className="h-5 w-5" />
@@ -163,22 +163,22 @@ export default function SignInForm() {
         {/* Línea decorativa */}
         <div className="relative my-8">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200 dark:border-gray-800"></div>
+            <div className="w-full border-t border-border"></div>
           </div>
           <div className="relative flex justify-center text-xs">
-            <span className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 px-2 text-gray-500 dark:text-gray-400">
+            <span className="bg-gradient-to-br from-background to-muted px-2 text-muted-foreground">
               Acceso al sistema
             </span>
           </div>
         </div>
 
         {/* Mensaje de contacto */}
-        <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-center text-sm text-muted-foreground">
           ¿Problemas para acceder? Contacta al administrador
         </p>
 
         {/* Versión del sistema */}
-        <p className="text-center mt-6 text-xs text-gray-400">
+        <p className="text-center mt-6 text-xs text-muted-foreground">
           © 2026 InfoANAVDB - Todos los derechos reservados
         </p>
       </div>

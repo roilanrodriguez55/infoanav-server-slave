@@ -112,9 +112,9 @@ export default function PrestamosTab() {
           <Button
             key={estado}
             size="sm"
-            variant={filters.estado === estado ? 'default' : 'outline'}
+            variant={filters.estado === estado ? 'brand' : 'outline'}
             onClick={() => setFilter('estado', estado)}
-            className={filters.estado === estado ? 'bg-blue-600 text-white hover:bg-blue-700' : 'dark:border-gray-600 dark:text-gray-300'}
+            className={filters.estado === estado ? undefined : 'dark:border-gray-600 dark:text-gray-300'}
           >
             {ETIQUETAS_ESTADO[estado]}
           </Button>

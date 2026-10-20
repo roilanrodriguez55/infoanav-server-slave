@@ -24,7 +24,7 @@ export function PillTabs({ tabs, value, onChange, className, 'aria-label': ariaL
       role="group"
       aria-label={ariaLabel}
       className={cn(
-        'inline-flex flex-wrap gap-1 rounded-lg border border-blue-200 bg-white p-1 dark:border-gray-600 dark:bg-gray-800',
+        'inline-flex flex-wrap gap-1 rounded-lg border border-border bg-card p-1',
         className
       )}
     >
@@ -39,7 +39,7 @@ export function PillTabs({ tabs, value, onChange, className, 'aria-label': ariaL
             onClick={() => onChange(tab.value)}
             className={activa
               ? 'bg-blue-600 text-white hover:bg-blue-700'
-              : 'bg-transparent text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700'}
+              : 'bg-transparent text-foreground/80 hover:bg-muted'}
           >
             {tab.label}
             {tab.badge}

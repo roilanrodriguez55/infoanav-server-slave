@@ -230,7 +230,6 @@ const ListMantenimientos = () => {
     <div className="w-full min-w-0">
       <PageHeader
         icon={<Wrench />}
-        iconClassName="text-blue-600 dark:text-blue-400"
         title="Gestión de Mantenimientos"
         subtitle="Administre los mantenimientos de las señales marítimas"
         actions={
@@ -265,7 +264,7 @@ const ListMantenimientos = () => {
           <FilterField label="Buscar" className="w-full md:w-72">
             <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                <Search className="h-5 w-5 text-icon" />
               </div>
               <Input
                 value={filters.texto}
@@ -453,7 +452,7 @@ const ListMantenimientos = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <User className="h-3 w-3 text-gray-500" />
+                        <User className="h-3 w-3 text-icon" />
                         <span>{mant.informa ?? mant.aseguro ?? '-'}</span>
                       </div>
                     </TableCell>
@@ -467,7 +466,7 @@ const ListMantenimientos = () => {
                           size="icon"
                           aria-label="Ver detalle de mantenimiento"
                           onClick={() => handleDetail(mant.id_mantenimiento)}
-                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                          className="text-icon hover:text-icon-strong"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>

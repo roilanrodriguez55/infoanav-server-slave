@@ -54,7 +54,6 @@ export default function EquipamientoPage() {
     <div className="w-full min-w-0">
       <PageHeader
         icon={<Package />}
-        iconClassName="text-blue-600 dark:text-blue-400"
         title="Equipamiento"
         subtitle="Inventario de equipos de las señales, alertas de vida útil y catálogo de modelos"
       >

@@ -82,7 +82,7 @@ export function CommandSelect({
             disabled={disabled}
           >
             {value ? selectedItem?.nombre : placeholder}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-icon" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0" align="start">

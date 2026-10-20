@@ -212,7 +212,7 @@ export default function PlantaForm({ planta, onTerminado, onCancelar }: PlantaFo
           <Button type="button" variant="outline" onClick={onCancelar} disabled={guardando}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={guardando} className="bg-blue-600 text-white hover:bg-blue-700">
+          <Button type="submit" variant="brand" disabled={guardando}>
             {guardando ? 'Guardando...' : 'Guardar'}
           </Button>
         </div>

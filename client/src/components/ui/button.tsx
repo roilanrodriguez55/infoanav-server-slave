@@ -12,7 +12,7 @@ const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
         outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border-border bg-background [&_svg:not([class*=text-])]:text-icon hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
@@ -23,7 +23,7 @@ const buttonVariants = cva(
         brand:
           "bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md",
         neutral:
-          "border-gray-300 bg-background text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-input/30 dark:text-gray-300 dark:hover:bg-gray-800",
+          "border-border bg-background text-foreground [&_svg:not([class*=text-])]:text-icon hover:bg-muted dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
       },
       size: {
         default:

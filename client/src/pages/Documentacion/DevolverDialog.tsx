@@ -75,7 +75,7 @@ export default function DevolverDialog({ idPrestamo, descripcion, onOpenChange, 
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={guardando}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={guardando} className="bg-blue-600 text-white hover:bg-blue-700">
+            <Button type="submit" variant="brand" disabled={guardando}>
               {guardando ? 'Guardando...' : 'Devolver'}
             </Button>
           </DialogFooter>

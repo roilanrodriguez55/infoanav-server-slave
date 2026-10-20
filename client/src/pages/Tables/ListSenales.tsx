@@ -389,7 +389,6 @@ return (
     <div className="w-full min-w-0">
       <PageHeader
         icon={<Anchor />}
-        iconClassName="text-blue-600 dark:text-blue-400"
         title="Señales Marítimas"
         subtitle="Gestión de señales marítimas del sistema"
         actions={
@@ -425,7 +424,7 @@ return (
           <FilterField label="Buscar" className="w-full md:w-72">
             <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-blue-400 dark:text-gray-500" />
+                <Search className="h-5 w-5 text-icon" />
               </div>
               <Input
                 value={filters.texto}
@@ -721,7 +720,7 @@ return (
                       <TableCell>{senal.causa_retirada ?? '—'}</TableCell>
                     ) : (
                       <TableCell>
-                        <Badge variant="outline" className="bg-slate-100 text-slate-800 dark:bg-gray-600 dark:text-gray-100">
+                        <Badge variant="outline" className="bg-blue-50 text-blue-900 dark:bg-gray-700 dark:text-gray-100">
                           {estadoById.get(senal.id_estado) ?? '—'}
                         </Badge>
                       </TableCell>
@@ -734,7 +733,7 @@ return (
                           size="icon"
                           aria-label="Ver detalle de señal"
                           onClick={() => handleDetail(senal.id_senal)}
-                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                          className="text-icon hover:text-icon-strong"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>

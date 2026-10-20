@@ -100,7 +100,7 @@ export default function TabPronostico({ idSenal }: TabPronosticoProps) {
     <form onSubmit={(e) => void guardar(e)} className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-800 dark:text-white">
-          <CloudSun className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <CloudSun className="h-5 w-5 text-icon-strong" />
           Pronóstico
         </h3>
         <Button

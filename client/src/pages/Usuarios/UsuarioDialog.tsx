@@ -128,7 +128,7 @@ const UsuarioDialog = ({ usuario, onCerrar, onGuardado }: UsuarioDialogProps) =>
 
   return (
     <Dialog open onOpenChange={(abierto) => { if (!abierto && !enviando) onCerrar(); }}>
-      <DialogContent className="sm:max-w-md dark:bg-gray-800 dark:border-gray-700">
+      <DialogContent className="sm:max-w-md dark:bg-popover dark:border-gray-700">
         <DialogHeader>
           <DialogTitle className="text-gray-800 dark:text-white">
             {esEdicion ? 'Editar usuario' : 'Nuevo usuario'}

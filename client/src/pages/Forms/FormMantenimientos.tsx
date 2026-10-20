@@ -439,9 +439,9 @@ const FormMantenimientos: React.FC = () => {
 
   if (loading ?? loadingData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-gray-900 dark:text-gray-100 mx-auto mb-4" />
+          <Loader2 className="h-12 w-12 animate-spin text-icon mx-auto mb-4" />
           <p className="mt-4 text-gray-600 dark:text-gray-300">
             {loadingData ? 'Cargando datos del mantenimiento...' : 'Cargando catálogos...'}
           </p>
@@ -451,7 +451,7 @@ const FormMantenimientos: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <div className="min-h-screen bg-background py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <div className="mb-6">
@@ -468,7 +468,7 @@ const FormMantenimientos: React.FC = () => {
         <Card className="shadow-xl border-gray-200 dark:border-gray-700 dark:bg-gray-800">
           <CardHeader className="bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700">
             <CardTitle className="text-2xl flex items-center text-gray-800 dark:text-white">
-              <Wrench className="w-8 h-8 mr-3 text-gray-600 dark:text-gray-300" />
+              <Wrench className="w-8 h-8 mr-3 text-icon-strong" />
               {isEditing ? 'Editar Mantenimiento' : 'Nuevo Mantenimiento'}
             </CardTitle>
             <CardDescription className="text-gray-500 dark:text-gray-400 text-sm mt-2">
@@ -550,7 +550,7 @@ const FormMantenimientos: React.FC = () => {
                         pendiente={esVacio(formData.id_senal)}
                       />
                       {errors.id_senal && (
-                        <p className="text-sm text-red-500 flex items-center mt-1">
+                        <p className="text-sm text-red-600 dark:text-red-400 flex items-center mt-1">
                           <AlertCircle className="h-4 w-4 mr-1" />
                           {errors.id_senal}
                         </p>
@@ -698,7 +698,7 @@ const FormMantenimientos: React.FC = () => {
                         className={claseCampo(formData.fecha_inicio, 'fecha_inicio')}
                       />
                       {errors.fecha_inicio && (
-                        <p className="text-sm text-red-500">{errors.fecha_inicio}</p>
+                        <p className="text-sm text-red-600 dark:text-red-400">{errors.fecha_inicio}</p>
                       )}
                     </div>
 
@@ -716,7 +716,7 @@ const FormMantenimientos: React.FC = () => {
                         className={claseCampo(formData.fecha_finalizacion, 'fecha_finalizacion')}
                       />
                       {errors.fecha_finalizacion && (
-                        <p className="text-sm text-red-500">{errors.fecha_finalizacion}</p>
+                        <p className="text-sm text-red-600 dark:text-red-400">{errors.fecha_finalizacion}</p>
                       )}
                     </div>
 

@@ -124,7 +124,6 @@ export default function HechosPage() {
     <div className="w-full min-w-0">
       <PageHeader
         icon={<ShieldAlert />}
-        iconClassName="text-amber-600 dark:text-amber-400"
         title="Hechos extraordinarios"
         subtitle="Hechos ocurridos en las señales marítimas"
         actions={
@@ -144,7 +143,7 @@ export default function HechosPage() {
           <FilterField label="Buscar" className="w-full md:w-72">
             <div className="relative w-full">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                <Search className="h-5 w-5 text-icon" />
               </div>
               <Input
                 value={filters.texto}

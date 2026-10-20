@@ -140,7 +140,7 @@ export default function PersonaForm({ persona, onTerminado, onCancelar }: Person
         <Button type="button" variant="outline" onClick={onCancelar} disabled={guardando}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={guardando} className="bg-gray-800 text-white hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600">
+        <Button type="submit" variant="brand" disabled={guardando}>
           {guardando ? 'Guardando...' : 'Guardar'}
         </Button>
       </div>

@@ -81,8 +81,8 @@ export default function PrestarDialog({ libro, onOpenChange, onTerminado }: Pres
             </Button>
             <Button
               type="submit"
+              variant="brand"
               disabled={guardando || esVacio(aQuien) || !quienPresta}
-              className="bg-blue-600 text-white hover:bg-blue-700"
             >
               {guardando ? 'Guardando...' : 'Prestar'}
             </Button>

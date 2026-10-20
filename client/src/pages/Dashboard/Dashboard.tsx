@@ -366,7 +366,7 @@ function badgeToneClass(tone: "danger" | "warning" | "neutral" | "success") {
     case "success":
       return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
     default:
-      return "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-400";
+      return "bg-gray-100 text-gray-600 dark:bg-gray-700/60 dark:text-gray-300";
   }
 }
 
@@ -566,7 +566,7 @@ const Dashboard = () => {
               En vivo
             </span>
             <Button variant="neutral" onClick={() => setModal("reporte")}>
-              <Download className="h-4 w-4 mr-2" aria-hidden />
+              <Download className="h-4 w-4 mr-2 text-icon" aria-hidden />
               Exportar reporte
             </Button>
           </>
@@ -584,7 +584,7 @@ const Dashboard = () => {
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 relative">
-              {loading && <Loader2 className="absolute top-2 right-2 h-4 w-4 animate-spin text-gray-400" />}
+              {loading && <Loader2 className="absolute top-2 right-2 h-4 w-4 animate-spin text-icon" />}
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Señales totales
               </p>
@@ -596,7 +596,7 @@ const Dashboard = () => {
               </p> */}
             </div>
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 relative">
-              {loading && <Loader2 className="absolute top-2 right-2 h-4 w-4 animate-spin text-gray-400" />}
+              {loading && <Loader2 className="absolute top-2 right-2 h-4 w-4 animate-spin text-icon" />}
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Fuera de servicio
               </p>
@@ -608,7 +608,7 @@ const Dashboard = () => {
               </p>
             </div>
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 relative">
-              {loading && <Loader2 className="absolute top-2 right-2 h-4 w-4 animate-spin text-gray-400" />}
+              {loading && <Loader2 className="absolute top-2 right-2 h-4 w-4 animate-spin text-icon" />}
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Fallas abiertas
               </p>
@@ -620,7 +620,7 @@ const Dashboard = () => {
               </p>
             </div>
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 relative">
-              {loading && <Loader2 className="absolute top-2 right-2 h-4 w-4 animate-spin text-gray-400" />}
+              {loading && <Loader2 className="absolute top-2 right-2 h-4 w-4 animate-spin text-icon" />}
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Mantenimientos próx. 7 días
               </p>
@@ -650,7 +650,7 @@ const Dashboard = () => {
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
               <AlertTriangle
-                className="h-4 w-4 shrink-0 text-red-500"
+                className="h-4 w-4 shrink-0 text-red-600 dark:text-red-400"
                 aria-hidden
               />
               Señales que requieren acción
@@ -725,7 +725,7 @@ const Dashboard = () => {
           <div className="flex flex-1 flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-5">
             <div className="mb-3">
               <span className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
-                <Wrench className="h-4 w-4 shrink-0" aria-hidden />
+                <Wrench className="h-4 w-4 shrink-0 text-icon" aria-hidden />
                 Mantenimientos próximos
               </span>
             </div>
@@ -772,7 +772,7 @@ const Dashboard = () => {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-5 relative">
-          {loading && <Loader2 className="absolute top-4 right-4 h-4 w-4 animate-spin text-gray-400" />}
+          {loading && <Loader2 className="absolute top-4 right-4 h-4 w-4 animate-spin text-icon" />}
           <div className="mb-4">
             <span className="text-sm font-medium text-gray-900 dark:text-white">
               Fallas este mes
@@ -811,7 +811,7 @@ const Dashboard = () => {
                 </div>
               ))
             ) : (
-              <p className="text-xs text-gray-500 w-full text-center py-10">No hay datos de fallas</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 w-full text-center py-10">No hay datos de fallas</p>
             )}
           </div>
           <hr className="my-4 border-gray-100 dark:border-gray-700" />
@@ -840,7 +840,7 @@ const Dashboard = () => {
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-5 relative">
-          {loading && <Loader2 className="absolute top-4 right-4 h-4 w-4 animate-spin text-gray-400" />}
+          {loading && <Loader2 className="absolute top-4 right-4 h-4 w-4 animate-spin text-icon" />}
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <span className="text-sm font-medium text-gray-900 dark:text-white">
               Tiempo medio resolución
@@ -947,7 +947,7 @@ const Dashboard = () => {
           aria-modal="true"
           aria-labelledby="modal-reporte-title"
         >
-          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-5 shadow-theme-lg dark:border-gray-700 dark:bg-gray-900">
+          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-popover p-5 shadow-theme-lg dark:border-gray-700">
             <div className="mb-4 flex items-center justify-between">
               <h2
                 id="modal-reporte-title"
@@ -958,7 +958,7 @@ const Dashboard = () => {
               <button
                 type="button"
                 onClick={closeModal}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                className="text-muted-foreground hover:text-foreground"
                 aria-label="Cerrar"
               >
                 ×
