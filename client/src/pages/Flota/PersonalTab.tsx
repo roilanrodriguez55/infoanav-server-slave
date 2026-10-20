@@ -1,12 +1,13 @@
 import { useState, type MouseEvent } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Users } from 'lucide-react';
 import { useServerList } from '@/hooks/useServerList';
 import { DetailPanel } from '@/components/common/DetailPanel';
+import { EmptyState } from '@/components/common/EmptyState';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
+import { ListCard } from '@/components/common/ListCard';
 import { Pagination } from '@/components/common/Pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -125,19 +126,6 @@ export default function PersonalTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Personal de la flota: datos generales, cargo y fecha de baja.
-        </p>
-        <Button
-          onClick={() => setEdicion({ persona: null })}
-          className="w-full bg-gray-800 text-white shadow-md hover:bg-gray-900 sm:w-auto dark:bg-gray-700 dark:hover:bg-gray-600"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Nueva persona
-        </Button>
-      </div>
-
       <div className="flex flex-wrap gap-2">
         <Button
           variant={estadoActual === 'activos' ? 'default' : 'outline'}
@@ -174,6 +162,14 @@ export default function PersonalTab() {
         ))}
       </div>
 
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <p className="text-sm text-gray-500 dark:text-gray-400">Personal de la flota: datos generales, cargo y fecha de baja.</p>
+        <Button variant="brand" onClick={() => setEdicion({ persona: null })} className="w-full sm:w-auto">
+          <Plus className="mr-2 h-4 w-4" />
+          Nueva persona
+        </Button>
+      </div>
+
       <FilterBar onReset={resetFilters} activeCount={filtrosActivos}>
         <FilterField label="Buscar" className="w-full md:w-72">
           <div className="relative w-full">
@@ -196,73 +192,67 @@ export default function PersonalTab() {
         </p>
       )}
 
-      <Card className="min-w-0 border-gray-200 shadow-xl dark:border-gray-700 dark:bg-gray-800">
-        <CardHeader className="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <CardTitle className="text-xl text-gray-800 dark:text-white">
-            {estadoActual === 'activos' ? 'Personal activo' : 'Personal dado de baja'}
-            <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({total} registros)</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <p className="py-12 text-center text-gray-600 dark:text-gray-300">Cargando personal...</p>
-          ) : rows.length === 0 ? (
-            <p className="py-12 text-center text-gray-500 dark:text-gray-400">
-              {filtrosActivos > 0 ? 'No se encontró personal con esos filtros.' : 'No hay personal registrado.'}
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-100 dark:bg-gray-700">
-                    <TableHead className="font-semibold">Nombre completo</TableHead>
-                    <TableHead className="font-semibold">Cargo</TableHead>
-                    <TableHead className="font-semibold">Empresa</TableHead>
-                    <TableHead className="font-semibold">Teléfono</TableHead>
-                    <TableHead className="font-semibold">Carné de identidad</TableHead>
-                    <TableHead className="font-semibold">{estadoActual === 'activos' ? 'Estado' : 'Fecha de baja'}</TableHead>
-                    <TableHead className="font-semibold text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((persona) => (
-                    <TableRow
-                      key={persona.id_persona}
-                      onClick={() => setEdicion({ persona })}
-                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      <TableCell className="font-medium">{nombreCompleto(persona)}</TableCell>
-                      <TableCell>{persona.cargo ?? '-'}</TableCell>
-                      <TableCell>{persona.empresa?.nombre ?? '-'}</TableCell>
-                      <TableCell>{persona.telefono ?? '-'}</TableCell>
-                      <TableCell>{persona.carne_identidad ?? '-'}</TableCell>
-                      <TableCell>
-                        {persona.fecha_baja ? formatearFecha(persona.fecha_baja) : <Badge variant="outline">Activo</Badge>}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {persona.fecha_baja ? (
-                          isAdmin && (
-                            <Button size="sm" variant="outline" onClick={(evento) => void reactivar(persona, evento)}>
-                              Reactivar
-                            </Button>
-                          )
-                        ) : (
-                          <Button size="sm" variant="outline" onClick={(evento) => abrirBaja(persona, evento)}>
-                            Dar baja
+      <ListCard
+        title={estadoActual === 'activos' ? 'Personal activo' : 'Personal dado de baja'}
+        actions={<span className="text-sm text-gray-500 dark:text-gray-400">({total} registros)</span>}
+        footer={<Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} loading={loading} />}
+      >
+        {loading ? (
+          <p className="py-12 text-center text-gray-600 dark:text-gray-300">Cargando personal...</p>
+        ) : rows.length === 0 ? (
+          <EmptyState
+            icon={<Users />}
+            title={filtrosActivos > 0 ? 'No se encontró personal con esos filtros' : 'No hay personal registrado'}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-100 dark:bg-gray-700">
+                  <TableHead className="font-semibold">Nombre completo</TableHead>
+                  <TableHead className="font-semibold">Cargo</TableHead>
+                  <TableHead className="font-semibold">Empresa</TableHead>
+                  <TableHead className="font-semibold">Teléfono</TableHead>
+                  <TableHead className="font-semibold">Carné de identidad</TableHead>
+                  <TableHead className="font-semibold">{estadoActual === 'activos' ? 'Estado' : 'Fecha de baja'}</TableHead>
+                  <TableHead className="font-semibold text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((persona) => (
+                  <TableRow
+                    key={persona.id_persona}
+                    onClick={() => setEdicion({ persona })}
+                    className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <TableCell className="font-medium">{nombreCompleto(persona)}</TableCell>
+                    <TableCell>{persona.cargo ?? '-'}</TableCell>
+                    <TableCell>{persona.empresa?.nombre ?? '-'}</TableCell>
+                    <TableCell>{persona.telefono ?? '-'}</TableCell>
+                    <TableCell>{persona.carne_identidad ?? '-'}</TableCell>
+                    <TableCell>
+                      {persona.fecha_baja ? formatearFecha(persona.fecha_baja) : <Badge variant="outline">Activo</Badge>}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {persona.fecha_baja ? (
+                        isAdmin && (
+                          <Button size="sm" variant="outline" onClick={(evento) => void reactivar(persona, evento)}>
+                            Reactivar
                           </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="border-t border-gray-200 bg-transparent px-6 dark:border-gray-700 dark:bg-transparent">
-          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} loading={loading} />
-        </CardFooter>
-      </Card>
+                        )
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={(evento) => abrirBaja(persona, evento)}>
+                          Dar baja
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </ListCard>
 
       <DetailPanel
         open={edicion !== null}

@@ -9,14 +9,6 @@ import { dateRangeFilters, type Filter } from '@/lib/postgrest';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import {
   Table,
   TableBody,
   TableCell,
@@ -42,8 +34,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { EmptyState } from '@/components/common/EmptyState';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
+import { ListCard } from '@/components/common/ListCard';
 import { Pagination } from '@/components/common/Pagination';
+import { PageHeader } from '@/components/common/PageHeader';
+import { PillTabs } from '@/components/common/PillTabs';
 import { SortableHead } from '@/components/common/SortableHead';
 import {
   Search,
@@ -293,10 +289,10 @@ const ListSenales = () => {
         </SelectContent>
       </Select>
     </FilterField>
-  );
+);
 
-  // Campo numerico para valor exacto (altura, elevacion, profundidad).
-  const campoNumerico = (etiqueta: string, clave: 'altura' | 'elevacion' | 'profundidad') => (
+// Campo numerico para valor exacto (altura, elevacion, profundidad).
+const campoNumerico = (etiqueta: string, clave: 'altura' | 'elevacion' | 'profundidad') => (
     <FilterField label={etiqueta} className="w-full md:w-32">
       <Input
         type="number"
@@ -307,55 +303,55 @@ const ListSenales = () => {
         className="w-full border-blue-200 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
       />
     </FilterField>
-  );
+);
 
-  const [catalogos, setCatalogos] = useState<CatalogosResponse | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedSenal, setSelectedSenal] = useState<Senal | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [mensaje, setMensaje] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
+const [catalogos, setCatalogos] = useState<CatalogosResponse | null>(null);
+const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+const [selectedSenal, setSelectedSenal] = useState<Senal | null>(null);
+const [deleteLoading, setDeleteLoading] = useState(false);
+const [mensaje, setMensaje] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
 
-  useEffect(() => {
+useEffect(() => {
     // getCatalogos ya registra el error; sin catalogos se muestran los ids.
     senalesService.getCatalogos().then(setCatalogos).catch(() => undefined);
-  }, []);
+}, []);
 
-  const tipoById = useMemo(
+const tipoById = useMemo(
     () => new Map(catalogos?.tipos.map((t) => [t.id, t.nombre]) ?? []),
     [catalogos]
-  );
-  const estadoById = useMemo(
+);
+const estadoById = useMemo(
     () => new Map(catalogos?.estados.map((e) => [e.id, e.nombre]) ?? []),
     [catalogos]
-  );
+);
 
-  // Cada campo con valor cuenta como filtro activo. La vista no cuenta.
-  const filtrosActivos = Object.values(filters).filter((valor) => valor !== '').length;
+// Cada campo con valor cuenta como filtro activo. La vista no cuenta.
+const filtrosActivos = Object.values(filters).filter((valor) => valor !== '').length;
 
-  const cambiarVista = (nueva: Vista) => {
+const cambiarVista = (nueva: Vista) => {
     setPage(1);
     setSearchParams((previos) => {
       const next = new URLSearchParams(previos);
       next.set('vista', nueva);
       return next;
     });
-  };
+};
 
-  const formatDate = (dateStr?: string) => {
+const formatDate = (dateStr?: string) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('es-ES', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
     });
-  };
+};
 
-  const confirmDelete = (senal: Senal) => {
+const confirmDelete = (senal: Senal) => {
     setSelectedSenal(senal);
     setDeleteDialogOpen(true);
-  };
+};
 
-  const handleDelete = async () => {
+const handleDelete = async () => {
     if (!selectedSenal) return;
 
     setDeleteLoading(true);
@@ -375,83 +371,53 @@ const ListSenales = () => {
     } finally {
       setDeleteLoading(false);
     }
-  };
+};
 
-  const handleEdit = (id: string) => {
+const handleEdit = (id: string) => {
     void navigate(`/gestion-senales/editar/${id}`);
-  };
+};
 
-  const handleDetail = (id: string) => {
+const handleDetail = (id: string) => {
     void navigate(`/gestion-senales/${id}`);
-  };
+};
 
-  const handleNew = () => {
+const handleNew = () => {
     void navigate('/gestion-senales/nuevo');
-  };
+};
 
-  return (
-    <div>
-      {/* Header con título y acciones */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex-1">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            <Anchor className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            Señales Marítimas
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Gestión de señales marítimas del sistema
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button
-            variant="outline"
-            onClick={reload}
-            className="w-full sm:w-auto border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Actualizar
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/radioelectricas')}
-            className="w-full sm:w-auto"
-          >
-            Radioeléctricas
-          </Button>
-          <Button
-            onClick={handleNew}
-            className="w-full sm:w-auto bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nueva Señal
-          </Button>
-        </div>
-      </div>
-
-      {/* Vistas rápidas: cambian el criterio base de la consulta */}
-      <div
-        role="group"
-        aria-label="Vista de señales"
-        className="mb-4 inline-flex flex-wrap gap-1 rounded-lg border border-blue-200 bg-white p-1 dark:border-gray-600 dark:bg-gray-800"
-      >
-        {VISTAS.map((opcion) => {
-          const activa = vista === opcion.valor;
-          return (
-            <Button
-              key={opcion.valor}
-              size="sm"
-              aria-pressed={activa}
-              onClick={() => cambiarVista(opcion.valor)}
-              className={activa
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-transparent text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700'}
-            >
-              {opcion.etiqueta}
+return (
+    <div className="w-full min-w-0">
+      <PageHeader
+        icon={<Anchor />}
+        iconClassName="text-blue-600 dark:text-blue-400"
+        title="Señales Marítimas"
+        subtitle="Gestión de señales marítimas del sistema"
+        actions={
+          <>
+            <Button variant="neutral" onClick={reload} className="w-full sm:w-auto">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Actualizar
             </Button>
-          );
-        })}
-      </div>
+            <Button variant="neutral" onClick={() => navigate('/radioelectricas')} className="w-full sm:w-auto">
+              Radioeléctricas
+            </Button>
+            <Button variant="brand" onClick={handleNew} className="w-full sm:w-auto">
+              <Plus className="h-4 w-4 mr-2" />
+              Nueva Señal
+            </Button>
+          </>
+        }
+      >
+        {/* Vistas rápidas: cambian el criterio base de la consulta */}
+        <PillTabs
+          aria-label="Vista de señales"
+          tabs={VISTAS.map((opcion) => ({ value: opcion.valor, label: opcion.etiqueta }))}
+          value={vista}
+          onChange={(valor) => {
+            if (esVista(valor)) cambiarVista(valor);
+          }}
+        />
+      </PageHeader>
 
       {/* Filtros: se consultan en el servidor */}
       <div className="mb-6">
@@ -644,7 +610,7 @@ const ListSenales = () => {
           className={mensaje.tipo === 'success'
             ? 'mb-6 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'
             : 'mb-6 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'}
-        >
+      >
           <AlertDescription className={mensaje.tipo === 'success'
             ? 'text-green-700 dark:text-green-300'
             : 'text-red-700 dark:text-red-300'}>
@@ -665,148 +631,13 @@ const ListSenales = () => {
         </Alert>
       )}
 
-      <Card className="shadow-xl border-blue-200 dark:border-gray-700 dark:bg-gray-800">
-        <CardHeader className="bg-white border-b border-blue-200 dark:bg-gray-800 dark:border-gray-700">
-          <CardTitle className="text-xl text-gray-800 dark:text-white">
-            Listado de Señales
-            {total > 0 && (
-              <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
-                ({total} señales)
-              </span>
-            )}
-          </CardTitle>
-          <CardDescription className="text-gray-500 dark:text-gray-400">
-            Total de señales registradas en el sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando señales...</p>
-              </div>
-            </div>
-          ) : senales.length === 0 ? (
-            <div className="text-center py-12">
-              <Anchor className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-600 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                {filtrosActivos > 0 ? 'No se encontraron señales' : 'No hay señales'}
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-4">
-                {filtrosActivos > 0 ? 'Prueba con otros filtros' : 'Comienza agregando una nueva señal'}
-              </p>
-              {filtrosActivos === 0 && (
-                <Button onClick={handleNew} variant="outline">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nueva Señal
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-blue-100 dark:bg-gray-700">
-                    <SortableHead column="codigo_lsm" label="Código LSM" order={order} onSort={toggleOrder} className="font-semibold" />
-                    <SortableHead column="nombre" label="Nombre" order={order} onSort={toggleOrder} className="font-semibold" />
-                    <TableHead className="font-semibold">Tipo</TableHead>
-                    {vista === 'bajas' ? (
-                      <SortableHead column="fecha_retirada" label="Fecha de retirada" order={order} onSort={toggleOrder} className="font-semibold" />
-                    ) : (
-                      <SortableHead column="ubicacion" label="Ubicación" order={order} onSort={toggleOrder} className="font-semibold" />
-                    )}
-                    <SortableHead column="luminica" label="Lumínica" order={order} onSort={toggleOrder} className="font-semibold" />
-                    {vista === 'bajas' ? (
-                      <TableHead className="font-semibold">Causa</TableHead>
-                    ) : (
-                      <TableHead className="font-semibold">Estado</TableHead>
-                    )}
-                    <SortableHead column="created_at" label="Fecha Creación" order={order} onSort={toggleOrder} className="font-semibold" />
-                    <TableHead className="font-semibold text-center">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {senales.map((senal) => (
-                    <TableRow key={senal.id_senal} className="hover:bg-blue-50 dark:hover:bg-gray-700">
-                      <TableCell className="font-mono font-medium">
-                        {senal.codigo_lsm ?? 'S/N'}
-                      </TableCell>
-                      <TableCell>{senal.nombre ?? '-'}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-blue-100 dark:bg-gray-700">
-                          {tipoById.get(senal.id_tipo) ?? senal.id_tipo ?? 'No especificado'}
-                        </Badge>
-                      </TableCell>
-                      {vista === 'bajas' ? (
-                        <TableCell>{formatDate(senal.fecha_retirada ?? undefined)}</TableCell>
-                      ) : (
-                        <TableCell>{senal.ubicacion ?? '-'}</TableCell>
-                      )}
-                      <TableCell>
-                        {senal.luminica ? (
-                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                            Sí
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                            No
-                          </Badge>
-                        )}
-                      </TableCell>
-                      {vista === 'bajas' ? (
-                        <TableCell>{senal.causa_retirada ?? '—'}</TableCell>
-                      ) : (
-                        <TableCell>
-                          <Badge variant="outline" className="bg-slate-100 text-slate-800 dark:bg-gray-600 dark:text-gray-100">
-                            {estadoById.get(senal.id_estado) ?? '—'}
-                          </Badge>
-                        </TableCell>
-                      )}
-                      <TableCell>{formatDate(senal.created_at)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Ver detalle de señal"
-                            onClick={() => handleDetail(senal.id_senal)}
-                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {vista !== 'bajas' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label="Editar señal"
-                              onClick={() => handleEdit(senal.id_senal)}
-                              className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {isAdmin && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label="Eliminar señal"
-                              onClick={() => confirmDelete(senal)}
-                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="border-t border-gray-200 bg-transparent dark:border-gray-700 dark:bg-transparent px-6">
+      <ListCard
+        title="Listado de Señales"
+        subtitle="Total de señales registradas en el sistema"
+        actions={total > 0 ? (
+          <span className="text-sm text-gray-500 dark:text-gray-400">({total} señales)</span>
+        ) : undefined}
+        footer={
           <Pagination
             page={page}
             pageSize={pageSize}
@@ -814,8 +645,130 @@ const ListSenales = () => {
             onPageChange={setPage}
             loading={loading}
           />
-        </CardFooter>
-      </Card>
+        }
+      >
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando señales...</p>
+            </div>
+          </div>
+        ) : senales.length === 0 ? (
+          <EmptyState
+            icon={<Anchor />}
+            title={filtrosActivos > 0 ? 'No se encontraron señales' : 'No hay señales'}
+            description={filtrosActivos > 0 ? 'Prueba con otros filtros' : 'Comienza agregando una nueva señal'}
+            action={filtrosActivos === 0 ? (
+              <Button onClick={handleNew} variant="brand">
+                <Plus className="h-4 w-4 mr-2" />
+                Nueva Señal
+              </Button>
+            ) : undefined}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-blue-100 dark:bg-gray-700">
+                  <SortableHead column="codigo_lsm" label="Código LSM" order={order} onSort={toggleOrder} className="font-semibold" />
+                  <SortableHead column="nombre" label="Nombre" order={order} onSort={toggleOrder} className="font-semibold" />
+                  <TableHead className="font-semibold">Tipo</TableHead>
+                  {vista === 'bajas' ? (
+                    <SortableHead column="fecha_retirada" label="Fecha de retirada" order={order} onSort={toggleOrder} className="font-semibold" />
+                  ) : (
+                    <SortableHead column="ubicacion" label="Ubicación" order={order} onSort={toggleOrder} className="font-semibold" />
+                  )}
+                  <SortableHead column="luminica" label="Lumínica" order={order} onSort={toggleOrder} className="font-semibold" />
+                  {vista === 'bajas' ? (
+                    <TableHead className="font-semibold">Causa</TableHead>
+                  ) : (
+                    <TableHead className="font-semibold">Estado</TableHead>
+                  )}
+                  <SortableHead column="created_at" label="Fecha Creación" order={order} onSort={toggleOrder} className="font-semibold" />
+                  <TableHead className="font-semibold text-center">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {senales.map((senal) => (
+                  <TableRow key={senal.id_senal} className="hover:bg-blue-50 dark:hover:bg-gray-700">
+                    <TableCell className="font-mono font-medium">
+                      {senal.codigo_lsm ?? 'S/N'}
+                    </TableCell>
+                    <TableCell>{senal.nombre ?? '-'}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-blue-100 dark:bg-gray-700">
+                        {tipoById.get(senal.id_tipo) ?? senal.id_tipo ?? 'No especificado'}
+                      </Badge>
+                    </TableCell>
+                    {vista === 'bajas' ? (
+                      <TableCell>{formatDate(senal.fecha_retirada ?? undefined)}</TableCell>
+                    ) : (
+                      <TableCell>{senal.ubicacion ?? '-'}</TableCell>
+                    )}
+                    <TableCell>
+                      {senal.luminica ? (
+                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                          Sí
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                          No
+                        </Badge>
+                      )}
+                    </TableCell>
+                    {vista === 'bajas' ? (
+                      <TableCell>{senal.causa_retirada ?? '—'}</TableCell>
+                    ) : (
+                      <TableCell>
+                        <Badge variant="outline" className="bg-slate-100 text-slate-800 dark:bg-gray-600 dark:text-gray-100">
+                          {estadoById.get(senal.id_estado) ?? '—'}
+                        </Badge>
+                      </TableCell>
+                    )}
+                    <TableCell>{formatDate(senal.created_at)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Ver detalle de señal"
+                          onClick={() => handleDetail(senal.id_senal)}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {vista !== 'bajas' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Editar señal"
+                            onClick={() => handleEdit(senal.id_senal)}
+                            className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Eliminar señal"
+                            onClick={() => confirmDelete(senal)}
+                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </ListCard>
 
       {/* Diálogo de confirmación para eliminar */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

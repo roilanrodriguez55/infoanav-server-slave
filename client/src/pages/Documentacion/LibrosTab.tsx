@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, Plus, Search } from 'lucide-react';
+import { AlertCircle, BookOpen, Plus, Search } from 'lucide-react';
 import { useServerList } from '@/hooks/useServerList';
 import {
   LIBROS_VISTA_PATH,
@@ -7,12 +7,13 @@ import {
 } from '@/services/api/documentacionApi';
 import type { Filter } from '@/lib/postgrest';
 import { DetailPanel } from '@/components/common/DetailPanel';
+import { EmptyState } from '@/components/common/EmptyState';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
+import { ListCard } from '@/components/common/ListCard';
 import { Pagination } from '@/components/common/Pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -122,18 +123,15 @@ export default function LibrosTab() {
 
   return (
     <div className="w-full min-w-0">
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <p className="text-sm text-gray-500 dark:text-gray-400">Libros de la biblioteca y su disponibilidad</p>
-        <Button
-          onClick={() => setPanel({ modo: 'form', libro: null })}
-          className="w-full bg-gray-800 text-white shadow-md hover:bg-gray-900 sm:w-auto dark:bg-gray-700 dark:hover:bg-gray-600"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo libro
-        </Button>
-      </div>
+      <div className="mb-6 space-y-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <p className="text-sm text-gray-500 dark:text-gray-400">Libros de la biblioteca y su disponibilidad</p>
+          <Button variant="brand" onClick={() => setPanel({ modo: 'form', libro: null })} className="w-full sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" />
+            Nuevo libro
+          </Button>
+        </div>
 
-      <div className="mb-6">
         <FilterBar onReset={resetFilters} activeCount={filtrosActivos}>
           <FilterField label="Buscar" className="w-full md:w-72">
             <div className="relative w-full">
@@ -267,67 +265,63 @@ export default function LibrosTab() {
         </Alert>
       )}
 
-      <Card className="min-w-0 border-gray-200 shadow-xl dark:border-gray-700 dark:bg-gray-800">
-        <CardHeader className="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <CardTitle className="text-xl text-gray-800 dark:text-white">
-            Listado de libros
-            {total > 0 && (
-              <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({total} registros)</span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <p className="py-12 text-center text-gray-600 dark:text-gray-300">Cargando libros...</p>
-          ) : rows.length === 0 ? (
-            <p className="py-12 text-center text-gray-500 dark:text-gray-400">
-              {filtrosActivos > 0 ? 'No se encontraron libros con esos filtros.' : 'No hay libros registrados.'}
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-100 dark:bg-gray-700">
-                    <TableHead className="font-semibold">Título</TableHead>
-                    <TableHead className="font-semibold">Autor</TableHead>
-                    <TableHead className="font-semibold">Tema</TableHead>
-                    <TableHead className="font-semibold">Editorial</TableHead>
-                    <TableHead className="font-semibold">Año</TableHead>
-                    <TableHead className="font-semibold">Disponibilidad</TableHead>
+      <ListCard
+        title="Listado de libros"
+        actions={
+          total > 0 ? (
+            <span className="text-sm text-gray-500 dark:text-gray-400">({total} registros)</span>
+          ) : undefined
+        }
+        footer={<Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} loading={loading} />}
+      >
+        {loading ? (
+          <p className="py-12 text-center text-gray-600 dark:text-gray-300">Cargando libros...</p>
+        ) : rows.length === 0 ? (
+          <EmptyState
+            icon={<BookOpen />}
+            title={filtrosActivos > 0 ? 'No se encontraron libros con esos filtros' : 'No hay libros registrados'}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-100 dark:bg-gray-700">
+                  <TableHead className="font-semibold">Título</TableHead>
+                  <TableHead className="font-semibold">Autor</TableHead>
+                  <TableHead className="font-semibold">Tema</TableHead>
+                  <TableHead className="font-semibold">Editorial</TableHead>
+                  <TableHead className="font-semibold">Año</TableHead>
+                  <TableHead className="font-semibold">Disponibilidad</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((libro) => (
+                  <TableRow
+                    key={libro.id_libro}
+                    onClick={() => setPanel({ modo: 'ficha', libro })}
+                    className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <TableCell className="font-medium">{libro.titulo}</TableCell>
+                    <TableCell>{autorDe(libro)}</TableCell>
+                    <TableCell>{libro.tema_nombre ?? '-'}</TableCell>
+                    <TableCell>{libro.editorial_nombre ?? '-'}</TableCell>
+                    <TableCell>{libro.ano_publicacion ?? '-'}</TableCell>
+                    <TableCell>
+                      {libro.prestado ? (
+                        <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
+                          {libro.prestamo_vencido ? 'Prestado (vencido)' : 'Prestado'}
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Disponible</Badge>
+                      )}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((libro) => (
-                    <TableRow
-                      key={libro.id_libro}
-                      onClick={() => setPanel({ modo: 'ficha', libro })}
-                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      <TableCell className="font-medium">{libro.titulo}</TableCell>
-                      <TableCell>{autorDe(libro)}</TableCell>
-                      <TableCell>{libro.tema_nombre ?? '-'}</TableCell>
-                      <TableCell>{libro.editorial_nombre ?? '-'}</TableCell>
-                      <TableCell>{libro.ano_publicacion ?? '-'}</TableCell>
-                      <TableCell>
-                        {libro.prestado ? (
-                          <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
-                            {libro.prestamo_vencido ? 'Prestado (vencido)' : 'Prestado'}
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Disponible</Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="border-t border-gray-200 bg-transparent px-6 dark:border-gray-700 dark:bg-transparent">
-          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} loading={loading} />
-        </CardFooter>
-      </Card>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </ListCard>
 
       <DetailPanel
         open={panel !== null}

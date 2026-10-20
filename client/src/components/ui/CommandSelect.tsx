@@ -36,6 +36,8 @@ interface CommandSelectProps {
   disabled?: boolean;
   className?: string;
   pendiente?: boolean;
+  // Oculta la etiqueta interna cuando el contenedor ya la pinta (p. ej. FilterField).
+  hideLabel?: boolean;
 }
 
 export function CommandSelect({
@@ -50,6 +52,7 @@ export function CommandSelect({
   disabled = false,
   className = "",
   pendiente = false,
+  hideLabel = false,
 }: CommandSelectProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,10 +60,12 @@ export function CommandSelect({
   const selectedItem = items.find(item => item.id === value);
 
   return (
-    <div className="space-y-2">
-      <Label className="text-sm font-medium">
-        {label} {required && <span className="text-red-500">*</span>}
-      </Label>
+    <div className={hideLabel ? undefined : "space-y-2"}>
+      {!hideLabel && (
+        <Label className="text-sm font-medium">
+          {label} {required && <span className="text-red-500">*</span>}
+        </Label>
+      )}
 
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>

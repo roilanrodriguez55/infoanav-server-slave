@@ -1,20 +1,30 @@
 import { useState } from 'react';
+import { Library } from 'lucide-react';
 import { CATALOGOS, type CatalogoDef } from '@/config/catalogos';
-import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/common/PageHeader';
+import { PillTabs } from '@/components/common/PillTabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import CatalogoTabla from './CatalogoTabla';
+
+const PESTANAS = CATALOGOS.map((def) => ({ value: def.tabla, label: def.etiqueta }));
 
 export default function CatalogosPage() {
   const [seleccionado, setSeleccionado] = useState<CatalogoDef>(CATALOGOS[0]);
 
+  const seleccionarCatalogo = (tabla: string) => {
+    const def = CATALOGOS.find((catalogo) => catalogo.tabla === tabla);
+    if (def) setSeleccionado(def);
+  };
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-gray-800 dark:text-white">Catálogos</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Administra los valores de las listas desplegables del sistema.
-        </p>
-      </div>
+    <div className="w-full min-w-0 space-y-6">
+      <PageHeader
+        icon={<Library />}
+        title="Catálogos"
+        subtitle="Administra los valores de las listas desplegables del sistema."
+      >
+        <PillTabs aria-label="Catalogos disponibles" tabs={PESTANAS} value={seleccionado.tabla} onChange={seleccionarCatalogo} />
+      </PageHeader>
 
       <Card className="shadow-xl border-blue-200 dark:border-gray-700 dark:bg-gray-800">
         <CardHeader>
@@ -22,29 +32,6 @@ export default function CatalogosPage() {
           <CardDescription>Valores disponibles en las listas desplegables de los formularios</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div
-            role="group"
-            aria-label="Catálogos disponibles"
-            className="flex flex-wrap gap-2"
-          >
-            {CATALOGOS.map((def) => {
-              const activo = def.tabla === seleccionado.tabla;
-              return (
-                <Button
-                  key={def.tabla}
-                  type="button"
-                  size="sm"
-                  variant={activo ? 'default' : 'outline'}
-                  aria-pressed={activo}
-                  className="shrink-0"
-                  onClick={() => setSeleccionado(def)}
-                >
-                  {def.etiqueta}
-                </Button>
-              );
-            })}
-          </div>
-
           <CatalogoTabla key={seleccionado.tabla} def={seleccionado} />
         </CardContent>
       </Card>

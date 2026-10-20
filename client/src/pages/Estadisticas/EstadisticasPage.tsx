@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
+import { BarChart3 } from 'lucide-react';
 import PageMeta from '@/components/common/PageMeta';
+import { PageHeader } from '@/components/common/PageHeader';
 import { ExportarTabla, type CeldaExport, type ColumnaExport } from '@/components/common/ExportarTabla';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -252,13 +254,14 @@ export default function EstadisticasPage() {
         };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="w-full min-w-0 space-y-6">
       <PageMeta title="Estadísticas" description="Recuento de señales por empresa, estación y atributos" />
 
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Estadísticas</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400">Recuento de señales activas por empresa y atributos.</p>
-      </div>
+      <PageHeader
+        icon={<BarChart3 />}
+        title="Estadísticas"
+        subtitle="Recuento de señales activas por empresa y atributos."
+      />
 
       {error && (
         <Alert variant="destructive">

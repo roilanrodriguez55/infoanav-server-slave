@@ -13,11 +13,12 @@ import { aValorDatetimeLocal, diferenciaMs, formatearDuracion } from '@/lib/inte
 import { aTextoLocal, aTimestampLocal, fechaHoraLegible } from '@/lib/planMantenimiento';
 import { etiquetaSenal } from '@/lib/utils';
 import { DetailPanel } from '@/components/common/DetailPanel';
+import { EmptyState } from '@/components/common/EmptyState';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
+import { ListCard } from '@/components/common/ListCard';
 import { Pagination } from '@/components/common/Pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -141,46 +142,35 @@ export default function PlantasTab() {
   };
 
   return (
-    <div className="w-full min-w-0">
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="flex items-center gap-2 text-xl font-bold text-gray-800 dark:text-white">
-            <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            Grupos electrógenos
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Plantas de energía de las señales marítimas y sus fallas
-          </p>
-        </div>
-        <Button
-          onClick={() => setEdicion({ planta: null })}
-          className="w-full bg-gray-800 text-white shadow-md hover:bg-gray-900 sm:w-auto dark:bg-gray-700 dark:hover:bg-gray-600"
-        >
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Plantas de energía de las señales marítimas y sus fallas
+        </p>
+        <Button variant="brand" onClick={() => setEdicion({ planta: null })} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Nueva planta
         </Button>
       </div>
 
-      <div className="mb-6">
-        <FilterBar onReset={resetFilters} activeCount={filtrosActivos}>
-          <FilterField label="Buscar" className="w-full md:w-72">
-            <div className="relative w-full">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-              </div>
-              <Input
-                value={filters.texto}
-                onChange={(e) => setFilter('texto', e.target.value)}
-                placeholder="Marca, modelo, número, inventario o faro"
-                className="w-full pl-10 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
-              />
+      <FilterBar onReset={resetFilters} activeCount={filtrosActivos}>
+        <FilterField label="Buscar" className="w-full md:w-72">
+          <div className="relative w-full">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
             </div>
-          </FilterField>
-        </FilterBar>
-      </div>
+            <Input
+              value={filters.texto}
+              onChange={(e) => setFilter('texto', e.target.value)}
+              placeholder="Marca, modelo, número, inventario o faro"
+              className="w-full pl-10 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
+            />
+          </div>
+        </FilterField>
+      </FilterBar>
 
       {error && (
-        <Alert className="mb-6 border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
+        <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
           <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
           <AlertDescription className="flex flex-wrap items-center justify-between gap-3 text-red-700 dark:text-red-300">
             {error}
@@ -191,22 +181,27 @@ export default function PlantasTab() {
         </Alert>
       )}
 
-      <Card className="min-w-0 border-gray-200 shadow-xl dark:border-gray-700 dark:bg-gray-800">
-        <CardHeader className="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <CardTitle className="text-xl text-gray-800 dark:text-white">
-            Listado de plantas
-            {total > 0 && (
-              <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({total} registros)</span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+      <ListCard
+        title="Listado de plantas"
+        subtitle={total > 0 ? `${total} registros` : undefined}
+        footer={<Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} loading={loading} />}
+      >
           {loading ? (
             <p className="py-12 text-center text-gray-600 dark:text-gray-300">Cargando plantas...</p>
           ) : rows.length === 0 ? (
-            <p className="py-12 text-center text-gray-500 dark:text-gray-400">
-              {filtrosActivos > 0 ? 'No se encontraron plantas con esos filtros.' : 'No hay plantas registradas.'}
-            </p>
+            <EmptyState
+              icon={<Zap />}
+              title={filtrosActivos > 0 ? 'No se encontraron plantas' : 'No hay plantas registradas'}
+              description={filtrosActivos > 0 ? 'Prueba con otros filtros' : undefined}
+              action={
+                filtrosActivos === 0 && (
+                  <Button variant="outline" onClick={() => setEdicion({ planta: null })}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nueva planta
+                  </Button>
+                )
+              }
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -239,11 +234,7 @@ export default function PlantasTab() {
               </Table>
             </div>
           )}
-        </CardContent>
-        <CardFooter className="border-t border-gray-200 bg-transparent px-6 dark:border-gray-700 dark:bg-transparent">
-          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} loading={loading} />
-        </CardFooter>
-      </Card>
+      </ListCard>
 
       <DetailPanel
         open={planta !== null && edicion === null}
@@ -256,7 +247,7 @@ export default function PlantasTab() {
         {planta && (
           <div className="space-y-6">
             <div className="flex justify-end">
-              <Button variant="outline" onClick={() => setEdicion({ planta })}>
+              <Button variant="neutral" onClick={() => setEdicion({ planta })}>
                 Editar datos
               </Button>
             </div>
@@ -369,7 +360,7 @@ export default function PlantasTab() {
               <Button type="button" variant="outline" onClick={() => setRegistrandoFalla(false)} disabled={guardandoFalla}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={guardandoFalla} className="bg-blue-600 text-white hover:bg-blue-700">
+              <Button type="submit" variant="brand" disabled={guardandoFalla}>
                 {guardandoFalla ? 'Guardando...' : 'Registrar'}
               </Button>
             </DialogFooter>

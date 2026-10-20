@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle, AlertTriangle, Plus, Search } from 'lucide-react';
+import { AlertCircle, Plus, Search, ShieldAlert } from 'lucide-react';
 import { useServerList } from '@/hooks/useServerList';
 import { senalesService, type CatalogoItem } from '@/services/api/senalesApi';
 import {
@@ -11,13 +11,15 @@ import {
 import type { Filter } from '@/lib/postgrest';
 import { etiquetaSenal } from '@/lib/utils';
 import { DetailPanel } from '@/components/common/DetailPanel';
+import { EmptyState } from '@/components/common/EmptyState';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
+import { ListCard } from '@/components/common/ListCard';
+import { PageHeader } from '@/components/common/PageHeader';
 import { Pagination } from '@/components/common/Pagination';
 import HechoForm from '@/components/senal/HechoForm';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { CommandSelect } from '@/components/ui/CommandSelect';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -120,24 +122,22 @@ export default function HechosPage() {
 
   return (
     <div className="w-full min-w-0">
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="flex items-center gap-2 text-xl font-bold text-gray-800 dark:text-white">
-            <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-            Hechos extraordinarios
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Hechos ocurridos en las señales marítimas
-          </p>
-        </div>
-        <Button
-          onClick={() => setEdicion({ hecho: null })}
-          className="w-full bg-gray-800 text-white shadow-md hover:bg-gray-900 sm:w-auto dark:bg-gray-700 dark:hover:bg-gray-600"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo hecho
-        </Button>
-      </div>
+      <PageHeader
+        icon={<ShieldAlert />}
+        iconClassName="text-amber-600 dark:text-amber-400"
+        title="Hechos extraordinarios"
+        subtitle="Hechos ocurridos en las señales marítimas"
+        actions={
+          <Button
+            variant="brand"
+            onClick={() => setEdicion({ hecho: null })}
+            className="w-full sm:w-auto"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Nuevo hecho
+          </Button>
+        }
+      />
 
       <div className="mb-6">
         <FilterBar onReset={resetFilters} activeCount={filtrosActivos}>
@@ -155,16 +155,18 @@ export default function HechosPage() {
             </div>
           </FilterField>
 
-          <div className="w-full md:w-72">
+          <FilterField label="Señal" className="w-full md:w-72">
             <CommandSelect
+              hideLabel
               label="Señal"
+              className="h-8 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               placeholder="Todas"
               searchPlaceholder="Buscar por código o nombre..."
               items={opcionesSenal}
               value={filters.id_senal}
               onValueChange={(valor) => setFilter('id_senal', valor)}
             />
-          </div>
+          </FilterField>
 
           <FilterField label="Empresa" className="w-full md:w-52">
             <Select
@@ -257,67 +259,63 @@ export default function HechosPage() {
         </Alert>
       )}
 
-      <Card className="min-w-0 border-gray-200 shadow-xl dark:border-gray-700 dark:bg-gray-800">
-        <CardHeader className="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <CardTitle className="text-xl text-gray-800 dark:text-white">
-            Listado de hechos
-            {total > 0 && (
-              <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({total} registros)</span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <p className="py-12 text-center text-gray-600 dark:text-gray-300">Cargando hechos...</p>
-          ) : rows.length === 0 ? (
-            <p className="py-12 text-center text-gray-500 dark:text-gray-400">
-              {filtrosActivos > 0 ? 'No se encontraron hechos con esos filtros.' : 'No hay hechos registrados.'}
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-100 dark:bg-gray-700">
-                    <TableHead className="font-semibold">Fecha</TableHead>
-                    <TableHead className="font-semibold">Señal</TableHead>
-                    <TableHead className="font-semibold">Hecho</TableHead>
-                    <TableHead className="font-semibold">Reporta</TableHead>
-                    <TableHead className="font-semibold">Empresa</TableHead>
-                    <TableHead className="font-semibold">Vandálico</TableHead>
-                    <TableHead className="font-semibold">Estado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((hecho) => (
-                    <TableRow
-                      key={hecho.id_hecho}
-                      onClick={() => setEdicion({ hecho })}
-                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      <TableCell className="font-medium">{formatearFecha(hecho.fecha)}</TableCell>
-                      <TableCell>
-                        {hecho.senal ? etiquetaSenal(hecho.senal.codigo_lsm, hecho.senal.nombre) : '-'}
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate">{hecho.hecho ?? '-'}</TableCell>
-                      <TableCell>{hecho.reporta ?? '-'}</TableCell>
-                      <TableCell>{hecho.senal?.empresa?.nombre ?? '-'}</TableCell>
-                      <TableCell>{hecho.vandalico ? 'Sí' : 'No'}</TableCell>
-                      <TableCell>
-                        <Badge variant={hecho.concluso ? 'secondary' : 'outline'}>
-                          {hecho.concluso ? 'Concluido' : 'Pendiente'}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="border-t border-gray-200 bg-transparent px-6 dark:border-gray-700 dark:bg-transparent">
+      <ListCard
+        title="Listado de hechos"
+        actions={total > 0 ? (
+          <span className="text-sm text-gray-500 dark:text-gray-400">({total} registros)</span>
+        ) : undefined}
+        footer={
           <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} loading={loading} />
-        </CardFooter>
-      </Card>
+        }
+      >
+        {loading ? (
+          <p className="py-12 text-center text-gray-600 dark:text-gray-300">Cargando hechos...</p>
+        ) : rows.length === 0 ? (
+          <EmptyState
+            icon={<ShieldAlert />}
+            title={filtrosActivos > 0 ? 'No se encontraron hechos con esos filtros.' : 'No hay hechos registrados.'}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-100 dark:bg-gray-700">
+                  <TableHead className="font-semibold">Fecha</TableHead>
+                  <TableHead className="font-semibold">Señal</TableHead>
+                  <TableHead className="font-semibold">Hecho</TableHead>
+                  <TableHead className="font-semibold">Reporta</TableHead>
+                  <TableHead className="font-semibold">Empresa</TableHead>
+                  <TableHead className="font-semibold">Vandálico</TableHead>
+                  <TableHead className="font-semibold">Estado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((hecho) => (
+                  <TableRow
+                    key={hecho.id_hecho}
+                    onClick={() => setEdicion({ hecho })}
+                    className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <TableCell className="font-medium">{formatearFecha(hecho.fecha)}</TableCell>
+                    <TableCell>
+                      {hecho.senal ? etiquetaSenal(hecho.senal.codigo_lsm, hecho.senal.nombre) : '-'}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate">{hecho.hecho ?? '-'}</TableCell>
+                    <TableCell>{hecho.reporta ?? '-'}</TableCell>
+                    <TableCell>{hecho.senal?.empresa?.nombre ?? '-'}</TableCell>
+                    <TableCell>{hecho.vandalico ? 'Sí' : 'No'}</TableCell>
+                    <TableCell>
+                      <Badge variant={hecho.concluso ? 'secondary' : 'outline'}>
+                        {hecho.concluso ? 'Concluido' : 'Pendiente'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </ListCard>
 
       <DetailPanel
         open={edicion !== null}

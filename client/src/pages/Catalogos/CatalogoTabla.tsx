@@ -150,7 +150,7 @@ export default function CatalogoTabla({ def }: CatalogoTablaProps) {
             disabled={guardando}
           />
         </div>
-        <Button type="submit" disabled={guardando || nuevo.trim() === ''}>
+        <Button type="submit" variant="brand" disabled={guardando || nuevo.trim() === ''}>
           <Plus className="h-4 w-4" />
           Añadir
         </Button>

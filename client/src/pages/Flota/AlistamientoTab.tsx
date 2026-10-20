@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { AlertCircle, Plus } from 'lucide-react';
+import { AlertCircle, CalendarClock, Plus } from 'lucide-react';
 import { DetailPanel } from '@/components/common/DetailPanel';
+import { EmptyState } from '@/components/common/EmptyState';
+import { ListCard } from '@/components/common/ListCard';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CommandSelect } from '@/components/ui/CommandSelect';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -220,27 +221,18 @@ export default function AlistamientoTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="w-full md:w-40">
-          <Label htmlFor="ano-alistamiento" className="text-sm font-medium text-gray-700 dark:text-gray-300">Año</Label>
-          <Input
-            id="ano-alistamiento"
-            type="number"
-            value={ano}
-            onChange={(evento) => {
-              const valor = Number(evento.target.value);
-              if (Number.isInteger(valor) && valor > 0) setAno(valor);
-            }}
-            className="mt-2 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-          />
-        </div>
-        <Button
-          onClick={() => setRegistrando(true)}
-          className="w-full bg-gray-800 text-white shadow-md hover:bg-gray-900 sm:w-auto dark:bg-gray-700 dark:hover:bg-gray-600"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Registrar mes
-        </Button>
+      <div className="w-full md:w-40">
+        <Label htmlFor="ano-alistamiento" className="text-sm font-medium text-gray-700 dark:text-gray-300">Año</Label>
+        <Input
+          id="ano-alistamiento"
+          type="number"
+          value={ano}
+          onChange={(evento) => {
+            const valor = Number(evento.target.value);
+            if (Number.isInteger(valor) && valor > 0) setAno(valor);
+          }}
+          className="mt-2 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+        />
       </div>
 
       {error && (
@@ -250,53 +242,53 @@ export default function AlistamientoTab() {
         </Alert>
       )}
 
-      <Card className="min-w-0 border-gray-200 shadow-xl dark:border-gray-700 dark:bg-gray-800">
-        <CardHeader className="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <CardTitle className="text-xl text-gray-800 dark:text-white">
-            Alistamiento de {ano}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {cargando ? (
-            <p className="py-12 text-center text-gray-600 dark:text-gray-300">Cargando alistamiento...</p>
-          ) : filas.length === 0 ? (
-            <p className="py-12 text-center text-gray-500 dark:text-gray-400">No hay meses registrados en {ano}.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-100 dark:bg-gray-700">
-                    <TableHead className="font-semibold">Buque</TableHead>
-                    <TableHead className="font-semibold">Mes</TableHead>
-                    <TableHead className="font-semibold">Tipo</TableHead>
-                    <TableHead className="font-semibold">Días misión</TableHead>
-                    <TableHead className="font-semibold">Días F/S</TableHead>
-                    <TableHead className="font-semibold">% mes</TableHead>
-                    <TableHead className="font-semibold">Días misión acum.</TableHead>
-                    <TableHead className="font-semibold">Días F/S acum.</TableHead>
-                    <TableHead className="font-semibold">% acumulado</TableHead>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <Button variant="brand" onClick={() => setRegistrando(true)} className="w-full sm:w-auto md:ml-auto">
+          <Plus className="mr-2 h-4 w-4" />
+          Registrar mes
+        </Button>
+      </div>
+
+      <ListCard title={`Alistamiento de ${ano}`}>
+        {cargando ? (
+          <p className="py-12 text-center text-gray-600 dark:text-gray-300">Cargando alistamiento...</p>
+        ) : filas.length === 0 ? (
+          <EmptyState icon={<CalendarClock />} title={`No hay meses registrados en ${ano}`} />
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-100 dark:bg-gray-700">
+                  <TableHead className="font-semibold">Buque</TableHead>
+                  <TableHead className="font-semibold">Mes</TableHead>
+                  <TableHead className="font-semibold">Tipo</TableHead>
+                  <TableHead className="font-semibold">Días misión</TableHead>
+                  <TableHead className="font-semibold">Días F/S</TableHead>
+                  <TableHead className="font-semibold">% mes</TableHead>
+                  <TableHead className="font-semibold">Días misión acum.</TableHead>
+                  <TableHead className="font-semibold">Días F/S acum.</TableHead>
+                  <TableHead className="font-semibold">% acumulado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filas.map((fila) => (
+                  <TableRow key={fila.id_alistamiento} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <TableCell className="font-medium">{fila.buque}</TableCell>
+                    <TableCell>{MESES[fila.mes - 1] ?? fila.mes}</TableCell>
+                    <TableCell>{tipos.find((tipo) => tipo.id === fila.id_tipo_alistamiento)?.nombre ?? '-'}</TableCell>
+                    <TableCell>{numeroOGuion(fila.dias_mision_mes)}</TableCell>
+                    <TableCell>{numeroOGuion(fila.dias_fs_mes)}</TableCell>
+                    <TableCell>{porcentaje(fila.pct_alistamiento_mes)}</TableCell>
+                    <TableCell>{numeroOGuion(fila.dias_mision_acum)}</TableCell>
+                    <TableCell>{numeroOGuion(fila.dias_fs_acum)}</TableCell>
+                    <TableCell>{porcentaje(fila.pct_alistamiento_acum)}</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filas.map((fila) => (
-                    <TableRow key={fila.id_alistamiento} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <TableCell className="font-medium">{fila.buque}</TableCell>
-                      <TableCell>{MESES[fila.mes - 1] ?? fila.mes}</TableCell>
-                      <TableCell>{tipos.find((tipo) => tipo.id === fila.id_tipo_alistamiento)?.nombre ?? '-'}</TableCell>
-                      <TableCell>{numeroOGuion(fila.dias_mision_mes)}</TableCell>
-                      <TableCell>{numeroOGuion(fila.dias_fs_mes)}</TableCell>
-                      <TableCell>{porcentaje(fila.pct_alistamiento_mes)}</TableCell>
-                      <TableCell>{numeroOGuion(fila.dias_mision_acum)}</TableCell>
-                      <TableCell>{numeroOGuion(fila.dias_fs_acum)}</TableCell>
-                      <TableCell>{porcentaje(fila.pct_alistamiento_acum)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </ListCard>
 
       <DetailPanel
         open={registrando}

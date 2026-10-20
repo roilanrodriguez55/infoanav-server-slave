@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { mantenimientosService } from '@/services/api/mantenApi';
 import { senalesService } from '@/services/api/senalesApi';
 import { useServerList } from '@/hooks/useServerList';
@@ -8,14 +8,6 @@ import { textoTiempoEmpleado } from '@/lib/planMantenimiento';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -42,8 +34,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { EmptyState } from '@/components/common/EmptyState';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
+import { ListCard } from '@/components/common/ListCard';
 import { Pagination } from '@/components/common/Pagination';
+import { PageHeader } from '@/components/common/PageHeader';
+import { PillTabs } from '@/components/common/PillTabs';
 import { SortableHead } from '@/components/common/SortableHead';
 import {
   Search,
@@ -232,53 +228,36 @@ const ListMantenimientos = () => {
 
   return (
     <div className="w-full min-w-0">
-      {/* Conmutador entre mantenimientos realizados y plan */}
-      <nav className="mb-4 flex gap-2 text-sm" aria-label="Vistas de mantenimiento">
-        <Link
-          to="/gestion-mant"
-          aria-current="page"
-          className="rounded-md bg-blue-600 px-3 py-1.5 font-medium text-white"
-        >
-          Realizados
-        </Link>
-        <Link
-          to="/plan-mantenimiento"
-          className="rounded-md px-3 py-1.5 font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-        >
-          Plan
-        </Link>
-      </nav>
-
-      {/* Header con título y acciones */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            <Wrench className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            Gestión de Mantenimientos
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Administre los mantenimientos de las señales marítimas
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button
-            variant="outline"
-            onClick={reload}
-            className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Actualizar
-          </Button>
-          <Button
-            onClick={handleNew}
-            className="w-full sm:w-auto bg-gray-800 hover:bg-gray-900 text-white dark:bg-gray-700 dark:hover:bg-gray-600 shadow-md"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Mantenimiento
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={<Wrench />}
+        iconClassName="text-blue-600 dark:text-blue-400"
+        title="Gestión de Mantenimientos"
+        subtitle="Administre los mantenimientos de las señales marítimas"
+        actions={
+          <>
+            <Button variant="neutral" onClick={reload} className="w-full sm:w-auto">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Actualizar
+            </Button>
+            <Button variant="brand" onClick={handleNew} className="w-full sm:w-auto">
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo Mantenimiento
+            </Button>
+          </>
+        }
+      >
+        {/* Conmutador entre mantenimientos realizados y plan */}
+        <PillTabs
+          tabs={[
+            { value: 'realizados', label: 'Realizados' },
+            { value: 'plan', label: 'Plan' },
+          ]}
+          value="realizados"
+          onChange={(valor) => {
+            if (valor === 'plan') void navigate('/plan-mantenimiento');
+          }}
+        />
+      </PageHeader>
 
       {/* Filtros: se consultan en el servidor */}
       <div className="mb-6">
@@ -375,7 +354,7 @@ const ListMantenimientos = () => {
           className={mensaje.tipo === 'success'
             ? 'mb-6 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'
             : 'mb-6 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'}
-        >
+      >
           <AlertDescription className={mensaje.tipo === 'success'
             ? 'text-green-700 dark:text-green-300'
             : 'text-red-700 dark:text-red-300'}>
@@ -396,133 +375,13 @@ const ListMantenimientos = () => {
         </Alert>
       )}
 
-      <Card className="min-w-0 shadow-xl border-gray-200 dark:border-gray-700 dark:bg-gray-800">
-        <CardHeader className="bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700">
-          <CardTitle className="text-xl text-gray-800 dark:text-white">
-            Listado de Mantenimientos
-            {total > 0 && (
-              <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
-                ({total} registros)
-              </span>
-            )}
-          </CardTitle>
-          <CardDescription className="text-gray-500 dark:text-gray-400">
-            Total de mantenimientos registrados en el sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-gray-100 mx-auto"></div>
-                <p className="mt-4 text-gray-600 dark:text-gray-300">Cargando mantenimientos...</p>
-              </div>
-            </div>
-          ) : mantenimientos.length === 0 ? (
-            <div className="text-center py-12">
-              <Wrench className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-600 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                {filtrosActivos > 0 ? 'No se encontraron mantenimientos' : 'No hay mantenimientos'}
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-4">
-                {filtrosActivos > 0 ? 'Prueba con otros filtros' : 'Comienza agregando un nuevo mantenimiento'}
-              </p>
-              {filtrosActivos === 0 && (
-                <Button onClick={handleNew} variant="outline">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nuevo Mantenimiento
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-100 dark:bg-gray-700">
-                    <SortableHead column="ident_mantenimiento" label="ID" order={order} onSort={toggleOrder} className="font-semibold" />
-                    <TableHead className="font-semibold">Tipo</TableHead>
-                    <SortableHead column="fecha_inicio" label="Fecha Inicio" order={order} onSort={toggleOrder} className="font-semibold" />
-                    <TableHead className="font-semibold">Tiempo</TableHead>
-                    <SortableHead column="trabajo_realizado" label="Trabajo Realizado" order={order} onSort={toggleOrder} className="font-semibold" />
-                    <TableHead className="font-semibold">Responsable</TableHead>
-                    <SortableHead column="costo_mn" label="Costo MN" order={order} onSort={toggleOrder} className="font-semibold" />
-                    <TableHead className="font-semibold text-center">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mantenimientos.map((mant) => (
-                    <TableRow key={mant.id_mantenimiento} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <TableCell className="font-medium">
-                        {mant.ident_mantenimiento ?? 'S/N'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-gray-100 dark:bg-gray-700">
-                          {getTipoNombre(mant.id_tipo_mant)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {formatDate(mant.fecha_inicio)}
-                      </TableCell>
-                      <TableCell>
-                        {mant.tiempo_empleado !== null ? (
-                          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                            {textoTiempoEmpleado(mant.tiempo_empleado)}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline">-</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        {mant.trabajo_realizado ?? '-'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <User className="h-3 w-3 text-gray-500" />
-                          <span>{mant.informa ?? mant.aseguro ?? '-'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {formatCurrency(mant.costo_mn)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Ver detalle de mantenimiento"
-                            onClick={() => handleDetail(mant.id_mantenimiento)}
-                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Editar mantenimiento"
-                            onClick={() => handleEdit(mant.id_mantenimiento)}
-                            className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Eliminar mantenimiento"
-                            onClick={() => confirmDelete(mant)}
-                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="border-t border-gray-200 bg-transparent dark:border-gray-700 dark:bg-transparent px-6">
+      <ListCard
+        title="Listado de Mantenimientos"
+        subtitle="Total de mantenimientos registrados en el sistema"
+        actions={total > 0 ? (
+          <span className="text-sm text-gray-500 dark:text-gray-400">({total} registros)</span>
+        ) : undefined}
+        footer={
           <Pagination
             page={page}
             pageSize={pageSize}
@@ -530,8 +389,115 @@ const ListMantenimientos = () => {
             onPageChange={setPage}
             loading={loading}
           />
-        </CardFooter>
-      </Card>
+        }
+      >
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-gray-100 mx-auto"></div>
+              <p className="mt-4 text-gray-600 dark:text-gray-300">Cargando mantenimientos...</p>
+            </div>
+          </div>
+        ) : mantenimientos.length === 0 ? (
+          <EmptyState
+            icon={<Wrench />}
+            title={filtrosActivos > 0 ? 'No se encontraron mantenimientos' : 'No hay mantenimientos'}
+            description={filtrosActivos > 0 ? 'Prueba con otros filtros' : 'Comienza agregando un nuevo mantenimiento'}
+            action={filtrosActivos === 0 ? (
+              <Button onClick={handleNew} variant="brand">
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Mantenimiento
+              </Button>
+            ) : undefined}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-100 dark:bg-gray-700">
+                  <SortableHead column="ident_mantenimiento" label="ID" order={order} onSort={toggleOrder} className="font-semibold" />
+                  <TableHead className="font-semibold">Tipo</TableHead>
+                  <SortableHead column="fecha_inicio" label="Fecha Inicio" order={order} onSort={toggleOrder} className="font-semibold" />
+                  <TableHead className="font-semibold">Tiempo</TableHead>
+                  <SortableHead column="trabajo_realizado" label="Trabajo Realizado" order={order} onSort={toggleOrder} className="font-semibold" />
+                  <TableHead className="font-semibold">Responsable</TableHead>
+                  <SortableHead column="costo_mn" label="Costo MN" order={order} onSort={toggleOrder} className="font-semibold" />
+                  <TableHead className="font-semibold text-center">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {mantenimientos.map((mant) => (
+                  <TableRow key={mant.id_mantenimiento} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <TableCell className="font-medium">
+                      {mant.ident_mantenimiento ?? 'S/N'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-gray-100 dark:bg-gray-700">
+                        {getTipoNombre(mant.id_tipo_mant)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {formatDate(mant.fecha_inicio)}
+                    </TableCell>
+                    <TableCell>
+                      {mant.tiempo_empleado !== null ? (
+                        <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                          {textoTiempoEmpleado(mant.tiempo_empleado)}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">-</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {mant.trabajo_realizado ?? '-'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <User className="h-3 w-3 text-gray-500" />
+                        <span>{mant.informa ?? mant.aseguro ?? '-'}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatCurrency(mant.costo_mn)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Ver detalle de mantenimiento"
+                          onClick={() => handleDetail(mant.id_mantenimiento)}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Editar mantenimiento"
+                          onClick={() => handleEdit(mant.id_mantenimiento)}
+                          className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Eliminar mantenimiento"
+                          onClick={() => confirmDelete(mant)}
+                          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </ListCard>
 
       {/* Diálogo de confirmación para eliminar */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

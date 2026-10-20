@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react';
+import { Calculator } from 'lucide-react';
 import PageMeta from '@/components/common/PageMeta';
+import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -317,13 +319,12 @@ export default function CalculosPage() {
   return (
     <>
       <PageMeta title="Cálculos" description="Cálculos de alcance e intensidad luminosa de las ayudas visuales" />
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white">Cálculos</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Calcula el alcance o la intensidad luminosa de una ayuda visual según la ley de Allard.
-          </p>
-        </div>
+      <div className="w-full min-w-0 space-y-6">
+        <PageHeader
+          icon={<Calculator />}
+          title="Cálculos"
+          subtitle="Calcula el alcance o la intensidad luminosa de una ayuda visual según la ley de Allard."
+        />
 
         <Card className="shadow-xl border-blue-200 dark:border-gray-700 dark:bg-gray-800">
           <CardHeader>
@@ -375,7 +376,7 @@ export default function CalculosPage() {
               </div>
 
               <div className="flex justify-end">
-                <Button type="submit">Calcular</Button>
+                <Button type="submit" variant="brand">Calcular</Button>
               </div>
             </form>
           </CardContent>

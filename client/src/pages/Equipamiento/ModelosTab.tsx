@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle, Plus, Search } from 'lucide-react';
+import { AlertCircle, Package, Plus, Search } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useServerList } from '@/hooks/useServerList';
 import {
@@ -10,11 +10,12 @@ import {
 } from '@/services/api/equiposApi';
 import type { Filter } from '@/lib/postgrest';
 import { DetailPanel } from '@/components/common/DetailPanel';
+import { EmptyState } from '@/components/common/EmptyState';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
+import { ListCard } from '@/components/common/ListCard';
 import { Pagination } from '@/components/common/Pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -85,10 +86,7 @@ export default function ModelosTab({ onCambio }: ModelosTabProps) {
           Catálogo de modelos por tipo de equipamiento.
         </p>
         {isAdmin && (
-          <Button
-            onClick={() => setEdicion({ modelo: null })}
-            className="w-full bg-gray-800 text-white shadow-md hover:bg-gray-900 sm:w-auto dark:bg-gray-700 dark:hover:bg-gray-600"
-          >
+          <Button variant="brand" onClick={() => setEdicion({ modelo: null })} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Nuevo modelo
           </Button>
@@ -144,22 +142,28 @@ export default function ModelosTab({ onCambio }: ModelosTabProps) {
         </Alert>
       )}
 
-      <Card className="min-w-0 border-gray-200 shadow-xl dark:border-gray-700 dark:bg-gray-800">
-        <CardHeader className="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <CardTitle className="text-xl text-gray-800 dark:text-white">
-            Modelos
-            {total > 0 && (
-              <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({total} registros)</span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+      <ListCard
+        title="Listado de modelos"
+        subtitle={total > 0 ? `${total} registros` : undefined}
+        footer={<Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} loading={loading} />}
+      >
           {loading ? (
             <p className="py-12 text-center text-gray-600 dark:text-gray-300">Cargando modelos...</p>
           ) : rows.length === 0 ? (
-            <p className="py-12 text-center text-gray-500 dark:text-gray-400">
-              {filtrosActivos > 0 ? 'No se encontraron modelos con esos filtros.' : 'No hay modelos registrados.'}
-            </p>
+            <EmptyState
+              icon={<Package />}
+              title={filtrosActivos > 0 ? 'No se encontraron modelos' : 'No hay modelos registrados'}
+              description={filtrosActivos > 0 ? 'Prueba con otros filtros' : undefined}
+              action={
+                isAdmin &&
+                filtrosActivos === 0 && (
+                  <Button variant="outline" onClick={() => setEdicion({ modelo: null })}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nuevo modelo
+                  </Button>
+                )
+              }
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -192,11 +196,7 @@ export default function ModelosTab({ onCambio }: ModelosTabProps) {
               </Table>
             </div>
           )}
-        </CardContent>
-        <CardFooter className="border-t border-gray-200 bg-transparent px-6 dark:border-gray-700 dark:bg-transparent">
-          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} loading={loading} />
-        </CardFooter>
-      </Card>
+      </ListCard>
 
       <DetailPanel
         open={edicion !== null}

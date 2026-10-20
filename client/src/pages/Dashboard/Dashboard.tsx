@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   AlertTriangle,
   Download,
+  LayoutDashboard,
   Wrench,
   Loader2,
 } from "lucide-react";
@@ -26,6 +27,8 @@ import { senalesService } from "@/services/api/senalesApi";
 import { fallasService } from "@/services/api/fallasApi";
 import { mantenimientosService } from "@/services/api/mantenApi";
 import { TarjetasAlertas } from "@/pages/Dashboard/TarjetasAlerta";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Button } from "@/components/ui/button";
 
 type TabKey = "criticas" | "degradadas" | "offline";
 type ModalKey = "reporte" | null;
@@ -543,39 +546,32 @@ const Dashboard = () => {
   const closeModal = () => setModal(null);
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 space-y-6">
       <h2 className="sr-only">
         Dashboard de gestión de señales marítimas — estado operacional, fallas y
         mantenimientos activos
       </h2>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            Panel operacional
-          </h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Señales marítimas · Actualizado ahora
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-            <span
-              className="h-2 w-2 shrink-0 rounded-full bg-emerald-500 animate-pulse"
-              aria-hidden
-            />
-            En vivo
-          </span>
-          <button
-            type="button"
-            onClick={() => setModal("reporte")}
-            className="inline-flex items-center gap-2 rounded-lg border border-sky-500/40 bg-white px-3 py-1.5 text-xs font-medium text-sky-700 hover:bg-sky-50 dark:bg-gray-800 dark:text-sky-300 dark:hover:bg-white/5"
-          >
-            <Download className="h-4 w-4" aria-hidden />
-            Exportar reporte
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        icon={<LayoutDashboard />}
+        title="Panel operacional"
+        subtitle="Señales marítimas · Actualizado ahora"
+        actions={
+          <>
+            <span className="inline-flex items-center gap-2 self-center text-sm text-gray-600 dark:text-gray-400">
+              <span
+                className="h-2 w-2 shrink-0 rounded-full bg-emerald-500 animate-pulse"
+                aria-hidden
+              />
+              En vivo
+            </span>
+            <Button variant="neutral" onClick={() => setModal("reporte")}>
+              <Download className="h-4 w-4 mr-2" aria-hidden />
+              Exportar reporte
+            </Button>
+          </>
+        }
+      />
 
       <div>
         <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">

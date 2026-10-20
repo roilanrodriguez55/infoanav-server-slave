@@ -8,14 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import {
   Table,
   TableBody,
   TableCell,
@@ -35,6 +27,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Pagination } from '@/components/common/Pagination';
+import { PageHeader } from '@/components/common/PageHeader';
+import { ListCard } from '@/components/common/ListCard';
+import { EmptyState } from '@/components/common/EmptyState';
 import { usePagedItems } from '@/hooks/usePagedItems';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Edit, KeyRound, Plus, RefreshCw, Search, UserX, Users } from 'lucide-react';
@@ -138,37 +133,28 @@ const UsuariosPage = () => {
   };
 
   return (
-    <div>
-      {/* Header con título y acciones */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex-1">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            Usuarios
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Gestión de usuarios del sistema
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button
-            variant="outline"
-            onClick={recargar}
-            className="w-full sm:w-auto border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Actualizar
-          </Button>
-          <Button
-            onClick={() => setDialogo({ key: Date.now(), usuario: null })}
-            className="w-full sm:w-auto bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo usuario
-          </Button>
-        </div>
-      </div>
+    <div className="w-full min-w-0">
+      <PageHeader
+        icon={<Users />}
+        title="Usuarios"
+        subtitle="Gestión de usuarios del sistema"
+        actions={
+          <>
+            <Button variant="neutral" onClick={recargar} className="w-full sm:w-auto">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Actualizar
+            </Button>
+            <Button
+              variant="brand"
+              onClick={() => setDialogo({ key: Date.now(), usuario: null })}
+              className="w-full sm:w-auto"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo usuario
+            </Button>
+          </>
+        }
+      />
 
       {mensaje && (
         <Alert className={`mb-6 ${mensaje.tipo === 'success'
@@ -223,16 +209,19 @@ const UsuariosPage = () => {
         </div>
       </div>
 
-      <Card className="shadow-xl border-blue-200 dark:border-gray-700 dark:bg-gray-800">
-        <CardHeader className="bg-white border-b border-blue-200 dark:bg-gray-800 dark:border-gray-700">
-          <CardTitle className="text-xl text-gray-800 dark:text-white">
-            Listado de usuarios
-          </CardTitle>
-          <CardDescription className="text-gray-500 dark:text-gray-400">
-            {visibles.length} {visibles.length === 1 ? 'usuario' : 'usuarios'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
+      <ListCard
+        title="Listado de usuarios"
+        subtitle={`${visibles.length} ${visibles.length === 1 ? 'usuario' : 'usuarios'}`}
+        footer={
+          <Pagination
+            page={paginado.page}
+            pageSize={paginado.pageSize}
+            total={paginado.total}
+            onPageChange={paginado.setPage}
+            loading={cargando}
+          />
+        }
+      >
           {cargando ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
@@ -241,15 +230,11 @@ const UsuariosPage = () => {
               </div>
             </div>
           ) : visibles.length === 0 ? (
-            <div className="text-center py-12">
-              <Users className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-600 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                {termino !== '' ? 'No se encontraron usuarios' : 'No hay usuarios'}
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400">
-                {termino !== '' ? 'Prueba con otra búsqueda' : 'Comienza agregando un nuevo usuario'}
-              </p>
-            </div>
+            <EmptyState
+              icon={<Users />}
+              title={termino !== '' ? 'No se encontraron usuarios' : 'No hay usuarios'}
+              description={termino !== '' ? 'Prueba con otra búsqueda' : 'Comienza agregando un nuevo usuario'}
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -332,17 +317,7 @@ const UsuariosPage = () => {
               </Table>
             </div>
           )}
-        </CardContent>
-        <CardFooter className="border-t border-gray-200 bg-transparent dark:border-gray-700 dark:bg-transparent px-6">
-          <Pagination
-            page={paginado.page}
-            pageSize={paginado.pageSize}
-            total={paginado.total}
-            onPageChange={paginado.setPage}
-            loading={cargando}
-          />
-        </CardFooter>
-      </Card>
+      </ListCard>
 
       {dialogo && (
         <UsuarioDialog

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { EmptyState } from '@/components/common/EmptyState';
+import { ListCard } from '@/components/common/ListCard';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { equiposService, type EstadoEquipo, type TipoEquipo } from '@/services/api/equiposApi';
 
 interface ConteoTipo {
@@ -58,21 +59,20 @@ export default function AlertasTab() {
 
   if (conAlertas.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-2 py-12 text-center text-gray-500 dark:text-gray-400">
-        <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
-        <p>No hay equipos con alertas.</p>
-      </div>
+      <ListCard title="Alertas de equipamiento">
+        <EmptyState
+          icon={<CheckCircle2 className="text-green-600 dark:text-green-400" />}
+          title="No hay equipos con alertas"
+        />
+      </ListCard>
     );
   }
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       {conAlertas.map(({ tipo, vidaCumplida, fueraServicio }) => (
-        <Card key={tipo.id_tipo_equipamiento} className="border-gray-200 shadow-md dark:border-gray-700 dark:bg-gray-800">
-          <CardHeader>
-            <CardTitle className="text-lg text-gray-800 dark:text-white">{tipo.nombre}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <ListCard key={tipo.id_tipo_equipamiento} title={tipo.nombre}>
+          <div className="space-y-3 px-6 py-4">
             {vidaCumplida > 0 && (
               <Link
                 to={enlace(tipo.id_tipo_equipamiento, 'vida=cumplida')}
@@ -91,8 +91,8 @@ export default function AlertasTab() {
                 <ArrowRight className="h-4 w-4" />
               </Link>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </ListCard>
       ))}
     </div>
   );

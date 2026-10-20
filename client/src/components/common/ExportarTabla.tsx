@@ -92,11 +92,11 @@ export function ExportarTabla({ titulo, columnas, filas, nombreArchivo }: Export
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button variant="outline" size="sm" disabled={sinFilas || exportando !== null} onClick={() => void ejecutar('excel')}>
+      <Button variant="neutral" size="sm" disabled={sinFilas || exportando !== null} onClick={() => void ejecutar('excel')}>
         <FileSpreadsheet className="mr-1 h-4 w-4" />
         {exportando === 'excel' ? 'Generando...' : 'Exportar Excel'}
       </Button>
-      <Button variant="outline" size="sm" disabled={sinFilas || exportando !== null} onClick={() => void ejecutar('pdf')}>
+      <Button variant="neutral" size="sm" disabled={sinFilas || exportando !== null} onClick={() => void ejecutar('pdf')}>
         <FileText className="mr-1 h-4 w-4" />
         {exportando === 'pdf' ? 'Generando...' : 'Exportar PDF'}
       </Button>

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { CalendarDays, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageHeader } from '@/components/common/PageHeader';
+import { PillTabs } from '@/components/common/PillTabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +32,7 @@ interface Mensaje {
 }
 
 export default function PlanMantenimientoPage() {
+  const navigate = useNavigate();
   const [vista, setVista] = useState<Vista>('calendario');
   const [senales, setSenales] = useState<SenalOpcion[]>([]);
   const [tipos, setTipos] = useState<TipoOpcion[]>([]);
@@ -77,35 +80,30 @@ export default function PlanMantenimientoPage() {
 
   return (
     <div className="w-full min-w-0 space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-3">
-          <div>
-            <h2 className="flex items-center gap-2 text-xl font-bold text-gray-800 dark:text-white">
-              <CalendarDays className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              Plan de Mantenimiento
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Planifique los mantenimientos de las señales marítimas
-            </p>
-          </div>
-          <nav className="flex gap-2 text-sm" aria-label="Vistas de mantenimiento">
-            <Link
-              to="/gestion-mant"
-              className="rounded-md px-3 py-1.5 font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-            >
-              Realizados
-            </Link>
-            <Link to="/plan-mantenimiento" aria-current="page" className="rounded-md bg-blue-600 px-3 py-1.5 font-medium text-white">
-              Plan
-            </Link>
-          </nav>
-        </div>
-
-        <Button onClick={abrirNuevo} className="w-full bg-gray-800 text-white shadow-md hover:bg-gray-900 sm:w-auto dark:bg-gray-700 dark:hover:bg-gray-600">
-          <Plus className="mr-2 h-4 w-4" />
-          Planificar
-        </Button>
-      </div>
+      <PageHeader
+        icon={<Wrench />}
+        iconClassName="text-blue-600 dark:text-blue-400"
+        title="Gestión de Mantenimientos"
+        subtitle="Administre los mantenimientos de las señales marítimas"
+        actions={
+          <Button onClick={abrirNuevo} variant="brand" className="w-full sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" />
+            Planificar
+          </Button>
+        }
+      >
+        {/* Conmutador entre mantenimientos realizados y plan */}
+        <PillTabs
+          tabs={[
+            { value: 'realizados', label: 'Realizados' },
+            { value: 'plan', label: 'Plan' },
+          ]}
+          value="plan"
+          onChange={(valor) => {
+            if (valor === 'realizados') void navigate('/gestion-mant');
+          }}
+        />
+      </PageHeader>
 
       {mensaje && (
         <Alert

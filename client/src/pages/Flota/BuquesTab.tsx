@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, AlertTriangle, CalendarClock, Plus, Search } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CalendarClock, Plus, Search, Ship } from 'lucide-react';
 import { DetailPanel } from '@/components/common/DetailPanel';
+import { EmptyState } from '@/components/common/EmptyState';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
+import { ListCard } from '@/components/common/ListCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,19 +64,6 @@ export default function BuquesTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Buques de la flota, con su ficha técnica y certificados.
-        </p>
-        <Button
-          onClick={() => setEdicion({ id: null })}
-          className="w-full bg-gray-800 text-white shadow-md hover:bg-gray-900 sm:w-auto dark:bg-gray-700 dark:hover:bg-gray-600"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo buque
-        </Button>
-      </div>
-
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="border-red-200 dark:border-red-800">
           <CardHeader className="pb-2">
@@ -140,6 +129,14 @@ export default function BuquesTab() {
         </Alert>
       )}
 
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <p className="text-sm text-gray-500 dark:text-gray-400">Buques de la flota, con su ficha técnica y certificados.</p>
+        <Button variant="brand" onClick={() => setEdicion({ id: null })} className="w-full sm:w-auto">
+          <Plus className="mr-2 h-4 w-4" />
+          Nuevo buque
+        </Button>
+      </div>
+
       <FilterBar onReset={() => setBusqueda('')} activeCount={busqueda ? 1 : 0}>
         <FilterField label="Buscar" className="w-full md:w-72">
           <div className="relative w-full">
@@ -156,64 +153,62 @@ export default function BuquesTab() {
         </FilterField>
       </FilterBar>
 
-      <Card className="min-w-0 border-gray-200 shadow-xl dark:border-gray-700 dark:bg-gray-800">
-        <CardHeader className="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <CardTitle className="text-xl text-gray-800 dark:text-white">
-            Listado de buques
-            {buques.length > 0 && (
-              <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({buques.length} registros)</span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {cargando ? (
-            <p className="py-12 text-center text-gray-600 dark:text-gray-300">Cargando buques...</p>
-          ) : buquesFiltrados.length === 0 ? (
-            <p className="py-12 text-center text-gray-500 dark:text-gray-400">
-              {termino ? 'No se encontraron buques con esa búsqueda.' : 'No hay buques registrados.'}
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-100 dark:bg-gray-700">
-                    <TableHead className="font-semibold">Buque</TableHead>
-                    <TableHead className="font-semibold">Nombre</TableHead>
-                    <TableHead className="font-semibold">Empresa</TableHead>
-                    <TableHead className="font-semibold">Especialidad</TableHead>
-                    <TableHead className="font-semibold">Eslora (m)</TableHead>
-                    <TableHead className="font-semibold">Tripulantes</TableHead>
-                    <TableHead className="font-semibold">Estado</TableHead>
+      <ListCard
+        title="Listado de buques"
+        actions={
+          buques.length > 0 ? (
+            <span className="text-sm text-gray-500 dark:text-gray-400">({buques.length} registros)</span>
+          ) : undefined
+        }
+      >
+        {cargando ? (
+          <p className="py-12 text-center text-gray-600 dark:text-gray-300">Cargando buques...</p>
+        ) : buquesFiltrados.length === 0 ? (
+          <EmptyState
+            icon={<Ship />}
+            title={termino ? 'No se encontraron buques con esa búsqueda' : 'No hay buques registrados'}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-100 dark:bg-gray-700">
+                  <TableHead className="font-semibold">Buque</TableHead>
+                  <TableHead className="font-semibold">Nombre</TableHead>
+                  <TableHead className="font-semibold">Empresa</TableHead>
+                  <TableHead className="font-semibold">Especialidad</TableHead>
+                  <TableHead className="font-semibold">Eslora (m)</TableHead>
+                  <TableHead className="font-semibold">Tripulantes</TableHead>
+                  <TableHead className="font-semibold">Estado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {buquesFiltrados.map((buque) => (
+                  <TableRow
+                    key={buque.id_buque}
+                    onClick={() => setEdicion({ id: buque.id_buque })}
+                    className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <TableCell className="font-medium">{buque.buque}</TableCell>
+                    <TableCell>{buque.nombre_buque ?? '-'}</TableCell>
+                    <TableCell>{buque.empresa?.nombre ?? '-'}</TableCell>
+                    <TableCell>{buque.especialidad ?? '-'}</TableCell>
+                    <TableCell>{buque.eslora ?? '-'}</TableCell>
+                    <TableCell>{buque.tripulantes ?? '-'}</TableCell>
+                    <TableCell>
+                      {buque.propuesto_baja ? (
+                        <Badge variant="outline">Propuesto para baja</Badge>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {buquesFiltrados.map((buque) => (
-                    <TableRow
-                      key={buque.id_buque}
-                      onClick={() => setEdicion({ id: buque.id_buque })}
-                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      <TableCell className="font-medium">{buque.buque}</TableCell>
-                      <TableCell>{buque.nombre_buque ?? '-'}</TableCell>
-                      <TableCell>{buque.empresa?.nombre ?? '-'}</TableCell>
-                      <TableCell>{buque.especialidad ?? '-'}</TableCell>
-                      <TableCell>{buque.eslora ?? '-'}</TableCell>
-                      <TableCell>{buque.tripulantes ?? '-'}</TableCell>
-                      <TableCell>
-                        {buque.propuesto_baja ? (
-                          <Badge variant="outline">Propuesto para baja</Badge>
-                        ) : (
-                          '-'
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </ListCard>
 
       <DetailPanel
         open={edicion !== null}
