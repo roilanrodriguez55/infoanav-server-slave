@@ -441,7 +441,7 @@ const FormFallas: React.FC = () => {
             </CardDescription>
           </CardHeader>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={(e) => { void handleSubmit(e); }}>
             <CardContent className="p-6 lg:p-8">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
                 <TabsList className="grid w-full grid-cols-4 bg-gray-100 dark:bg-gray-700">

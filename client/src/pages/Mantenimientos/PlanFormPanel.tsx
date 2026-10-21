@@ -102,7 +102,7 @@ export function PlanFormPanel({ plan, senales, tipos, onCerrar, onGuardado }: Pl
         </div>
       }
     >
-      <form id="form-plan-mantenimiento" onSubmit={guardar} className="space-y-5">
+      <form id="form-plan-mantenimiento" onSubmit={(e) => { void guardar(e); }} className="space-y-5">
         <CommandSelect
           value={form.id_senal}
           onValueChange={(valor) => actualizar('id_senal', valor)}

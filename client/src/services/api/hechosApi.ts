@@ -132,7 +132,8 @@ export const contarHechosPendientes = async (): Promise<number> => {
     `${HECHOS_PATH}?select=id_hecho&concluso=eq.false&deleted_at=is.null&limit=1`,
     { headers: { Prefer: 'count=exact' } }
   );
-  return parseContentRange(response.headers['content-range']).total ?? 0;
+  const cabecera = response.headers['content-range'] as string | undefined;
+  return parseContentRange(cabecera).total ?? 0;
 };
 
 export const hechosService = {

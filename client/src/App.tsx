@@ -1,24 +1,27 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import type { ReactNode } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './context/useAuth';
 import AppLayout from './layout/AppLayout';
 import SignIn from './components/auth/SignInForm';
 import ContentArea from './pages/Dashboard/ContentArea';
-import FormANAV from './pages/Forms/FormAnav';
-import FormFallas from './pages/Forms/FormFallas';
-import FormMantenimientos from './pages/Forms/FormMantenimientos';
-import SenalDetalle from './pages/Detalle/SenalDetalle';
-import FallaDetalle from './pages/Detalle/FallaDetalle';
-import MantenimientoDetalle from './pages/Detalle/MantenimientoDetalle';
-import UsuariosPage from './pages/Usuarios/UsuariosPage';
-import CatalogosPage from './pages/Catalogos/CatalogosPage';
-import CalculosPage from './pages/Calculos/CalculosPage';
-import EquipamientoPage from './pages/Equipamiento/EquipamientoPage';
-import HechosPage from './pages/Hechos/HechosPage';
-import DocumentacionPage from './pages/Documentacion/DocumentacionPage';
-import FlotaPage from './pages/Flota/FlotaPage';
-import EstadisticasPage from './pages/Estadisticas/EstadisticasPage';
-import PlanMantenimientoPage from './pages/Mantenimientos/PlanMantenimientoPage';
+
+const FormANAV = lazy(() => import('./pages/Forms/FormAnav'));
+const FormFallas = lazy(() => import('./pages/Forms/FormFallas'));
+const FormMantenimientos = lazy(() => import('./pages/Forms/FormMantenimientos'));
+const SenalDetalle = lazy(() => import('./pages/Detalle/SenalDetalle'));
+const FallaDetalle = lazy(() => import('./pages/Detalle/FallaDetalle'));
+const MantenimientoDetalle = lazy(() => import('./pages/Detalle/MantenimientoDetalle'));
+const UsuariosPage = lazy(() => import('./pages/Usuarios/UsuariosPage'));
+const CatalogosPage = lazy(() => import('./pages/Catalogos/CatalogosPage'));
+const CalculosPage = lazy(() => import('./pages/Calculos/CalculosPage'));
+const EquipamientoPage = lazy(() => import('./pages/Equipamiento/EquipamientoPage'));
+const HechosPage = lazy(() => import('./pages/Hechos/HechosPage'));
+const DocumentacionPage = lazy(() => import('./pages/Documentacion/DocumentacionPage'));
+const FlotaPage = lazy(() => import('./pages/Flota/FlotaPage'));
+const EstadisticasPage = lazy(() => import('./pages/Estadisticas/EstadisticasPage'));
+const PlanMantenimientoPage = lazy(() => import('./pages/Mantenimientos/PlanMantenimientoPage'));
 
 const ProtectedRoute = () => {
   const { authState } = useAuth();
@@ -88,6 +91,7 @@ function App() {
   return (
     <BrowserRouter>
         <AuthProvider>
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
           <Routes>
             {/* Rutas públicas */}
             <Route
@@ -137,6 +141,7 @@ function App() {
             {/* Ruta 404 */}
             <Route path="*" element={<CatchAllRedirect />} />
           </Routes>
+          </Suspense>
         </AuthProvider>
     </BrowserRouter>
   );

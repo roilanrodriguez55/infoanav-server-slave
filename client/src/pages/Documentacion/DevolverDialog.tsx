@@ -41,7 +41,7 @@ export default function DevolverDialog({ idPrestamo, descripcion, onOpenChange, 
           <DialogTitle>Devolver libro</DialogTitle>
           <DialogDescription>{descripcion}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={guardar} className="space-y-4">
+        <form onSubmit={(e) => { void guardar(e); }} className="space-y-4">
           {error && (
             <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
               <AlertDescription className="text-red-700 dark:text-red-300">{error}</AlertDescription>

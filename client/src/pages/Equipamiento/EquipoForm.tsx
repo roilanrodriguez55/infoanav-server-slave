@@ -92,7 +92,7 @@ export function EquipoForm({ tipo, catalogos, equipo, onTerminado, onCancelar }:
     cn('dark:border-gray-600 dark:bg-gray-800 dark:text-white', vacio && CAMPO_PENDIENTE);
 
   return (
-    <form onSubmit={guardar} className="space-y-8">
+    <form onSubmit={(e) => { void guardar(e); }} className="space-y-8">
       <Grupo titulo="Identificación">
         <div className="space-y-2">
           <Label htmlFor="numero_inventario" className="text-sm font-medium">

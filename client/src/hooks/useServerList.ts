@@ -76,7 +76,8 @@ export function useServerList<T, F extends object>(options: ServerListOptions<F>
       .get<T[]>(`${path}?${query}`, { headers: { Prefer: 'count=exact' }, signal: controller.signal })
       .then((response) => {
         if (ignore) return
-        const total = parseContentRange(response.headers['content-range']).total ?? response.data.length
+        const rangoHeader: unknown = response.headers['content-range']
+        const total = parseContentRange(typeof rangoHeader === 'string' ? rangoHeader : undefined).total ?? response.data.length
         setResult({ requestKey, rows: response.data, total, error: null })
         setPage((current) => Math.min(current, totalPages(total, pageSize)))
       })

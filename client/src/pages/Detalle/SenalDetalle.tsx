@@ -25,7 +25,7 @@ import TabLmf from '@/components/senal/TabLmf';
 import { VinculoEquipo } from '@/components/senal/VinculoEquipo';
 import TabMantenimientos from '@/components/senal/TabMantenimientos';
 import TabPronostico from '@/components/senal/TabPronostico';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/useAuth';
 import api from '@/services/config/axiosConfig';
 import { senalesService, type CatalogoItem, type CatalogosResponse } from '@/services/api/senalesApi';
 

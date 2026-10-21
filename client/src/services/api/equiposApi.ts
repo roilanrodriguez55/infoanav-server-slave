@@ -363,7 +363,8 @@ export const equiposService = {
     const response = await api.get(`${EQUIPOS_VISTA_PATH}?vida_util_cumplida=is.true&select=id_equipo&limit=1`, {
       headers: { Prefer: 'count=exact' },
     });
-    return parseContentRange(response.headers['content-range']).total ?? 0;
+    const cabecera = response.headers['content-range'] as string | undefined;
+    return parseContentRange(cabecera).total ?? 0;
   },
 
   createModelo: async (campos: ModeloCampos): Promise<EquiposResponse> =>

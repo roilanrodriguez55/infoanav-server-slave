@@ -61,7 +61,7 @@ const esObjeto = (valor: unknown): valor is Record<string, unknown> =>
 
 // Primer elemento de una lista del JSON de fondeo, o un objeto vacio si no existe.
 const primerElemento = (lista: unknown): Record<string, unknown> => {
-  const primero = Array.isArray(lista) ? lista[0] : undefined;
+  const primero: unknown = Array.isArray(lista) ? lista[0] : undefined;
   return esObjeto(primero) ? primero : {};
 };
 
@@ -194,7 +194,8 @@ export const precargaDesdeFondeo = (
 
 // Completa el primer elemento de una lista con los valores del LMF y conserva el resto de elementos y claves.
 const fusionarPrimero = (lista: unknown, valores: Record<string, unknown>): unknown[] => {
-  const [primero, ...resto] = Array.isArray(lista) ? lista : [];
+  const elementos: unknown[] = Array.isArray(lista) ? lista : [];
+  const [primero, ...resto] = elementos;
   return [{ ...(esObjeto(primero) ? primero : {}), ...valores }, ...resto];
 };
 

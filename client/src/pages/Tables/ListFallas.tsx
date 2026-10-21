@@ -537,7 +537,7 @@ const ListFallas = () => {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteLoading}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
+              onClick={() => { void handleDelete(); }}
               disabled={deleteLoading}
               className="bg-red-600 hover:bg-red-700 text-white"
             >

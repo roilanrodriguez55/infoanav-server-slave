@@ -168,7 +168,7 @@ export default function PlanMantenimientoPage() {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={eliminando}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleEliminar}
+              onClick={() => { void handleEliminar(); }}
               disabled={eliminando}
               className="bg-red-600 hover:bg-red-700 text-white"
             >

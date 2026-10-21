@@ -211,7 +211,7 @@ export default function HechoForm({ idSenal, hecho, onTerminado, onCancelar }: H
   };
 
   return (
-    <form onSubmit={guardar} className="space-y-6">
+    <form onSubmit={(e) => { void guardar(e); }} className="space-y-6">
       {error && (
         <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
           <AlertDescription className="text-red-700 dark:text-red-300">{error}</AlertDescription>
@@ -326,7 +326,7 @@ export default function HechoForm({ idSenal, hecho, onTerminado, onCancelar }: H
             <Button type="button" variant="outline" onClick={() => setConcluyendo(false)} disabled={guardando}>
               Cancelar
             </Button>
-            <Button type="button" onClick={concluir} disabled={guardando} className="bg-green-600 text-white hover:bg-green-700">
+            <Button type="button" onClick={() => { void concluir(); }} disabled={guardando} className="bg-green-600 text-white hover:bg-green-700">
               {guardando ? 'Guardando...' : 'Concluir'}
             </Button>
           </DialogFooter>
@@ -342,7 +342,7 @@ export default function HechoForm({ idSenal, hecho, onTerminado, onCancelar }: H
           <AlertDialogFooter>
             <AlertDialogCancel disabled={guardando}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={eliminar}
+              onClick={() => { void eliminar(); }}
               disabled={guardando}
               className="bg-red-600 text-white hover:bg-red-700"
             >

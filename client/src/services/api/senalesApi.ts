@@ -33,10 +33,62 @@ export interface CatalogosResponse {
   tiposEquipamiento: TipoEquipamiento[];
 }
 
-export interface SenalResponse {
+// Fila de la tabla de catalogo tal como la devuelve PostgREST (campos id_* y nombre)
+export type FilaCatalogo = Record<string, string>;
+
+// Fila de api.senales en PostgREST. Los campos nulables siguen el schema de Prisma.
+export interface SenalFila {
+  id_senal: string;
+  codigo_lsm: string;
+  id_tipo: string | null;
+  id_categoria: string | null;
+  nombre: string | null;
+  id_modelo: string | null;
+  id_estacion: string | null;
+  luminica: boolean | null;
+  secreta: boolean | null;
+  fecha_instalacion: string | null;
+  id_usuario_navegacion: string | null;
+  monitoreo: string | null;
+  id_zona: string | null;
+  reflector_radar: boolean | null;
+  repeticion: boolean | null;
+  id_estado: string | null;
+  id_material: string | null;
+  control_distancia: boolean | null;
+  id_energia: string | null;
+  id_marca_tope: string | null;
+  id_complejidad: string | null;
+  observaciones: string | null;
+  id_color: string | null;
+  id_forma: string | null;
+  altura: number | null;
+  elevacion: number | null;
+  profundidad: number | null;
+  alcancegeografico: number | null;
+  latitud: number | null;
+  longitud: number | null;
+  id_mar: string | null;
+  ubicacion: string | null;
+  alcanceluminico: number | null;
+  intensidadluminica: number | null;
+  id_colorluz: string | null;
+  id_caracteristica: string | null;
+  periodo: number | null;
+  oscuridad: number | null;
+  tiempoluz: number | null;
+  potenciabombillo: number | null;
+  voltagebombillo: number | null;
+  consumodestellador: number | null;
+  id_equipamiento: string | null;
+  sistema_fondeo: string | null;
+  fecha_retirada: string | null;
+}
+
+export interface SenalResponse<T = unknown> {
   success: boolean;
   message: string;
-  data: unknown;
+  data: T | null;
   codigoDuplicado?: boolean;
 }
 
@@ -67,45 +119,45 @@ export const senalesService = {
         caracteristicas,
         tiposEquipamiento,
       ] = await Promise.all([
-        api.get('/tipos_senal?select=id_tipo,nombre'),
-        api.get('/categorias?select=id_categoria,nombre'),
-        api.get('/modelos_senal?select=id_modelo,nombre'),
-        api.get('/empresas?select=id_empresa,nombre'),
-        api.get('/estaciones?select=id_estacion,nombre'),
-        api.get('/usuarios_navegacion?select=id_usuario_navegacion,nombre'),
-        api.get('/zonas?select=id_zona,nombre'),
-        api.get('/estados?select=id_estado,nombre'),
-        api.get('/materiales?select=id_material,nombre'),
-        api.get('/energias?select=id_energia,nombre'),
-        api.get('/colores?select=id_color,nombre'),
-        api.get('/formas?select=id_forma,nombre'),
-        api.get('/mares?select=id_mar,nombre'),
-        api.get('/colores_luz?select=id_colorluz,nombre'),
-        api.get('/marcas_tope?select=id_marca_tope,nombre'),
-        api.get('/complejidades?select=id_complejidad,nombre'),
-        api.get('/caracteristicas?select=id_caracteristica,nombre'),
-        api.get('/tipos_equipamiento?select=id_tipo_equipamiento,nombre'),
+        api.get<FilaCatalogo[]>('/tipos_senal?select=id_tipo,nombre'),
+        api.get<FilaCatalogo[]>('/categorias?select=id_categoria,nombre'),
+        api.get<FilaCatalogo[]>('/modelos_senal?select=id_modelo,nombre'),
+        api.get<FilaCatalogo[]>('/empresas?select=id_empresa,nombre'),
+        api.get<FilaCatalogo[]>('/estaciones?select=id_estacion,nombre'),
+        api.get<FilaCatalogo[]>('/usuarios_navegacion?select=id_usuario_navegacion,nombre'),
+        api.get<FilaCatalogo[]>('/zonas?select=id_zona,nombre'),
+        api.get<FilaCatalogo[]>('/estados?select=id_estado,nombre'),
+        api.get<FilaCatalogo[]>('/materiales?select=id_material,nombre'),
+        api.get<FilaCatalogo[]>('/energias?select=id_energia,nombre'),
+        api.get<FilaCatalogo[]>('/colores?select=id_color,nombre'),
+        api.get<FilaCatalogo[]>('/formas?select=id_forma,nombre'),
+        api.get<FilaCatalogo[]>('/mares?select=id_mar,nombre'),
+        api.get<FilaCatalogo[]>('/colores_luz?select=id_colorluz,nombre'),
+        api.get<FilaCatalogo[]>('/marcas_tope?select=id_marca_tope,nombre'),
+        api.get<FilaCatalogo[]>('/complejidades?select=id_complejidad,nombre'),
+        api.get<FilaCatalogo[]>('/caracteristicas?select=id_caracteristica,nombre'),
+        api.get<FilaCatalogo[]>('/tipos_equipamiento?select=id_tipo_equipamiento,nombre'),
       ]);
 
       return {
-        tipos: tipos.data.map((t: Record<string, unknown>) => ({ id: t.id_tipo, nombre: t.nombre })),
-        categorias: categorias.data.map((c: Record<string, unknown>) => ({ id: c.id_categoria, nombre: c.nombre })),
-        modelos: modelos.data.map((m: Record<string, unknown>) => ({ id: m.id_modelo, nombre: m.nombre })),
-        empresas: empresas.data.map((e: Record<string, unknown>) => ({ id: e.id_empresa, nombre: e.nombre })),
-        estaciones: estaciones.data.map((e: Record<string, unknown>) => ({ id: e.id_estacion, nombre: e.nombre })),
-        usuariosNavegacion: usuariosNavegacion.data.map((u: Record<string, unknown>) => ({ id: u.id_usuario_navegacion, nombre: u.nombre })),
-        zonas: zonas.data.map((z: Record<string, unknown>) => ({ id: z.id_zona, nombre: z.nombre })),
-        estados: estados.data.map((e: Record<string, unknown>) => ({ id: e.id_estado, nombre: e.nombre })),
-        materiales: materiales.data.map((m: Record<string, unknown>) => ({ id: m.id_material, nombre: m.nombre })),
-        energias: energias.data.map((e: Record<string, unknown>) => ({ id: e.id_energia, nombre: e.nombre })),
-        colores: colores.data.map((c: Record<string, unknown>) => ({ id: c.id_color, nombre: c.nombre })),
-        formas: formas.data.map((f: Record<string, unknown>) => ({ id: f.id_forma, nombre: f.nombre })),
-        mares: mares.data.map((m: Record<string, unknown>) => ({ id: m.id_mar, nombre: m.nombre })),
-        coloresLuz: coloresLuz.data.map((c: Record<string, unknown>) => ({ id: c.id_colorluz, nombre: c.nombre })),
-        marcasTope: marcasTope.data.map((m: Record<string, unknown>) => ({ id: m.id_marca_tope, nombre: m.nombre })),
-        complejidades: complejidades.data.map((c: Record<string, unknown>) => ({ id: c.id_complejidad, nombre: c.nombre })),
-        caracteristicas: caracteristicas.data.map((c: Record<string, unknown>) => ({ id: c.id_caracteristica, nombre: c.nombre })),
-        tiposEquipamiento: tiposEquipamiento.data.map((t: Record<string, unknown>) => ({ id_tipo_equipamiento: t.id_tipo_equipamiento as string, nombre: t.nombre as string })),
+        tipos: tipos.data.map((t) => ({ id: t.id_tipo, nombre: t.nombre })),
+        categorias: categorias.data.map((c) => ({ id: c.id_categoria, nombre: c.nombre })),
+        modelos: modelos.data.map((m) => ({ id: m.id_modelo, nombre: m.nombre })),
+        empresas: empresas.data.map((e) => ({ id: e.id_empresa, nombre: e.nombre })),
+        estaciones: estaciones.data.map((e) => ({ id: e.id_estacion, nombre: e.nombre })),
+        usuariosNavegacion: usuariosNavegacion.data.map((u) => ({ id: u.id_usuario_navegacion, nombre: u.nombre })),
+        zonas: zonas.data.map((z) => ({ id: z.id_zona, nombre: z.nombre })),
+        estados: estados.data.map((e) => ({ id: e.id_estado, nombre: e.nombre })),
+        materiales: materiales.data.map((m) => ({ id: m.id_material, nombre: m.nombre })),
+        energias: energias.data.map((e) => ({ id: e.id_energia, nombre: e.nombre })),
+        colores: colores.data.map((c) => ({ id: c.id_color, nombre: c.nombre })),
+        formas: formas.data.map((f) => ({ id: f.id_forma, nombre: f.nombre })),
+        mares: mares.data.map((m) => ({ id: m.id_mar, nombre: m.nombre })),
+        coloresLuz: coloresLuz.data.map((c) => ({ id: c.id_colorluz, nombre: c.nombre })),
+        marcasTope: marcasTope.data.map((m) => ({ id: m.id_marca_tope, nombre: m.nombre })),
+        complejidades: complejidades.data.map((c) => ({ id: c.id_complejidad, nombre: c.nombre })),
+        caracteristicas: caracteristicas.data.map((c) => ({ id: c.id_caracteristica, nombre: c.nombre })),
+        tiposEquipamiento: tiposEquipamiento.data.map((t) => ({ id_tipo_equipamiento: t.id_tipo_equipamiento, nombre: t.nombre })),
       };
     } catch (error) {
       console.error('Error cargando catalogos:', error);
@@ -124,9 +176,9 @@ export const senalesService = {
     }
   },
 
-  getSenalById: async (id: string): Promise<SenalResponse> => {
+  getSenalById: async (id: string): Promise<SenalResponse<SenalFila[]>> => {
     try {
-      const response = await api.get(`/senales?id_senal=eq.${id}&deleted_at=is.null&select=*`);
+      const response = await api.get<SenalFila[]>(`/senales?id_senal=eq.${id}&deleted_at=is.null&select=*`);
       return { success: true, message: 'Senal obtenida', data: response.data };
     } catch (error: unknown) {
       const axiosError = error as AxiosError<{ message?: string }>;

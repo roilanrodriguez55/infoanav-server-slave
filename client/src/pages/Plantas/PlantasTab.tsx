@@ -314,7 +314,7 @@ export default function PlantasTab() {
                           <TableCell className="max-w-xs truncate">{falla.causa ?? '-'}</TableCell>
                           <TableCell>
                             {!falla.fecha_restablecimiento && (
-                              <Button size="sm" variant="outline" onClick={() => restablecer(falla)}>
+                              <Button size="sm" variant="outline" onClick={() => { void restablecer(falla); }}>
                                 <RotateCcw className="mr-2 h-4 w-4" />
                                 Restablecer
                               </Button>
@@ -333,7 +333,7 @@ export default function PlantasTab() {
 
       <Dialog open={registrandoFalla} onOpenChange={setRegistrandoFalla}>
         <DialogContent className="sm:max-w-md">
-          <form onSubmit={registrarFalla} className="space-y-4">
+          <form onSubmit={(e) => { void registrarFalla(e); }} className="space-y-4">
             <DialogHeader>
               <DialogTitle>Registrar falla</DialogTitle>
               <DialogDescription>La planta queda fuera de servicio desde la fecha indicada.</DialogDescription>

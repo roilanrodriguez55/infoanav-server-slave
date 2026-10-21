@@ -1,29 +1,9 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { authService } from '@/services/api/authApi';
 import { setSessionHandlers } from '@/services/config/axiosConfig';
-import type { UsuarioSesion } from '@/types/auth.types';
-
-interface AuthState {
-  isAuthenticated: boolean;
-  usuario: UsuarioSesion | null;
-  loading: boolean;
-  error: string | null;
-}
-
-export type LoginResult =
-  | { ok: true }
-  | { ok: false; message: string };
-
-interface AuthContextProps {
-  authState: AuthState;
-  isAdmin: boolean;
-  login: (usuario: string, contrasena: string) => Promise<LoginResult>;
-  logout: () => Promise<void>;
-  clearError: () => void;
-}
-
-const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+import { AuthContext } from './useAuth';
+import type { AuthState, LoginResult } from './useAuth';
 
 const initialState: AuthState = {
   isAuthenticated: false,
@@ -94,12 +74,4 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
-  }
-  return context;
 };

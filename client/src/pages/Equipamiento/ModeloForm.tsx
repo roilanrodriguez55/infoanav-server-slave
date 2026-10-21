@@ -82,7 +82,7 @@ export function ModeloForm({ modelo, tipos, onTerminado, onCancelar }: ModeloFor
   };
 
   return (
-    <form onSubmit={guardar} className="space-y-6">
+    <form onSubmit={(e) => { void guardar(e); }} className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="modelo_nombre" className="text-sm font-medium">

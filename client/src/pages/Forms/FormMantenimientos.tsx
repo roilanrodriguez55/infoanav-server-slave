@@ -479,7 +479,7 @@ const FormMantenimientos: React.FC = () => {
             </CardDescription>
           </CardHeader>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={(e) => { void handleSubmit(e); }}>
             <CardContent className="p-6 lg:p-8">
               {(errorPlan !== null || !!plan?.fecha_cumplida || avisoRetiro !== null) && (
                 <div className="mb-6 space-y-3">

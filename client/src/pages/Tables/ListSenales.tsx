@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { senalesService, type CatalogoItem, type CatalogosResponse } from '@/services/api/senalesApi';
 import { useServerList } from '@/hooks/useServerList';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/useAuth';
 import { dateRangeFilters, type Filter } from '@/lib/postgrest';
 
 // Componentes shadcn

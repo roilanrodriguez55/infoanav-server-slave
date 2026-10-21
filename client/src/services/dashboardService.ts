@@ -44,11 +44,10 @@ export const dashboardService = {
 
   getFaultAnalytics: async (mes: number, anio: number): Promise<FaultAnalytics[]> => {
     try {
-      const response = await api.post('/rpc/get_fault_analytics', {
+      const response = await api.post<FaultAnalytics[]>('/rpc/get_fault_analytics', {
         p_mes: mes,
         p_anio: anio,
       });
-      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- se mantiene || para tratar "" como vacio
       return response.data || [];
     } catch (error) {
       console.error('Error fetching fault analytics:', error);
@@ -58,8 +57,7 @@ export const dashboardService = {
 
   getStatusByZone: async (): Promise<StatusByZone[]> => {
     try {
-      const response = await api.post('/rpc/get_status_by_zone');
-      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- se mantiene || para tratar "" como vacio
+      const response = await api.post<StatusByZone[]>('/rpc/get_status_by_zone');
       return response.data || [];
     } catch (error) {
       console.error('Error fetching status by zone:', error);

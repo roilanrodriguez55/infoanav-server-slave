@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useSidebar } from "@/context/SidebarContext";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/useAuth";
 
 // Iconos de Lucide React
 import {
@@ -106,6 +106,11 @@ const navItems: NavItem[] = [
   },
 ];
 
+// Pantallas que no cuelgan de la ruta del item pero pertenecen a su seccion
+const RUTAS_ANEXAS: Record<string, string[]> = {
+  "/gestion-mant": ["/plan-mantenimiento"],
+};
+
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen } = useSidebar();
   const { isAdmin } = useAuth();
@@ -140,9 +145,10 @@ const AppSidebar: React.FC = () => {
         return (
           location.pathname === "/" || location.pathname === "/dashboard"
         );
-      return (
-        location.pathname === path ||
-        location.pathname.startsWith(path + "/")
+      return [path, ...(RUTAS_ANEXAS[path] ?? [])].some(
+        (base) =>
+          location.pathname === base ||
+          location.pathname.startsWith(base + "/")
       );
     },
     [location.pathname]

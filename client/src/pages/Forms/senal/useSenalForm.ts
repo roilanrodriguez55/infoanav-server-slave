@@ -143,7 +143,7 @@ export const useSenalForm = ({ id, tipos, setLoading, fondeo }: UseSenalFormPara
 
           if (data.sistema_fondeo) {
             try {
-              const fondeoData: SistemaFondeo = JSON.parse(data.sistema_fondeo);
+              const fondeoData = JSON.parse(data.sistema_fondeo) as SistemaFondeo;
               cargarFondeo(fondeoData);
             } catch (e) {
               console.warn('Error parseando sistema_fondeo:', e);
@@ -217,7 +217,7 @@ export const useSenalForm = ({ id, tipos, setLoading, fondeo }: UseSenalFormPara
     setFormData({ ...FORM_DATA_VACIO });
     reiniciarFondeo();
     setEquipamiento([{ id_tipo_equipamiento: '', nombre: '', cantidad: 1, num_inventario: '' }]);
-    navigate('/gestion-senales');
+    void navigate('/gestion-senales');
   };
 
   const validateForm = (): boolean => {

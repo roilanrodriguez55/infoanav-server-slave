@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/useAuth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -48,7 +48,7 @@ export default function PrestarDialog({ libro, onOpenChange, onTerminado }: Pres
           <DialogTitle>Prestar libro</DialogTitle>
           <DialogDescription>{libro.titulo}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={guardar} className="space-y-4">
+        <form onSubmit={(e) => { void guardar(e); }} className="space-y-4">
           {error && (
             <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
               <AlertDescription className="text-red-700 dark:text-red-300">{error}</AlertDescription>

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router";
 
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/useAuth";
 
 export default function UserDropdown() {
   const { authState, logout } = useAuth();

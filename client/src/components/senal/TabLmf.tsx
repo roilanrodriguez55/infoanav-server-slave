@@ -170,7 +170,7 @@ function LmfForm({ idSenal, lmf, inicial, aviso, onTerminado, onCancelar }: LmfF
   };
 
   return (
-    <form onSubmit={guardar} className="space-y-6">
+    <form onSubmit={(e) => { void guardar(e); }} className="space-y-6">
       {aviso && (
         <Alert className={ESTILOS_MENSAJE.warning}>
           <AlertCircle className="h-4 w-4" />
@@ -325,7 +325,7 @@ function LmfForm({ idSenal, lmf, inicial, aviso, onTerminado, onCancelar }: LmfF
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={guardando}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={eliminar} disabled={guardando} className="bg-red-600 text-white hover:bg-red-700">
+            <AlertDialogAction onClick={() => { void eliminar(); }} disabled={guardando} className="bg-red-600 text-white hover:bg-red-700">
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -387,7 +387,7 @@ export default function TabLmf({ idSenal }: TabLmfProps) {
           </h3>
         </div>
         <Button
-          onClick={registrar}
+          onClick={() => { void registrar(); }}
           disabled={precargando}
           className="bg-gray-800 text-white shadow-md hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600"
         >

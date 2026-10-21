@@ -508,7 +508,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial de datos
-    fetchData();
+    void fetchData();
   }, [fetchData]);
 
   const showToast = useCallback((msg: string) => {

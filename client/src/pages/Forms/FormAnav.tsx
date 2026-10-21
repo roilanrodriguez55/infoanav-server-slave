@@ -57,7 +57,7 @@ const FormANAV = () => {
   } = useSenalForm({ id, tipos: catalogos.tipos, setLoading, fondeo });
 
   const handleGoBack = () => {
-    navigate('/gestion-senales');
+    void navigate('/gestion-senales');
   };
 
   if (loading) {
@@ -108,7 +108,7 @@ const FormANAV = () => {
             <p className="text-gray-700 dark:text-gray-300">Esta señal está dada de baja y no se puede editar.</p>
           </CardContent>
           <CardFooter className="flex flex-col sm:flex-row gap-3">
-            <Button variant="outline" onClick={() => navigate(`/gestion-senales/${id}`)} className="w-full">
+            <Button variant="outline" onClick={() => { void navigate(`/gestion-senales/${id}`); }} className="w-full">
               Ver ficha de la señal
             </Button>
           </CardFooter>
@@ -151,7 +151,7 @@ const FormANAV = () => {
             )}
           </CardHeader>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={(e) => { void handleSubmit(e); }}>
             <CardContent className="p-6 lg:p-8">
               {/* Código LSM y Tipo de Señal juntos */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200 dark:bg-gray-700 dark:border-gray-600">

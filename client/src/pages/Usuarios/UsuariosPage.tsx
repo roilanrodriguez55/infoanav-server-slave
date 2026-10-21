@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/useAuth';
 import { usersService, type Usuario } from '@/services/api/usersApi';
 import UsuarioDialog from './UsuarioDialog';
 
