@@ -14,7 +14,6 @@ export interface UsuarioAdmin {
   id_empresa: string | null;
   created_at: string;
   updated_at: string | null;
-  deleted_at: string | null;
 }
 
 export interface ActorUsuario {
@@ -45,12 +44,11 @@ interface FilaUsuario {
   id_empresa: string | null;
   created_at: Date;
   updated_at: Date | null;
-  deleted_at: Date | null;
 }
 
 // Lista explicita de columnas: la contrasena nunca sale de este modulo
 const COLUMNAS_USUARIO =
-  'id_usuario_sist, usuario, rol, cargo_ocupa, id_empresa, created_at, updated_at, deleted_at';
+  'id_usuario_sist, usuario, rol, cargo_ocupa, id_empresa, created_at, updated_at';
 const COSTE_HASH = 10;
 
 function aUsuario(fila: FilaUsuario): UsuarioAdmin {
@@ -62,7 +60,6 @@ function aUsuario(fila: FilaUsuario): UsuarioAdmin {
     id_empresa: fila.id_empresa,
     created_at: fila.created_at.toISOString(),
     updated_at: fila.updated_at?.toISOString() ?? null,
-    deleted_at: fila.deleted_at?.toISOString() ?? null,
   };
 }
 
@@ -76,14 +73,14 @@ function codigoError(error: unknown): string | undefined {
 // Bloquea las filas de administradores activos y devuelve cuantos hay, para que dos bajas o cambios concurrentes no dejen el sistema sin administrador
 async function bloquearAdministradores(client: pg.PoolClient): Promise<number> {
   const { rows } = await client.query<{ id_usuario_sist: string }>(
-    "SELECT id_usuario_sist FROM auth.usuarios_sistema WHERE rol = 'administrador' AND deleted_at IS NULL FOR UPDATE",
+    "SELECT id_usuario_sist FROM auth.usuarios_sistema WHERE rol = 'administrador' FOR UPDATE",
   );
   return rows.length;
 }
 
-async function rolDeUsuarioActivo(client: pg.PoolClient, id: string): Promise<Rol> {
+async function rolDeUsuario(client: pg.PoolClient, id: string): Promise<Rol> {
   const { rows } = await client.query<{ rol: Rol }>(
-    'SELECT rol FROM auth.usuarios_sistema WHERE id_usuario_sist = $1 AND deleted_at IS NULL',
+    'SELECT rol FROM auth.usuarios_sistema WHERE id_usuario_sist = $1',
     [id],
   );
   if (!rows[0]) {
@@ -92,10 +89,9 @@ async function rolDeUsuarioActivo(client: pg.PoolClient, id: string): Promise<Ro
   return rows[0].rol;
 }
 
-export async function listUsers(incluirBajas: boolean): Promise<UsuarioAdmin[]> {
+export async function listUsers(): Promise<UsuarioAdmin[]> {
   const { rows } = await pool.query<FilaUsuario>(
-    `SELECT ${COLUMNAS_USUARIO} FROM auth.usuarios_sistema WHERE $1 OR deleted_at IS NULL ORDER BY usuario`,
-    [incluirBajas],
+    `SELECT ${COLUMNAS_USUARIO} FROM auth.usuarios_sistema ORDER BY usuario`,
   );
   return rows.map(aUsuario);
 }
@@ -141,7 +137,7 @@ export async function updateUser(actor: ActorUsuario, id: string, input: Cambios
 
   const fila = await withTransaction(async (client) => {
     const administradores = await bloquearAdministradores(client);
-    const rolActual = await rolDeUsuarioActivo(client, id);
+    const rolActual = await rolDeUsuario(client, id);
     if (id === actor.id && input.rol !== undefined && input.rol !== rolActual) {
       throw new HttpError(409, 'No puedes cambiar tu propio rol');
     }
@@ -152,7 +148,7 @@ export async function updateUser(actor: ActorUsuario, id: string, input: Cambios
     const { rows } = await client.query<FilaUsuario>(
       `UPDATE auth.usuarios_sistema
        SET ${asignaciones.join(', ')}, updated_at = now(), updated_by = $${posicionActor}
-       WHERE id_usuario_sist = $${posicionId} AND deleted_at IS NULL
+       WHERE id_usuario_sist = $${posicionId}
        RETURNING ${COLUMNAS_USUARIO}`,
       valores,
     );
@@ -168,24 +164,17 @@ export async function updateUser(actor: ActorUsuario, id: string, input: Cambios
 
 export async function deleteUser(actor: ActorUsuario, id: string): Promise<void> {
   if (id === actor.id) {
-    throw new HttpError(409, 'No puedes darte de baja a ti mismo');
+    throw new HttpError(409, 'No puedes eliminarte a ti mismo');
   }
 
-  // Baja logica con UPDATE explicito: no se usa DELETE porque la BD lo reescribe como UPDATE
+  // Borrado fisico: los refresh tokens del usuario caen por ON DELETE CASCADE
   await withTransaction(async (client) => {
     const administradores = await bloquearAdministradores(client);
-    const rol = await rolDeUsuarioActivo(client, id);
+    const rol = await rolDeUsuario(client, id);
     if (rol === 'administrador' && administradores === 1) {
-      throw new HttpError(409, 'No se puede dar de baja al ultimo administrador');
+      throw new HttpError(409, 'No se puede eliminar al ultimo administrador');
     }
 
-    await client.query(
-      `UPDATE auth.usuarios_sistema
-       SET deleted_at = now(), deleted_by = $2, updated_at = now(), updated_by = $2
-       WHERE id_usuario_sist = $1 AND deleted_at IS NULL`,
-      [id, actor.usuario],
-    );
+    await client.query('DELETE FROM auth.usuarios_sistema WHERE id_usuario_sist = $1', [id]);
   });
-
-  await revokeAllRefreshTokens(id);
 }

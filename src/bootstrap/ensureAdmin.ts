@@ -17,7 +17,7 @@ export async function ensureAdmin(): Promise<void> {
   }
 
   const { rows: activos } = await pool.query<{ existe: number }>(
-    "SELECT 1 AS existe FROM auth.usuarios_sistema WHERE rol = 'administrador' AND deleted_at IS NULL LIMIT 1",
+    "SELECT 1 AS existe FROM auth.usuarios_sistema WHERE rol = 'administrador' LIMIT 1",
   );
   if (activos.length > 0) return;
 
@@ -27,7 +27,7 @@ export async function ensureAdmin(): Promise<void> {
     );
   }
 
-  // Incluye las bajas: el nombre es unico aunque el usuario este eliminado
+  // El nombre de usuario es unico en la tabla
   const { rows: existentes } = await pool.query<{ existe: number }>(
     'SELECT 1 AS existe FROM auth.usuarios_sistema WHERE usuario = $1',
     [usuario],

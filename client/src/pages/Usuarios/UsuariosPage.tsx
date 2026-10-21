@@ -5,8 +5,6 @@ import UsuarioDialog from './UsuarioDialog';
 
 import { Button } from '@/components/ui/button';
 import { DebouncedInput } from '@/components/common/DebouncedInput';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -60,18 +58,17 @@ const UsuariosPage = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
-  const [mostrarBajas, setMostrarBajas] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [recarga, setRecarga] = useState(0);
   const [mensaje, setMensaje] = useState<Mensaje | null>(null);
   const [dialogo, setDialogo] = useState<DialogoAbierto | null>(null);
-  const [aDarDeBaja, setADarDeBaja] = useState<Usuario | null>(null);
+  const [aEliminar, setAEliminar] = useState<Usuario | null>(null);
 
   useEffect(() => {
     if (!isAdmin) return;
     let vigente = true;
     usersService
-      .list(mostrarBajas)
+      .list()
       .then((lista) => {
         if (!vigente) return;
         setUsuarios(lista);
@@ -87,7 +84,7 @@ const UsuariosPage = () => {
     return () => {
       vigente = false;
     };
-  }, [isAdmin, mostrarBajas, recarga]);
+  }, [isAdmin, recarga]);
 
   const termino = busqueda.trim().toLowerCase();
   const visibles = termino === ''
@@ -111,13 +108,13 @@ const UsuariosPage = () => {
 
   const recargar = () => setRecarga((n) => n + 1);
 
-  const darDeBaja = async () => {
-    if (!aDarDeBaja) return;
-    const usuario = aDarDeBaja;
-    setADarDeBaja(null);
+  const eliminar = async () => {
+    if (!aEliminar) return;
+    const usuario = aEliminar;
+    setAEliminar(null);
     try {
       await usersService.remove(usuario.id);
-      setMensaje({ tipo: 'success', texto: `Usuario ${usuario.usuario} dado de baja` });
+      setMensaje({ tipo: 'success', texto: `Usuario ${usuario.usuario} eliminado` });
       recargar();
     } catch (error: unknown) {
       setMensaje({
@@ -194,19 +191,6 @@ const UsuariosPage = () => {
             className="w-full pl-10 border-blue-200 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="mostrar-bajas"
-            checked={mostrarBajas}
-            onCheckedChange={(valor) => {
-              setCargando(true);
-              setMostrarBajas(valor === true);
-            }}
-          />
-          <Label htmlFor="mostrar-bajas" className="text-gray-700 dark:text-gray-300">
-            Mostrar dados de baja
-          </Label>
-        </div>
       </div>
 
       <ListCard
@@ -250,13 +234,9 @@ const UsuariosPage = () => {
                 </TableHeader>
                 <TableBody>
                   {paginado.pageItems.map((usuario) => {
-                    const dadoDeBaja = usuario.deleted_at !== null;
                     const esPropio = usuario.id === idPropio;
                     return (
-                      <TableRow
-                        key={usuario.id}
-                        className={`hover:bg-blue-50 dark:hover:bg-gray-700 ${dadoDeBaja ? 'opacity-60' : ''}`}
-                      >
+                      <TableRow key={usuario.id} className="hover:bg-blue-50 dark:hover:bg-gray-700">
                         <TableCell className="font-mono font-medium">{usuario.usuario}</TableCell>
                         <TableCell>
                           {usuario.rol === 'administrador' ? (
@@ -271,11 +251,7 @@ const UsuariosPage = () => {
                         </TableCell>
                         <TableCell>{usuario.cargo_ocupa ?? '-'}</TableCell>
                         <TableCell>
-                          {dadoDeBaja ? (
-                            <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Baja</Badge>
-                          ) : (
-                            <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Activo</Badge>
-                          )}
+                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Activo</Badge>
                         </TableCell>
                         <TableCell>{formatDate(usuario.created_at)}</TableCell>
                         <TableCell>
@@ -298,12 +274,12 @@ const UsuariosPage = () => {
                             </Button>
                             <Button
                               variant="ghost"
-                              disabled={esPropio || dadoDeBaja}
-                              onClick={() => setADarDeBaja(usuario)}
+                              disabled={esPropio}
+                              onClick={() => setAEliminar(usuario)}
                               className="text-red-600 hover:text-red-800 hover:bg-red-50 dark:text-red-400 dark:hover:bg-gray-700"
                             >
                               <UserX className="h-4 w-4 mr-1" />
-                              Dar de baja
+                              Eliminar
                             </Button>
                           </div>
                         </TableCell>
@@ -325,23 +301,23 @@ const UsuariosPage = () => {
         />
       )}
 
-      <AlertDialog open={aDarDeBaja !== null} onOpenChange={(abierto) => { if (!abierto) setADarDeBaja(null); }}>
+      <AlertDialog open={aEliminar !== null} onOpenChange={(abierto) => { if (!abierto) setAEliminar(null); }}>
         <AlertDialogContent className="dark:bg-popover dark:border-gray-700">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-gray-800 dark:text-white">
-              Dar de baja a {aDarDeBaja?.usuario}
+              Eliminar a {aEliminar?.usuario}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-500 dark:text-gray-400">
-              Es una baja lógica: el registro se conserva y puede verse activando "Mostrar dados de baja".
+              El usuario se elimina de forma definitiva. Su nombre podrá volver a usarse.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => void darDeBaja()}
+              onClick={() => void eliminar()}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              Dar de baja
+              Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

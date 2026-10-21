@@ -84,7 +84,7 @@ async function revocarFamilia(client: pg.PoolClient, familia: string): Promise<v
 
 export async function login(usuario: string, contrasena: string): Promise<Sesion> {
   const { rows } = await pool.query<FilaUsuario>(
-    'SELECT id_usuario_sist, usuario, rol, cargo_ocupa, contrasena FROM auth.usuarios_sistema WHERE usuario = $1 AND deleted_at IS NULL',
+    'SELECT id_usuario_sist, usuario, rol, cargo_ocupa, contrasena FROM auth.usuarios_sistema WHERE usuario = $1',
     [usuario],
   );
   const fila = rows[0];
@@ -130,7 +130,7 @@ export async function refresh(plainToken: string): Promise<Sesion> {
     }
 
     const { rows: usuarios } = await client.query<FilaUsuarioSesion>(
-      'SELECT id_usuario_sist, usuario, rol, cargo_ocupa FROM auth.usuarios_sistema WHERE id_usuario_sist = $1 AND deleted_at IS NULL',
+      'SELECT id_usuario_sist, usuario, rol, cargo_ocupa FROM auth.usuarios_sistema WHERE id_usuario_sist = $1',
       [fila.id_usuario_sist],
     );
     const usuarioFila = usuarios[0];
@@ -169,7 +169,7 @@ export async function logout(plainToken: string | undefined): Promise<void> {
 
 export async function me(idUsuario: string): Promise<UsuarioSesion> {
   const { rows } = await pool.query<FilaUsuarioSesion>(
-    'SELECT id_usuario_sist, usuario, rol, cargo_ocupa FROM auth.usuarios_sistema WHERE id_usuario_sist = $1 AND deleted_at IS NULL',
+    'SELECT id_usuario_sist, usuario, rol, cargo_ocupa FROM auth.usuarios_sistema WHERE id_usuario_sist = $1',
     [idUsuario],
   );
   const fila = rows[0];

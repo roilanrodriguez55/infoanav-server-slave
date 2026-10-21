@@ -38,7 +38,7 @@ export const usersRouter = Router();
 usersRouter.use(authenticate, requireRole('administrador'));
 
 usersRouter.get('/', async (req, res) => {
-  const usuarios = await listUsers(req.query.incluir_bajas === 'true');
+  const usuarios = await listUsers();
   res.json(usuarios);
 });
 

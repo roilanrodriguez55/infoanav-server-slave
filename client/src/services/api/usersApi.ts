@@ -12,7 +12,6 @@ export interface Usuario {
   id_empresa: string | null;
   created_at: string;
   updated_at: string;
-  deleted_at: string | null;
 }
 
 export interface NuevoUsuario {
@@ -37,11 +36,9 @@ const errorDelServidor = (error: unknown): Error => {
 };
 
 export const usersService = {
-  list: async (incluirBajas: boolean): Promise<Usuario[]> => {
+  list: async (): Promise<Usuario[]> => {
     try {
-      const response = await authHttp.get<Usuario[]>('/users', {
-        params: { incluir_bajas: incluirBajas },
-      });
+      const response = await authHttp.get<Usuario[]>('/users');
       return response.data;
     } catch (error: unknown) {
       throw errorDelServidor(error);
