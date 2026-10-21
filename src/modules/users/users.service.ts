@@ -5,6 +5,7 @@ import { pool, withTransaction } from '../../db/pool.ts';
 import type { Rol } from '../../lib/tokens.ts';
 import { HttpError } from '../../middleware/errors.ts';
 import { revokeAllRefreshTokens } from '../auth/auth.service.ts';
+import { COSTE_HASH, crearCodigoRecuperacion } from '../auth/recoveryCode.ts';
 
 export interface UsuarioAdmin {
   id: string;
@@ -15,6 +16,9 @@ export interface UsuarioAdmin {
   created_at: string;
   updated_at: string | null;
 }
+
+// Solo lleva codigo_recuperacion cuando el usuario es administrador y el codigo se acaba de generar
+export type UsuarioConCodigo = UsuarioAdmin & { codigo_recuperacion?: string };
 
 export interface ActorUsuario {
   id: string;
@@ -49,7 +53,6 @@ interface FilaUsuario {
 // Lista explicita de columnas: la contrasena nunca sale de este modulo
 const COLUMNAS_USUARIO =
   'id_usuario_sist, usuario, rol, cargo_ocupa, id_empresa, created_at, updated_at';
-const COSTE_HASH = 10;
 
 function aUsuario(fila: FilaUsuario): UsuarioAdmin {
   return {
@@ -61,6 +64,10 @@ function aUsuario(fila: FilaUsuario): UsuarioAdmin {
     created_at: fila.created_at.toISOString(),
     updated_at: fila.updated_at?.toISOString() ?? null,
   };
+}
+
+function conCodigo(usuario: UsuarioAdmin, codigo: string | undefined): UsuarioConCodigo {
+  return codigo === undefined ? usuario : { ...usuario, codigo_recuperacion: codigo };
 }
 
 function codigoError(error: unknown): string | undefined {
@@ -96,15 +103,24 @@ export async function listUsers(): Promise<UsuarioAdmin[]> {
   return rows.map(aUsuario);
 }
 
-export async function createUser(actor: ActorUsuario, input: NuevoUsuario): Promise<UsuarioAdmin> {
+export async function createUser(actor: ActorUsuario, input: NuevoUsuario): Promise<UsuarioConCodigo> {
   const hash = await bcrypt.hash(input.contrasena, COSTE_HASH);
+  const recuperacion = input.rol === 'administrador' ? await crearCodigoRecuperacion() : null;
   try {
     const { rows } = await pool.query<FilaUsuario>(
-      `INSERT INTO auth.usuarios_sistema (usuario, contrasena, rol, cargo_ocupa, id_empresa, created_by, updated_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $6) RETURNING ${COLUMNAS_USUARIO}`,
-      [input.usuario, hash, input.rol, input.cargo_ocupa ?? null, input.id_empresa ?? null, actor.usuario],
+      `INSERT INTO auth.usuarios_sistema (usuario, contrasena, rol, cargo_ocupa, id_empresa, codigo_recuperacion_hash, created_by, updated_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $7) RETURNING ${COLUMNAS_USUARIO}`,
+      [
+        input.usuario,
+        hash,
+        input.rol,
+        input.cargo_ocupa ?? null,
+        input.id_empresa ?? null,
+        recuperacion?.hash ?? null,
+        actor.usuario,
+      ],
     );
-    return aUsuario(rows[0]);
+    return conCodigo(aUsuario(rows[0]), recuperacion?.codigo);
   } catch (error) {
     const codigo = codigoError(error);
     if (codigo === '23505') {
@@ -117,7 +133,7 @@ export async function createUser(actor: ActorUsuario, input: NuevoUsuario): Prom
   }
 }
 
-export async function updateUser(actor: ActorUsuario, id: string, input: CambiosUsuario): Promise<UsuarioAdmin> {
+export async function updateUser(actor: ActorUsuario, id: string, input: CambiosUsuario): Promise<UsuarioConCodigo> {
   const asignaciones: string[] = [];
   const valores: unknown[] = [];
   const asignar = (columna: string, valor: unknown): void => {
@@ -132,19 +148,29 @@ export async function updateUser(actor: ActorUsuario, id: string, input: Cambios
     throw new HttpError(400, 'Nada que actualizar');
   }
 
-  const posicionActor = valores.push(actor.usuario);
-  const posicionId = valores.push(id);
-
-  const fila = await withTransaction(async (client) => {
+  const { fila, codigo, rolCambio } = await withTransaction(async (client) => {
     const administradores = await bloquearAdministradores(client);
     const rolActual = await rolDeUsuario(client, id);
-    if (id === actor.id && input.rol !== undefined && input.rol !== rolActual) {
+    const rolCambio = input.rol !== undefined && input.rol !== rolActual;
+    if (id === actor.id && rolCambio) {
       throw new HttpError(409, 'No puedes cambiar tu propio rol');
     }
     if (input.rol === 'usuario' && rolActual === 'administrador' && administradores === 1) {
       throw new HttpError(409, 'No se puede quitar el rol al ultimo administrador');
     }
 
+    // El codigo de recuperacion solo existe mientras el usuario es administrador
+    let codigoNuevo: string | undefined;
+    if (input.rol === 'administrador' && rolActual === 'usuario') {
+      const recuperacion = await crearCodigoRecuperacion();
+      asignar('codigo_recuperacion_hash', recuperacion.hash);
+      codigoNuevo = recuperacion.codigo;
+    } else if (input.rol === 'usuario' && rolActual === 'administrador') {
+      asignar('codigo_recuperacion_hash', null);
+    }
+
+    const posicionActor = valores.push(actor.usuario);
+    const posicionId = valores.push(id);
     const { rows } = await client.query<FilaUsuario>(
       `UPDATE auth.usuarios_sistema
        SET ${asignaciones.join(', ')}, updated_at = now(), updated_by = $${posicionActor}
@@ -152,14 +178,31 @@ export async function updateUser(actor: ActorUsuario, id: string, input: Cambios
        RETURNING ${COLUMNAS_USUARIO}`,
       valores,
     );
-    return rows[0];
+    return { fila: rows[0], codigo: codigoNuevo, rolCambio };
   });
 
   // Las sesiones previas usan la contrasena o el rol anteriores, asi que se cierran tras el commit
-  if (input.contrasena !== undefined || input.rol !== undefined) {
+  if (input.contrasena !== undefined || rolCambio) {
     await revokeAllRefreshTokens(id);
   }
-  return aUsuario(fila);
+  return conCodigo(aUsuario(fila), codigo);
+}
+
+// Genera un codigo nuevo para un administrador. El anterior deja de valer
+export async function regenerarCodigoRecuperacion(actor: ActorUsuario, id: string): Promise<string> {
+  const recuperacion = await crearCodigoRecuperacion();
+  await withTransaction(async (client) => {
+    const rol = await rolDeUsuario(client, id);
+    if (rol !== 'administrador') {
+      throw new HttpError(409, 'El usuario no es administrador');
+    }
+
+    await client.query(
+      'UPDATE auth.usuarios_sistema SET codigo_recuperacion_hash = $1, updated_at = now(), updated_by = $2 WHERE id_usuario_sist = $3',
+      [recuperacion.hash, actor.usuario, id],
+    );
+  });
+  return recuperacion.codigo;
 }
 
 export async function deleteUser(actor: ActorUsuario, id: string): Promise<void> {

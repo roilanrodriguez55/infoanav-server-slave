@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/useAuth";
 
 // Componentes shadcn
@@ -137,6 +137,11 @@ export default function SignInForm() {
                   <Eye className="h-5 w-5" />
                 )}
               </button>
+            </div>
+            <div className="flex justify-end">
+              <Link to="/recuperar" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
+                ¿Olvidaste tu contraseña?
+              </Link>
             </div>
           </div>
 

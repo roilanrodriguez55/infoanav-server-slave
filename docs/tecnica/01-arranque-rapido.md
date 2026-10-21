@@ -47,8 +47,8 @@ docker compose up -d --build
 
 | Dato | Valor |
 |---|---|
-| Usuario de la app | `admin` |
-| Contrasena de la app | `Admin12345!` |
+| Usuario de la app | Lo define el primer administrador en el onboarding |
+| Contrasena de la app | La que elijas en el onboarding |
 | Usuario de PostgreSQL | `postgres` |
 | Contrasena de PostgreSQL | `admin` |
 | Base de datos | `infoanav` |
@@ -68,7 +68,7 @@ curl -s http://localhost:8080/api/health
 ```sh
 curl -s -X POST http://localhost:8080/api/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"usuario":"admin","contrasena":"Admin12345!"}'
+  -d '{"usuario":"<tu usuario>","contrasena":"<tu contrasena>"}'
 ```
 
    Respuesta esperada: un JSON con `accessToken` y `usuario`.
@@ -112,11 +112,11 @@ Ajusta estas variables en `.env`:
 ```
 JWT_ACCESS_SECRET=<primer valor de openssl>
 POSTGREST_JWT_SECRET=<segundo valor de openssl>
-ADMIN_USER=admin
-ADMIN_PASSWORD=<una contrasena propia, de 8 a 72 bytes>
 ```
 
-`ADMIN_USER` y `ADMIN_PASSWORD` crean el administrador inicial. Solo se crean si todavia no hay ningun administrador activo. Los secretos deben tener al menos 32 caracteres. El gateway lee `.env` desde el directorio en el que se ejecuta, por eso los comandos del servidor van desde la raiz.
+El primer administrador no se configura en `.env`: se crea desde la pantalla de onboarding al abrir la web. Los secretos deben tener al menos 32 caracteres. El gateway lee `.env` desde el directorio en el que se ejecuta, por eso los comandos del servidor van desde la raiz.
+
+Los administradores que existian antes de esta version no tienen codigo de recuperacion. Inicia sesion y genera el tuyo desde Usuarios con el boton "Codigo de recuperacion" en tu propia fila. Guardalo: se muestra una sola vez.
 
 ### Paso 3. Binario de PostgREST
 
@@ -148,7 +148,7 @@ npm run dev
 
 El comando recarga el gateway al guardar cambios en `src/`. Para arrancar sin recarga, usa `npm start`.
 
-Al arrancar, el gateway aplica las migraciones, crea el administrador inicial si corresponde, lanza PostgREST en `127.0.0.1:3000` y escucha en el puerto 8080. Debe aparecer la linea `Servidor listo en http://localhost:8080`.
+Al arrancar, el gateway aplica las migraciones, lanza PostgREST en `127.0.0.1:3000` y escucha en el puerto 8080. Debe aparecer la linea `Servidor listo en http://localhost:8080`.
 
 ### Paso 6. Comprueba el gateway
 
@@ -163,7 +163,7 @@ Prueba el login con el administrador que pusiste en `.env`:
 ```sh
 curl -s -X POST http://localhost:8080/api/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"usuario":"admin","contrasena":"<tu ADMIN_PASSWORD>"}'
+  -d '{"usuario":"<tu usuario administrador>","contrasena":"<tu contrasena>"}'
 ```
 
 ### Paso 7. Arranca el cliente
@@ -199,10 +199,10 @@ PostgREST no tiene un puerto de comprobacion propio. Su estado se ve en `postgre
 
 - `node -v` muestra una version menor que v24. El gateway ejecuta archivos `.ts` directamente y necesita Node 24. Instala Node 24 y repite el paso 2.
 - `No se encontro PostgREST en ./bin/postgrest`. El binario no esta en esa ruta. Repite el paso 3 o ajusta `POSTGREST_BIN`.
-- `ENV <CAMPO>: <mensaje>` y salida inmediata. Falta una variable o no cumple la validacion. El mensaje dice cual. Lo mas comun es un secreto con menos de 32 caracteres o un `ADMIN_USER` sin `ADMIN_PASSWORD`.
+- `ENV <CAMPO>: <mensaje>` y salida inmediata. Falta una variable o no cumple la validacion. El mensaje dice cual. Lo mas comun es un secreto con menos de 32 caracteres.
 - `Fallo al aplicar migraciones; no se inicia el servidor`. Revisa `DATABASE_URL` y que la base exista. Si la base ya tiene objetos de una version anterior, consulta la seccion de migraciones de 02 (el procedimiento para bases previas a la migracion `20260101000500` esta pendiente de confirmar).
 - `El puerto de http://127.0.0.1:3000 ya esta en uso`. Otro programa ocupa el puerto de PostgREST. Libera el puerto o cambia `POSTGREST_URL`.
-- Cambiar `ADMIN_PASSWORD` no tiene efecto. El administrador inicial solo se crea si no hay ninguno activo. Para cambiar la contrasena de uno existente, ver 02.
+- No aparece la pantalla de onboarding. Solo se muestra mientras no exista ningun administrador. Si ya existe uno y se pierde su contrasena, usa "Olvide mi contrasena" con el codigo de recuperacion.
 - `429` al iniciar sesion. Hubo 10 intentos fallidos desde la misma IP en 15 minutos. Espera.
 - Las listas del cliente muestran "No se pudieron cargar los datos". El gateway no responde o PostgREST esta caido. Revisa `/api/health`.
 - `NODE_ENV=production` en local. Con esa variable, `COOKIE_SECURE` vale `true` y el navegador no guarda la cookie de sesion por HTTP. Para desarrollo local deja `NODE_ENV=development`.

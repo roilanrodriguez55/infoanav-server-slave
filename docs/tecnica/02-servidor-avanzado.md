@@ -35,12 +35,10 @@ El gateway lee `.env` desde el directorio de trabajo (copia `.env.example`) y ad
 | `POSTGREST_JWT_SECRET` | Si | - | Secreto con el que PostgREST valida el JWT interno. Minimo 32 caracteres. Si PostgREST corre aparte, debe ser el mismo. |
 | `START_POSTGREST` | No | `true` | `true`: el gateway lanza PostgREST como proceso hijo. `false`: PostgREST corre por su cuenta. |
 | `POSTGREST_BIN` | No | `./bin/postgrest` | Ruta al binario de PostgREST cuando `START_POSTGREST=true`. Se resuelve desde el directorio de trabajo. |
-| `ADMIN_USER` | No | vacio | Usuario del administrador inicial. Debe definirse junto con `ADMIN_PASSWORD`. |
-| `ADMIN_PASSWORD` | No | vacio | Contrasena del administrador inicial. Entre 8 caracteres y 72 bytes. |
 | `ENABLE_DOCS` | No | `false` | Expone Swagger UI en `/api/docs`. Solo para desarrollo. |
 | `TRUST_PROXY` | No | `0` | Numero de proxies de confianza delante del gateway. Detras de nginx, `1`. Sin esto, el limite de intentos ve la IP del proxy. |
 
-`ADMIN_USER` y `ADMIN_PASSWORD` solo tienen efecto mientras no exista un administrador activo. Despues de la primera ejecucion se pueden quitar del `.env`.
+El primer administrador se crea desde la pantalla de onboarding inicial al abrir la web. Si un administrador pierde su contrasena, se recupera con el codigo de recuperacion desde la pantalla "Olvide mi contrasena".
 
 ### Variables de Docker Compose
 
@@ -52,7 +50,6 @@ El gateway lee `.env` desde el directorio de trabajo (copia `.env.example`) y ad
 | `API_HOST_PORT` | `8080` | Solo Compose: puerto publicado del gateway. |
 | `JWT_ACCESS_SECRET` | Valor de demo, sobreescribible | Secreto de demo. Cambialo. |
 | `POSTGREST_JWT_SECRET` | Valor de demo, sobreescribible | Secreto de demo. Cambialo. |
-| `ADMIN_USER` / `ADMIN_PASSWORD` | `admin` / `Admin12345!` | Credenciales de demo. |
 | `CORS_ORIGIN` | `http://localhost:5173,http://localhost:8081` | Origenes de desarrollo y del cliente en Docker. |
 | `TRUST_PROXY` | `1` | Sobreescribible. |
 | `ENABLE_DOCS` | `true` | Swagger activo en el stack Docker. |
@@ -219,7 +216,7 @@ Validaciones:
 - Contrasena: de 8 a 72 caracteres.
 - Cargo: hasta 100 caracteres, opcional.
 
-Pendiente de confirmar: la contrasena de `POST /api/users` se valida por caracteres y la de `ensureAdmin` por bytes (72 bytes UTF-8). Para contrasenas con caracteres no ASCII, los dos limites pueden dar resultados distintos.
+Pendiente de confirmar: la contrasena se valida por caracteres (zod) y bcrypt solo usa los primeros 72 bytes UTF-8. Para contrasenas con caracteres no ASCII, 72 caracteres pueden superar los 72 bytes.
 
 ### Rutas generales
 
@@ -238,7 +235,7 @@ Esta seccion reune el contenido de la antigua guia `docs/postgrest.md`. Los ejem
 ```sh
 B=http://localhost:8080
 TOKEN=$(curl -s -X POST $B/api/auth/login -H 'Content-Type: application/json' \
-  -d '{"usuario":"admin","contrasena":"<tu ADMIN_PASSWORD>"}' | jq -r .accessToken)
+  -d '{"usuario":"<tu usuario>","contrasena":"<tu contrasena>"}' | jq -r .accessToken)
 ```
 
 ### Esquema expuesto
@@ -479,13 +476,11 @@ COOKIE_SECURE=true
 TRUST_PROXY=1
 ENABLE_DOCS=false
 CORS_ORIGIN=
-ADMIN_USER=admin
-ADMIN_PASSWORD=una-contrasena-larga
 ```
 
-   `ADMIN_USER` y `ADMIN_PASSWORD` solo tienen efecto mientras no exista un administrador activo. Despues de la primera ejecucion, se pueden quitar.
+   El primer administrador se crea desde la pantalla de onboarding inicial al abrir la web. Si un administrador pierde su contrasena, se recupera con el codigo de recuperacion desde la pantalla "Olvide mi contrasena".
 
-6. Arranca con `npm start`. El comando aplica las migraciones, crea el administrador inicial si corresponde, lanza PostgREST y empieza a escuchar en `PORT`. Si una migracion falla, el servidor no arranca. Comprueba:
+6. Arranca con `npm start`. El comando aplica las migraciones, lanza PostgREST y empieza a escuchar en `PORT`. Si una migracion falla, el servidor no arranca. Comprueba:
 
 ```sh
 curl -s http://127.0.0.1:8080/api/health
@@ -689,7 +684,7 @@ Requisito: las migraciones deben estar aplicadas, porque el seed escribe en las 
 
 | Script | Comando | Uso |
 |---|---|---|
-| `npm start` | `node src/start.ts` | Migraciones, admin inicial, PostgREST y servidor. |
+| `npm start` | `node src/start.ts` | Migraciones, PostgREST y servidor. |
 | `npm run dev` | `node --watch src/start.ts` | Igual que `start`, con recarga al guardar. |
 | `npm run typecheck` | `tsc --noEmit` | Comprueba tipos. No genera nada. |
 | `npm run migrate:create -- --name <nombre>` | `prisma migrate dev --create-only` | Genera la migracion desde `prisma/schema.prisma` sin aplicarla. |
@@ -705,12 +700,11 @@ Estructura de `src/`:
 
 ```
 src/
-  start.ts              arranque: migraciones, admin inicial, PostgREST, servidor, purga de tokens, apagado
+  start.ts              arranque: migraciones, PostgREST, servidor, purga de tokens, apagado
   app.ts                Express: middlewares, health y rutas
   docs.ts               Swagger UI (solo con ENABLE_DOCS)
   config/env.ts         validacion de variables de entorno
   db/pool.ts            pool de pg (max 10 conexiones)
-  bootstrap/ensureAdmin.ts
   lib/tokens.ts         access token, refresh token y JWT interno de PostgREST
   middleware/           autenticacion, roles, CORS, cabeceras, limite de intentos, errores
   modules/auth/         login, refresh, logout, me
@@ -752,7 +746,7 @@ Ver el paso 9 de la produccion sin Docker. No hay backups automaticos en el repo
 - Version minima de Docker Compose para el elemento `include`.
 - Forma de cargar los catalogos en el stack Docker: la imagen no copia `scripts/`, asi que `npm run seed` no esta disponible en el contenedor.
 - Procedimiento de base existente para las migraciones posteriores a `20260101000500`.
-- Limite de contrasena: caracteres en `POST /api/users` y bytes en `ensureAdmin`.
+- Limite de contrasena: caracteres en `POST /api/users` y en `POST /api/auth/setup`. bcrypt usa 72 bytes.
 - Comentario de `ENABLE_DOCS` en `.env.example` (`/api-docs`, la ruta real es `/api/docs`).
 - Restauracion desde `pg_dump` y procedimiento de produccion: no probados de punta a punta.
 - Uso de `postgrest.conf` como referencia: no hay un procedimiento verificado para arrancar PostgREST a mano con ese archivo.

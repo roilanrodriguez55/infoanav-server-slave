@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { UsuarioSesion } from '@/types/auth.types';
+import type { SesionResponse, UsuarioSesion } from '@/types/auth.types';
 
 export interface AuthState {
   isAuthenticated: boolean;
@@ -17,6 +17,7 @@ interface AuthContextProps {
   isAdmin: boolean;
   login: (usuario: string, contrasena: string) => Promise<LoginResult>;
   logout: () => Promise<void>;
+  establecerSesion: (sesion: SesionResponse) => void;
   clearError: () => void;
 }
 

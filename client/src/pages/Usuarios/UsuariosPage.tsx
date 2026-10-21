@@ -24,13 +24,21 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import CodigoRecuperacion from '@/components/auth/CodigoRecuperacion';
 import { Pagination } from '@/components/common/Pagination';
 import { PageHeader } from '@/components/common/PageHeader';
 import { ListCard } from '@/components/common/ListCard';
 import { EmptyState } from '@/components/common/EmptyState';
 import { usePagedItems } from '@/hooks/usePagedItems';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Edit, KeyRound, Plus, RefreshCw, Search, UserX, Users } from 'lucide-react';
+import { AlertCircle, Edit, KeyRound, LifeBuoy, Plus, RefreshCw, Search, UserX, Users } from 'lucide-react';
 
 interface Mensaje {
   tipo: 'success' | 'error';
@@ -40,6 +48,11 @@ interface Mensaje {
 interface DialogoAbierto {
   key: number;
   usuario: Usuario | null;
+}
+
+interface CodigoRegenerado {
+  usuario: string;
+  codigo: string;
 }
 
 const formatDate = (dateStr?: string | null) => {
@@ -63,6 +76,8 @@ const UsuariosPage = () => {
   const [mensaje, setMensaje] = useState<Mensaje | null>(null);
   const [dialogo, setDialogo] = useState<DialogoAbierto | null>(null);
   const [aEliminar, setAEliminar] = useState<Usuario | null>(null);
+  const [aRegenerar, setARegenerar] = useState<Usuario | null>(null);
+  const [codigoRegenerado, setCodigoRegenerado] = useState<CodigoRegenerado | null>(null);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -116,6 +131,21 @@ const UsuariosPage = () => {
       await usersService.remove(usuario.id);
       setMensaje({ tipo: 'success', texto: `Usuario ${usuario.usuario} eliminado` });
       recargar();
+    } catch (error: unknown) {
+      setMensaje({
+        tipo: 'error',
+        texto: error instanceof Error ? error.message : 'No se pudo completar la operación',
+      });
+    }
+  };
+
+  const regenerarCodigo = async () => {
+    if (!aRegenerar) return;
+    const usuario = aRegenerar;
+    setARegenerar(null);
+    try {
+      const codigo = await usersService.regenerarCodigo(usuario.id);
+      setCodigoRegenerado({ usuario: usuario.usuario, codigo });
     } catch (error: unknown) {
       setMensaje({
         tipo: 'error',
@@ -272,6 +302,16 @@ const UsuariosPage = () => {
                               <KeyRound className="h-4 w-4 mr-1" />
                               Cambiar contraseña
                             </Button>
+                            {usuario.rol === 'administrador' && (
+                              <Button
+                                variant="ghost"
+                                onClick={() => setARegenerar(usuario)}
+                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-gray-700"
+                              >
+                                <LifeBuoy className="h-4 w-4 mr-1" />
+                                Código de recuperación
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               disabled={esPropio}
@@ -300,6 +340,44 @@ const UsuariosPage = () => {
           onGuardado={onGuardado}
         />
       )}
+
+      <Dialog open={codigoRegenerado !== null}>
+        <DialogContent showCloseButton={false} className="sm:max-w-md dark:bg-popover dark:border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-gray-800 dark:text-white">
+              Código de recuperación de {codigoRegenerado?.usuario}
+            </DialogTitle>
+            <DialogDescription className="text-gray-500 dark:text-gray-400">
+              El código anterior ya no sirve.
+            </DialogDescription>
+          </DialogHeader>
+          {codigoRegenerado && (
+            <CodigoRecuperacion codigo={codigoRegenerado.codigo} onConfirmar={() => setCodigoRegenerado(null)} />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={aRegenerar !== null} onOpenChange={(abierto) => { if (!abierto) setARegenerar(null); }}>
+        <AlertDialogContent className="dark:bg-popover dark:border-gray-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-gray-800 dark:text-white">
+              Regenerar código de {aRegenerar?.usuario}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-500 dark:text-gray-400">
+              El código de recuperación anterior deja de servir. Se mostrará un código nuevo una sola vez.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => void regenerarCodigo()}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Regenerar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={aEliminar !== null} onOpenChange={(abierto) => { if (!abierto) setAEliminar(null); }}>
         <AlertDialogContent className="dark:bg-popover dark:border-gray-700">

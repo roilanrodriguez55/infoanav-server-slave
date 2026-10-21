@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 
 import { env } from './config/env.ts';
 import { createApp, postgrestResponde } from './app.ts';
-import { ensureAdmin } from './bootstrap/ensureAdmin.ts';
 import { closePool } from './db/pool.ts';
 import { purgeExpiredRefreshTokens } from './modules/auth/auth.service.ts';
 
@@ -99,13 +98,6 @@ function purgarTokens(): void {
 
 async function iniciar(): Promise<void> {
   ejecutarMigraciones();
-
-  try {
-    await ensureAdmin();
-  } catch (error) {
-    console.error(mensajeError(error));
-    process.exit(1);
-  }
 
   if (env.START_POSTGREST) {
     // Si el puerto ya responde, la espera de abajo daria por bueno a otro programa

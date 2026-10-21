@@ -1248,20 +1248,21 @@ model refresh_tokens {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model usuarios_sistema {
-  id_usuario_sist String           @id(map: "usuario_sistema_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  usuario         String           @unique(map: "usuario_sistema_usuario_key") @db.VarChar(50)
-  contrasena      String
-  cargo_ocupa     String?          @db.VarChar(100)
-  created_at      DateTime?        @default(now()) @db.Timestamptz(6)
-  created_by      String?
-  updated_at      DateTime?        @default(now()) @db.Timestamptz(6)
-  updated_by      String?
-  deleted_at      DateTime?        @db.Timestamptz(6)
-  deleted_by      String?
-  id_empresa      String?          @db.Uuid
-  rol             String           @default("usuario")
-  refresh_tokens  refresh_tokens[]
-  empresas        empresas?        @relation(fields: [id_empresa], references: [id_empresa], onDelete: Cascade, map: "usuarios_sistema_empresas_fk")
+  id_usuario_sist          String           @id(map: "usuario_sistema_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario                  String           @unique(map: "usuario_sistema_usuario_key") @db.VarChar(50)
+  contrasena               String
+  cargo_ocupa              String?          @db.VarChar(100)
+  created_at               DateTime?        @default(now()) @db.Timestamptz(6)
+  created_by               String?
+  updated_at               DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_by               String?
+  deleted_at               DateTime?        @db.Timestamptz(6)
+  deleted_by               String?
+  id_empresa               String?          @db.Uuid
+  rol                      String           @default("usuario")
+  codigo_recuperacion_hash String?
+  refresh_tokens           refresh_tokens[]
+  empresas                 empresas?        @relation(fields: [id_empresa], references: [id_empresa], onDelete: Cascade, map: "usuarios_sistema_empresas_fk")
 
   @@schema("auth")
 }

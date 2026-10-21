@@ -4,6 +4,7 @@ import { authService } from '@/services/api/authApi';
 import { setSessionHandlers } from '@/services/config/axiosConfig';
 import { AuthContext } from './useAuth';
 import type { AuthState, LoginResult } from './useAuth';
+import type { SesionResponse } from '@/types/auth.types';
 
 const initialState: AuthState = {
   isAuthenticated: false,
@@ -59,6 +60,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setAuthState({ ...initialState, loading: false });
   };
 
+  // Para el alta del primer administrador: el token ya lo guarda authService.setup
+  const establecerSesion = (sesion: SesionResponse) => {
+    setAuthState({ isAuthenticated: true, usuario: sesion.usuario, loading: false, error: null });
+  };
+
   const clearError = () => {
     setAuthState(prev => ({ ...prev, error: null }));
   };
@@ -69,6 +75,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isAdmin: authState.usuario?.rol === 'administrador',
       login,
       logout,
+      establecerSesion,
       clearError
     }}>
       {children}

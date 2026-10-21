@@ -33,19 +33,8 @@ const esquema = z
     POSTGREST_JWT_SECRET: secreto,
     START_POSTGREST: booleano(true),
     POSTGREST_BIN: z.preprocess(vacio, z.string().default('./bin/postgrest')),
-    ADMIN_USER: textoOpcional,
-    ADMIN_PASSWORD: textoOpcional,
     ENABLE_DOCS: booleano(false),
     TRUST_PROXY: z.preprocess(vacio, z.coerce.number().int().min(0).default(0)),
-  })
-  .superRefine((valor, ctx) => {
-    if ((valor.ADMIN_USER === undefined) !== (valor.ADMIN_PASSWORD === undefined)) {
-      ctx.addIssue({
-        code: 'custom',
-        path: [valor.ADMIN_USER === undefined ? 'ADMIN_USER' : 'ADMIN_PASSWORD'],
-        message: 'ADMIN_USER y ADMIN_PASSWORD deben definirse juntos',
-      });
-    }
   })
   .transform((valor) => {
     const url = new URL(valor.POSTGREST_URL);

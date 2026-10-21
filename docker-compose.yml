@@ -1,6 +1,6 @@
 # Compose solo para desarrollo y demos. En produccion no se usa Docker.
 # ATENCION: los secretos por defecto (JWT_ACCESS_SECRET, POSTGREST_JWT_SECRET,
-# ADMIN_PASSWORD, POSTGRES_PASSWORD) son SOLO DE DEMO. Sobreescribelos por entorno o en .env.
+# POSTGRES_PASSWORD) son SOLO DE DEMO. Sobreescribelos por entorno o en .env.
 services:
   db:
     image: postgres:17-alpine
@@ -41,9 +41,6 @@ services:
       TRUST_PROXY: ${TRUST_PROXY:-1}
       START_POSTGREST: "true"
       POSTGREST_URL: http://127.0.0.1:3000
-      # DEMO: usuario y contrasena administradores iniciales, sobreescribir por entorno
-      ADMIN_USER: ${ADMIN_USER:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin12345!}
       ENABLE_DOCS: ${ENABLE_DOCS:-true}
     ports:
       - "${API_HOST_PORT:-8080}:8080"

@@ -3,12 +3,19 @@ import { z } from 'zod';
 
 import { authenticate, getAuth } from '../../middleware/authenticate.ts';
 import { requireRole } from '../../middleware/requireRole.ts';
-import { createUser, deleteUser, listUsers, type ActorUsuario, updateUser } from './users.service.ts';
+import {
+  createUser,
+  deleteUser,
+  listUsers,
+  regenerarCodigoRecuperacion,
+  type ActorUsuario,
+  updateUser,
+} from './users.service.ts';
 
 const esquemaId = z.uuid();
-const esquemaUsuario = z.string().trim().min(3).max(50).regex(/^[A-Za-z0-9._-]+$/);
+export const esquemaUsuario = z.string().trim().min(3).max(50).regex(/^[A-Za-z0-9._-]+$/);
 // 72 bytes es el limite de bcrypt
-const esquemaContrasena = z.string().min(8).max(72);
+export const esquemaContrasena = z.string().min(8).max(72);
 const esquemaRol = z.enum(['administrador', 'usuario']);
 const esquemaCargo = z.string().trim().max(100).nullable().optional();
 const esquemaEmpresa = z.uuid().nullable().optional();
@@ -53,6 +60,12 @@ usersRouter.patch('/:id', async (req, res) => {
   const cambios = esquemaActualizar.parse(req.body);
   const usuario = await updateUser(actorDe(res), id, cambios);
   res.json(usuario);
+});
+
+usersRouter.post('/:id/codigo-recuperacion', async (req, res) => {
+  const id = esquemaId.parse(req.params.id);
+  const codigo = await regenerarCodigoRecuperacion(actorDe(res), id);
+  res.json({ codigo_recuperacion: codigo });
 });
 
 usersRouter.delete('/:id', async (req, res) => {

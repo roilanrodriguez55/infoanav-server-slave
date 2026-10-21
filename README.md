@@ -41,8 +41,6 @@ Se leen desde `.env` en la raiz del proyecto (copia `.env.example`) o desde el e
 | `POSTGREST_JWT_SECRET` | Si | - | Secreto con el que PostgREST valida el JWT interno. Minimo 32 caracteres. Si PostgREST corre aparte, debe ser el mismo. |
 | `START_POSTGREST` | No | `true` | `true`: el gateway lanza PostgREST como proceso hijo. `false`: PostgREST corre por su cuenta. |
 | `POSTGREST_BIN` | No | `./bin/postgrest` | Ruta al binario de PostgREST cuando `START_POSTGREST=true`. |
-| `ADMIN_USER` | No | vacio | Usuario del administrador inicial. Debe definirse junto con `ADMIN_PASSWORD`. Solo se crea si no hay ningun administrador activo. |
-| `ADMIN_PASSWORD` | No | vacio | Contrasena del administrador inicial. Entre 8 caracteres y 72 bytes. |
 | `ENABLE_DOCS` | No | `false` | Expone Swagger UI en `/api/docs`. Solo para desarrollo. |
 | `TRUST_PROXY` | No | `0` | Numero de proxies de confianza delante del gateway. Detras de nginx, `1`. Sin esto, el limite de intentos ve la IP del proxy. |
 
@@ -168,13 +166,11 @@ COOKIE_SECURE=true
 TRUST_PROXY=1
 ENABLE_DOCS=false
 CORS_ORIGIN=
-ADMIN_USER=admin
-ADMIN_PASSWORD=una-contrasena-larga
 ```
 
-   `ADMIN_USER` y `ADMIN_PASSWORD` solo tienen efecto mientras no exista un administrador activo. Despues de la primera ejecucion se pueden quitar del `.env`.
+   El primer administrador se crea desde la pantalla de onboarding inicial al abrir la web. Si un administrador pierde su contrasena, se recupera con el codigo de recuperacion desde la pantalla "Olvide mi contrasena".
 
-7. Arrancar con `npm start`. Este comando aplica las migraciones (`prisma migrate deploy`), crea el administrador inicial si corresponde, lanza PostgREST y empieza a escuchar en `PORT`. Si una migracion falla, el servidor no arranca. Comprobar:
+7. Arrancar con `npm start`. Este comando aplica las migraciones (`prisma migrate deploy`), lanza PostgREST y empieza a escuchar en `PORT`. Si una migracion falla, el servidor no arranca. Comprobar:
 
 ```sh
 curl -s http://127.0.0.1:8080/api/health
@@ -409,12 +405,12 @@ npm run migrate:status
 npm run dev
 ```
 
-7. Probar con un access token. Ajusta la contrasena del administrador a la de tu `.env`:
+7. Probar con un access token. Usa el usuario y la contrasena del administrador creado en el onboarding:
 
 ```sh
 TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"usuario":"admin","contrasena":"Admin12345!"}' | jq -r .accessToken)
+  -d '{"usuario":"<tu usuario>","contrasena":"<tu contrasena>"}' | jq -r .accessToken)
 
 SENAL=$(curl -s "http://localhost:8080/api/data/senales?select=id_senal&limit=1" \
   -H "Authorization: Bearer $TOKEN" | jq -r '.[0].id_senal')
@@ -465,7 +461,6 @@ docker compose up -d --build
 Secretos de demo. Son valores por defecto del `docker-compose.yml`. Antes de cualquier uso real hay que sobreescribirlos por entorno o en un `.env`:
 
 - `JWT_ACCESS_SECRET` y `POSTGREST_JWT_SECRET`.
-- `ADMIN_USER=admin` y `ADMIN_PASSWORD=Admin12345!`.
 - La contrasena de PostgreSQL (`admin`) no se sobreescribe por entorno: esta fija en `POSTGRES_PASSWORD` y en `DATABASE_URL` dentro de `docker-compose.yml`. Cambiarla exige editar ese archivo en los dos sitios.
 
 El compose activa `ENABLE_DOCS=true` y `CORS_ORIGIN` para `localhost:5173` y `localhost:8081`. Para apagar y borrar la base de datos: `docker compose down -v`.
@@ -476,7 +471,7 @@ Scripts de `package.json`:
 
 | Script | Comando | Uso |
 |---|---|---|
-| `npm start` | `node src/start.ts` | Migraciones, admin inicial, PostgREST y servidor. |
+| `npm start` | `node src/start.ts` | Migraciones, PostgREST y servidor. |
 | `npm run dev` | `node --watch src/start.ts` | Igual que `start`, con recarga al guardar. |
 | `npm run typecheck` | `tsc --noEmit` | Comprueba tipos. No genera nada. |
 | `npm run migrate:create -- --name <nombre>` | `prisma migrate dev --create-only` | Genera la migracion desde `prisma/schema.prisma` sin aplicarla. |
@@ -491,12 +486,11 @@ Estructura:
 
 ```
 src/
-  start.ts              arranque: migraciones, admin inicial, PostgREST, servidor, purga de tokens
+  start.ts              arranque: migraciones, PostgREST, servidor, purga de tokens
   app.ts                Express: middlewares y rutas
   docs.ts               Swagger UI (solo con ENABLE_DOCS)
   config/env.ts         validacion de variables de entorno
   db/pool.ts            pool de pg
-  bootstrap/ensureAdmin.ts
   lib/tokens.ts         access token, refresh token y JWT interno de PostgREST
   middleware/           autenticacion, roles, CORS, cabeceras, limite de intentos, errores
   modules/auth/         login, refresh, logout, me

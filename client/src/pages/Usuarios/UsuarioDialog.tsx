@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 import api from '@/services/config/axiosConfig';
 import { usersService, type Usuario } from '@/services/api/usersApi';
 import type { Rol } from '@/types/auth.types';
+import { validarContrasena, validarNombreUsuario } from '@/lib/validacionAuth';
+import CodigoRecuperacion from '@/components/auth/CodigoRecuperacion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,22 +45,14 @@ interface EmpresaOpcion {
 
 const SIN_EMPRESA = '__none__';
 
-const PATRON_USUARIO = /^[A-Za-z0-9._-]+$/;
-
 const validar = (usuario: string, contrasena: string, esEdicion: boolean): Errores => {
   const errores: Errores = {};
   if (!esEdicion) {
-    if (usuario.length < 3 || usuario.length > 50) {
-      errores.usuario = 'El usuario debe tener entre 3 y 50 caracteres';
-    } else if (!PATRON_USUARIO.test(usuario)) {
-      errores.usuario = 'Solo se permiten letras, números, punto, guion y guion bajo';
-    }
+    errores.usuario = validarNombreUsuario(usuario);
   }
   // En edicion la contrasena es opcional: vacia significa no cambiarla.
   if (!esEdicion || contrasena !== '') {
-    if (contrasena.length < 8 || contrasena.length > 72) {
-      errores.contrasena = 'La contraseña debe tener entre 8 y 72 caracteres';
-    }
+    errores.contrasena = validarContrasena(contrasena);
   }
   return errores;
 };
@@ -73,18 +67,25 @@ const UsuarioDialog = ({ usuario, onCerrar, onGuardado }: UsuarioDialogProps) =>
   const [contrasena, setContrasena] = useState('');
   const [rol, setRol] = useState<Rol>(usuario?.rol ?? 'usuario');
   const [cargo, setCargo] = useState(usuario?.cargo_ocupa ?? '');
-  const [idEmpresa, setIdEmpresa] = useState(usuario?.id_empresa ?? '');
+  // En alta la empresa por defecto es la del administrador, pero solo si aparece en la lista cargada
+  const empresaAdmin = authState.usuario?.id_empresa ?? null;
+  const [idEmpresa, setIdEmpresa] = useState(esEdicion ? (usuario.id_empresa ?? '') : '');
   const [errores, setErrores] = useState<Errores>({});
   const [errorServidor, setErrorServidor] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [empresas, setEmpresas] = useState<EmpresaOpcion[]>([]);
+  const [codigoNuevo, setCodigoNuevo] = useState<string | null>(null);
 
   useEffect(() => {
     let activo = true;
     api
       .get<EmpresaOpcion[]>('/empresas?deleted_at=is.null&select=id_empresa,nombre&order=nombre.asc')
       .then((response) => {
-        if (activo) setEmpresas(response.data);
+        if (!activo) return;
+        setEmpresas(response.data);
+        if (!esEdicion && empresaAdmin && response.data.some((empresa) => empresa.id_empresa === empresaAdmin)) {
+          setIdEmpresa(empresaAdmin);
+        }
       })
       .catch(() => {
         if (activo) setEmpresas([]);
@@ -92,7 +93,7 @@ const UsuarioDialog = ({ usuario, onCerrar, onGuardado }: UsuarioDialogProps) =>
     return () => {
       activo = false;
     };
-  }, []);
+  }, [esEdicion, empresaAdmin]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -104,25 +105,31 @@ const UsuarioDialog = ({ usuario, onCerrar, onGuardado }: UsuarioDialogProps) =>
 
     setEnviando(true);
     try {
-      if (usuario) {
-        await usersService.update(usuario.id, {
-          rol,
-          cargo_ocupa: cargo.trim() || null,
-          id_empresa: idEmpresa.trim() || null,
-          ...(contrasena !== '' ? { contrasena } : {}),
-        });
-        onGuardado(`Usuario ${usuario.usuario} actualizado correctamente`);
+      const respuesta = usuario
+        ? await usersService.update(usuario.id, {
+            rol,
+            cargo_ocupa: cargo.trim() || null,
+            id_empresa: idEmpresa.trim() || null,
+            ...(contrasena !== '' ? { contrasena } : {}),
+          })
+        : await usersService.create({
+            usuario: nombreLimpio,
+            contrasena,
+            rol,
+            cargo_ocupa: cargo.trim() || undefined,
+            id_empresa: idEmpresa.trim() || undefined,
+          });
+      onGuardado(
+        usuario
+          ? `Usuario ${usuario.usuario} actualizado correctamente`
+          : `Usuario ${nombreLimpio} creado correctamente`,
+      );
+      // El codigo de recuperacion se muestra una sola vez; el dialogo se cierra al confirmarlo.
+      if (respuesta.codigo_recuperacion) {
+        setCodigoNuevo(respuesta.codigo_recuperacion);
       } else {
-        await usersService.create({
-          usuario: nombreLimpio,
-          contrasena,
-          rol,
-          cargo_ocupa: cargo.trim() || undefined,
-          id_empresa: idEmpresa.trim() || undefined,
-        });
-        onGuardado(`Usuario ${nombreLimpio} creado correctamente`);
+        onCerrar();
       }
-      onCerrar();
     } catch (error: unknown) {
       setErrorServidor(error instanceof Error ? error.message : 'No se pudo completar la operación');
     } finally {
@@ -131,17 +138,24 @@ const UsuarioDialog = ({ usuario, onCerrar, onGuardado }: UsuarioDialogProps) =>
   };
 
   return (
-    <Dialog open onOpenChange={(abierto) => { if (!abierto && !enviando) onCerrar(); }}>
+    <Dialog open onOpenChange={(abierto) => { if (!abierto && !enviando && codigoNuevo === null) onCerrar(); }}>
       <DialogContent className="sm:max-w-md dark:bg-popover dark:border-gray-700">
         <DialogHeader>
           <DialogTitle className="text-gray-800 dark:text-white">
-            {esEdicion ? 'Editar usuario' : 'Nuevo usuario'}
+            {codigoNuevo !== null
+              ? 'Código de recuperación'
+              : esEdicion ? 'Editar usuario' : 'Nuevo usuario'}
           </DialogTitle>
           <DialogDescription className="text-gray-500 dark:text-gray-400">
-            {esEdicion ? 'Modifica el rol, el cargo, la empresa o la contraseña.' : 'Completa los datos del nuevo usuario.'}
+            {codigoNuevo !== null
+              ? 'El nuevo administrador tiene un código de recuperación.'
+              : esEdicion ? 'Modifica el rol, el cargo, la empresa o la contraseña.' : 'Completa los datos del nuevo usuario.'}
           </DialogDescription>
         </DialogHeader>
 
+        {codigoNuevo !== null ? (
+          <CodigoRecuperacion codigo={codigoNuevo} onConfirmar={onCerrar} />
+        ) : (
         <form onSubmit={(e) => void handleSubmit(e)} noValidate className="space-y-4">
           {errorServidor && (
             <Alert className="bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
@@ -234,6 +248,7 @@ const UsuarioDialog = ({ usuario, onCerrar, onGuardado }: UsuarioDialogProps) =>
             </Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );

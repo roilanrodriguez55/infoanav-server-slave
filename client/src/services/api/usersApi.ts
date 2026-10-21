@@ -11,7 +11,12 @@ export interface Usuario {
   cargo_ocupa: string | null;
   id_empresa: string | null;
   created_at: string;
-  updated_at: string;
+  updated_at: string | null;
+}
+
+// Solo viene cuando el usuario guardado es administrador nuevo o recien promovido.
+export interface RespuestaGuardado {
+  codigo_recuperacion?: string;
 }
 
 export interface NuevoUsuario {
@@ -45,17 +50,28 @@ export const usersService = {
     }
   },
 
-  create: async (datos: NuevoUsuario): Promise<void> => {
+  create: async (datos: NuevoUsuario): Promise<RespuestaGuardado> => {
     try {
-      await authHttp.post('/users', datos);
+      const response = await authHttp.post<RespuestaGuardado>('/users', datos);
+      return response.data;
     } catch (error: unknown) {
       throw errorDelServidor(error);
     }
   },
 
-  update: async (id: string, datos: ActualizarUsuario): Promise<void> => {
+  update: async (id: string, datos: ActualizarUsuario): Promise<RespuestaGuardado> => {
     try {
-      await authHttp.patch(`/users/${id}`, datos);
+      const response = await authHttp.patch<RespuestaGuardado>(`/users/${id}`, datos);
+      return response.data;
+    } catch (error: unknown) {
+      throw errorDelServidor(error);
+    }
+  },
+
+  regenerarCodigo: async (id: string): Promise<string> => {
+    try {
+      const response = await authHttp.post<{ codigo_recuperacion: string }>(`/users/${id}/codigo-recuperacion`);
+      return response.data.codigo_recuperacion;
     } catch (error: unknown) {
       throw errorDelServidor(error);
     }

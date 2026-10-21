@@ -6,7 +6,7 @@ Gateway en Node.js y TypeScript sobre PostgREST y PostgreSQL. Node autentica y a
 
 ## Comandos
 
-- `npm start`: aplica migraciones, crea el admin inicial si corresponde, lanza PostgREST y arranca el servidor.
+- `npm start`: aplica migraciones, lanza PostgREST y arranca el servidor.
 - `npm run dev`: igual que `start`, con recarga al guardar.
 - `npm run typecheck`: `tsc --noEmit`, unico chequeo de tipos.
 - `npm run migrate:create -- --name nombre_snake_case`: genera una migracion desde `prisma/schema.prisma` sin aplicarla.
