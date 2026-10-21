@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react';
+import { DatePickerField } from '@/components/common/DatePickerField';
 import { DetailPanel } from '@/components/common/DetailPanel';
 import { CommandSelect } from '@/components/ui/CommandSelect';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Save } from 'lucide-react';
@@ -130,12 +130,13 @@ export function PlanFormPanel({ plan, senales, tipos, onCerrar, onGuardado }: Pl
           <Label htmlFor="plan_fecha" className="text-gray-700 dark:text-gray-300 font-medium">
             Fecha planificada
           </Label>
-          <Input
+          <DatePickerField
             id="plan_fecha"
-            type="datetime-local"
+            withTime
             value={form.fecha_plan}
-            onChange={(e) => actualizar('fecha_plan', e.target.value)}
-            className={cn(CLASE_CAMPO, esVacio(form.fecha_plan) && CAMPO_PENDIENTE)}
+            onChange={(valor) => actualizar('fecha_plan', valor)}
+            className="w-full"
+            inputClassName={cn(CLASE_CAMPO, esVacio(form.fecha_plan) && CAMPO_PENDIENTE)}
           />
         </div>
 

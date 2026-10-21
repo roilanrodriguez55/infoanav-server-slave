@@ -6,6 +6,7 @@ import { fallasService } from '@/services/api/fallasApi';
 import { planMantService, type PlanMantenimiento } from '@/services/api/planMantApi';
 import { flotaService } from '@/services/api/flotaApi';
 import { CommandSelect } from '@/components/ui/CommandSelect';
+import { DatePickerField } from '@/components/common/DatePickerField';
 import { CAMPO_PENDIENTE, cn, esVacio, etiquetaSenal } from '@/lib/utils';
 import { aIntervaloPostgres, aValorDatetimeLocal, diferenciaMs, formatearDuracion } from '@/lib/intervalos';
 import { aTextoLocal, aTimestampLocal, fechaHoraLegible } from '@/lib/planMantenimiento';
@@ -689,13 +690,13 @@ const FormMantenimientos: React.FC = () => {
                       <Label htmlFor="fecha_inicio" className="text-gray-700 dark:text-gray-300 font-medium">
                         Fecha Inicio
                       </Label>
-                      <Input
+                      <DatePickerField
                         id="fecha_inicio"
-                        type="datetime-local"
-                        name="fecha_inicio"
+                        withTime
                         value={formData.fecha_inicio}
-                        onChange={handleInputChange}
-                        className={claseCampo(formData.fecha_inicio, 'fecha_inicio')}
+                        onChange={(valor) => handleSelectChange('fecha_inicio', valor)}
+                        className="w-full"
+                        inputClassName={claseCampo(formData.fecha_inicio, 'fecha_inicio')}
                       />
                       {errors.fecha_inicio && (
                         <p className="text-sm text-red-600 dark:text-red-400">{errors.fecha_inicio}</p>
@@ -707,13 +708,13 @@ const FormMantenimientos: React.FC = () => {
                       <Label htmlFor="fecha_finalizacion" className="text-gray-700 dark:text-gray-300 font-medium">
                         Fecha Finalización
                       </Label>
-                      <Input
+                      <DatePickerField
                         id="fecha_finalizacion"
-                        type="datetime-local"
-                        name="fecha_finalizacion"
+                        withTime
                         value={formData.fecha_finalizacion}
-                        onChange={handleInputChange}
-                        className={claseCampo(formData.fecha_finalizacion, 'fecha_finalizacion')}
+                        onChange={(valor) => handleSelectChange('fecha_finalizacion', valor)}
+                        className="w-full"
+                        inputClassName={claseCampo(formData.fecha_finalizacion, 'fecha_finalizacion')}
                       />
                       {errors.fecha_finalizacion && (
                         <p className="text-sm text-red-600 dark:text-red-400">{errors.fecha_finalizacion}</p>

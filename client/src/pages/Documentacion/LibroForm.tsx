@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { DatePickerField } from '@/components/common/DatePickerField';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CommandSelect } from '@/components/ui/CommandSelect';
@@ -50,17 +51,27 @@ export default function LibroForm({ libro, catalogos, crearEn, onTerminado, onCa
       <Label htmlFor={clave} className="text-sm font-medium">
         {etiqueta} {extra?.required && <span className="text-red-500">*</span>}
       </Label>
-      <Input
-        id={clave}
-        type={tipo}
-        step={extra?.step}
-        value={valores[clave]}
-        onChange={(e) => cambiar(clave, e.target.value)}
-        className={cn(
-          'dark:border-gray-600 dark:bg-gray-800 dark:text-white',
-          esVacio(valores[clave]) && CAMPO_PENDIENTE
-        )}
-      />
+      {tipo === 'date' ? (
+        <DatePickerField
+          id={clave}
+          value={valores[clave]}
+          onChange={(valor) => cambiar(clave, valor)}
+          className="w-full"
+          inputClassName={cn('dark:border-gray-600 dark:bg-gray-800 dark:text-white', esVacio(valores[clave]) && CAMPO_PENDIENTE)}
+        />
+      ) : (
+        <Input
+          id={clave}
+          type={tipo}
+          step={extra?.step}
+          value={valores[clave]}
+          onChange={(e) => cambiar(clave, e.target.value)}
+          className={cn(
+            'dark:border-gray-600 dark:bg-gray-800 dark:text-white',
+            esVacio(valores[clave]) && CAMPO_PENDIENTE
+          )}
+        />
+      )}
     </div>
   );
 

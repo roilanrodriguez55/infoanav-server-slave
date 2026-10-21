@@ -1,5 +1,6 @@
 import type { ChangeEvent } from 'react';
 import type { TipoEquipamiento } from '@/services/api/senalesApi';
+import { RACON_VACIO, type RaconTexto } from '@/services/api/raconApi';
 
 export interface CatalogoItem {
   id: string;
@@ -88,6 +89,9 @@ export interface FormDataState {
   id_equipamiento: string;
 
   sistema_fondeo: string;
+
+  esRadioelectrica: boolean;
+  racon: RaconTexto;
 }
 
 export const FORM_DATA_VACIO: FormDataState = {
@@ -133,7 +137,9 @@ export const FORM_DATA_VACIO: FormDataState = {
   voltagebombillo: '',
   consumodestellador: '',
   id_equipamiento: '',
-  sistema_fondeo: ''
+  sistema_fondeo: '',
+  esRadioelectrica: false,
+  racon: { ...RACON_VACIO }
 };
 
 export interface CatalogosSenal {

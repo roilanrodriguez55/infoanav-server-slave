@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/context/AuthContext';
 import { AlertCircle } from 'lucide-react';
 
 interface UsuarioDialogProps {
@@ -64,6 +65,9 @@ const validar = (usuario: string, contrasena: string, esEdicion: boolean): Error
 
 const UsuarioDialog = ({ usuario, onCerrar, onGuardado }: UsuarioDialogProps) => {
   const esEdicion = usuario !== null;
+  const { authState } = useAuth();
+  // El servidor rechaza cambiar el rol propio, asi que el Select queda bloqueado
+  const esPropio = esEdicion && authState.usuario?.id === usuario.id;
 
   const [nombre, setNombre] = useState(usuario?.usuario ?? '');
   const [contrasena, setContrasena] = useState('');
@@ -179,7 +183,7 @@ const UsuarioDialog = ({ usuario, onCerrar, onGuardado }: UsuarioDialogProps) =>
 
           <div className="space-y-2">
             <Label>Rol</Label>
-            <Select value={rol} onValueChange={(valor) => setRol(valor as Rol)}>
+            <Select value={rol} onValueChange={(valor) => setRol(valor as Rol)} disabled={esPropio}>
               <SelectTrigger className="w-full dark:bg-gray-900 dark:text-white">
                 <SelectValue />
               </SelectTrigger>
@@ -188,6 +192,7 @@ const UsuarioDialog = ({ usuario, onCerrar, onGuardado }: UsuarioDialogProps) =>
                 <SelectItem value="administrador">Administrador</SelectItem>
               </SelectContent>
             </Select>
+            {esPropio && <p className="text-xs text-gray-500 dark:text-gray-400">No puedes cambiar tu propio rol</p>}
           </div>
 
           <div className="space-y-2">

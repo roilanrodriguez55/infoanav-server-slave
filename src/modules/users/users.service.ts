@@ -142,6 +142,9 @@ export async function updateUser(actor: ActorUsuario, id: string, input: Cambios
   const fila = await withTransaction(async (client) => {
     const administradores = await bloquearAdministradores(client);
     const rolActual = await rolDeUsuarioActivo(client, id);
+    if (id === actor.id && input.rol !== undefined && input.rol !== rolActual) {
+      throw new HttpError(409, 'No puedes cambiar tu propio rol');
+    }
     if (input.rol === 'usuario' && rolActual === 'administrador' && administradores === 1) {
       throw new HttpError(409, 'No se puede quitar el rol al ultimo administrador');
     }

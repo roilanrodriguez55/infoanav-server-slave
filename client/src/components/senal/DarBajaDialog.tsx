@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { DatePickerField } from '@/components/common/DatePickerField';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -80,13 +80,7 @@ function FormularioBaja({ idSenal, codigoLsm, onOpenChange, onDadaDeBaja }: Omit
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="baja-fecha">Fecha de retirada</Label>
-          <Input
-            id="baja-fecha"
-            type="date"
-            value={fecha}
-            onChange={(e) => setFecha(e.target.value)}
-            className="dark:bg-gray-800 dark:text-white"
-          />
+          <DatePickerField id="baja-fecha" value={fecha} onChange={setFecha} />
           <p className="text-xs text-gray-500 dark:text-gray-400">
             Si la dejas vacía se usa la fecha actual.
           </p>

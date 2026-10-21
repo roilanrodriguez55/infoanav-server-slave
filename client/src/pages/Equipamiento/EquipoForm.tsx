@@ -3,6 +3,7 @@ import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { CommandSelect } from '@/components/ui/CommandSelect';
+import { DatePickerField } from '@/components/common/DatePickerField';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -158,12 +159,12 @@ export function EquipoForm({ tipo, catalogos, equipo, onTerminado, onCancelar }:
         </div>
         <div className="space-y-2">
           <Label htmlFor="fecha_inicio_servicio" className="text-sm font-medium">Inicio de servicio</Label>
-          <Input
+          <DatePickerField
             id="fecha_inicio_servicio"
-            type="date"
             value={valores.fecha_inicio_servicio}
-            onChange={(e) => cambiar('fecha_inicio_servicio', e.target.value)}
-            className={claseCampo(esVacio(valores.fecha_inicio_servicio))}
+            onChange={(valor) => cambiar('fecha_inicio_servicio', valor)}
+            className="w-full"
+            inputClassName={claseCampo(esVacio(valores.fecha_inicio_servicio))}
           />
         </div>
         {esEstructura && (

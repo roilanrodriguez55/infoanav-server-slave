@@ -22,6 +22,8 @@ import { SeccionGeografica } from './senal/SeccionGeografica';
 import { SeccionLuminica } from './senal/SeccionLuminica';
 import { SeccionEquipamiento } from './senal/SeccionEquipamiento';
 import { SeccionFondeo } from './senal/SeccionFondeo';
+import { SeccionRadioelectrica } from './senal/SeccionRadioelectrica';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CAMPO_PENDIENTE, cn, esVacio } from '@/lib/utils';
 
 const FormANAV = () => {
@@ -37,6 +39,8 @@ const FormANAV = () => {
     formData,
     saving,
     errorCodigoLsm,
+    errorRacon,
+    senalCargada,
     dadaDeBaja,
     esBoya,
     esFaro,
@@ -44,6 +48,7 @@ const FormANAV = () => {
     handleInputChange,
     handleCheckboxChange,
     handleSelectChange,
+    handleRaconChange,
     agregarEquipamiento,
     eliminarEquipamiento,
     actualizarEquipamiento,
@@ -161,7 +166,7 @@ const FormANAV = () => {
                     value={formData.codigo_lsm}
                     aria-invalid={!!errorCodigoLsm}
                     onChange={handleInputChange}
-                    className={cn("border-blue-200 h-11 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400", esVacio(formData.codigo_lsm) && CAMPO_PENDIENTE)}
+                    className={cn("border-blue-200 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400", esVacio(formData.codigo_lsm) && CAMPO_PENDIENTE)}
                   />
                   {errorCodigoLsm && (
                     <p className="text-sm text-red-600 dark:text-red-400">{errorCodigoLsm}</p>
@@ -237,7 +242,24 @@ const FormANAV = () => {
                 {activeTab === 'fondeo' && (
                   <SeccionFondeo esBoya={esBoya} fondeo={fondeo} />
                 )}
+
+                {activeTab === 'radioelectrica' && (
+                  <SeccionRadioelectrica
+                    formData={formData}
+                    onCheckboxChange={handleCheckboxChange}
+                    onRaconChange={handleRaconChange}
+                  />
+                )}
               </SenalFormTabs>
+
+              {errorRacon && (
+                <Alert className="mt-6 border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
+                  <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  <AlertDescription className="text-red-700 dark:text-red-300">
+                    La señal se guardó, pero el RACON no se sincronizó: {errorRacon}. Corrija el dato y vuelva a guardar.
+                  </AlertDescription>
+                </Alert>
+              )}
             </CardContent>
 
             <CardFooter className="flex flex-col sm:flex-row justify-end gap-3 p-6 border-t border-blue-200 dark:border-gray-700">
@@ -253,7 +275,7 @@ const FormANAV = () => {
               </Button>
               <Button
                 type="submit"
-                disabled={saving}
+                disabled={saving || !senalCargada}
                 className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white dark:from-blue-700 dark:to-blue-800"
               >
                 {saving ? (

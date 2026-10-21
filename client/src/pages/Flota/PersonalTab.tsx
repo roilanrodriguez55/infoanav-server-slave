@@ -1,6 +1,7 @@
 import { useState, type MouseEvent } from 'react';
 import { Plus, Search, Users } from 'lucide-react';
 import { useServerList } from '@/hooks/useServerList';
+import { DatePickerField } from '@/components/common/DatePickerField';
 import { DetailPanel } from '@/components/common/DetailPanel';
 import { EmptyState } from '@/components/common/EmptyState';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
@@ -236,12 +237,12 @@ export default function PersonalTab() {
                     <TableCell className="text-right">
                       {persona.fecha_baja ? (
                         isAdmin && (
-                          <Button size="sm" variant="outline" onClick={(evento) => void reactivar(persona, evento)}>
+                          <Button variant="outline" onClick={(evento) => void reactivar(persona, evento)}>
                             Reactivar
                           </Button>
                         )
                       ) : (
-                        <Button size="sm" variant="outline" onClick={(evento) => abrirBaja(persona, evento)}>
+                        <Button variant="outline" onClick={(evento) => abrirBaja(persona, evento)}>
                           Dar baja
                         </Button>
                       )}
@@ -283,12 +284,12 @@ export default function PersonalTab() {
           <div className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="fecha-baja" className="text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de baja</label>
-              <Input
+              <DatePickerField
                 id="fecha-baja"
-                type="date"
                 value={fechaBaja}
-                onChange={(evento) => setFechaBaja(evento.target.value)}
-                className={cn('dark:border-gray-600 dark:bg-gray-800 dark:text-white', !fechaBaja && 'border-orange-400 bg-orange-50 dark:bg-orange-950/30')}
+                onChange={setFechaBaja}
+                className="w-full"
+                inputClassName={cn('dark:border-gray-600 dark:bg-gray-800 dark:text-white', !fechaBaja && 'border-orange-400 bg-orange-50 dark:bg-orange-950/30')}
               />
             </div>
             <div className="space-y-2">

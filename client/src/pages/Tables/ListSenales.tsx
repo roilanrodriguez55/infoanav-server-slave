@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -89,6 +90,7 @@ interface FiltrosSenales {
   profundidad: string;
   luminica: string;
   bajas: string;
+  radioelectrica: string;
   desde: string;
   hasta: string;
 }
@@ -129,6 +131,7 @@ const FILTROS_INICIALES: FiltrosSenales = {
   profundidad: '',
   luminica: '',
   bajas: '',
+  radioelectrica: '',
   desde: '',
   hasta: '',
 };
@@ -160,6 +163,7 @@ const PARAMETROS: { clave: keyof FiltrosSenales; param: string; valido: (valor: 
   { clave: 'profundidad', param: 'profundidad', valido: esNumero },
   { clave: 'luminica', param: 'luminica', valido: (valor) => valor === 'true' || valor === 'false' },
   { clave: 'bajas', param: 'bajas', valido: (valor) => valor === '1' },
+  { clave: 'radioelectrica', param: 'radioelectrica', valido: (valor) => valor === '1' },
   { clave: 'desde', param: 'desde', valido: esFecha },
   { clave: 'hasta', param: 'hasta', valido: esFecha },
 ];
@@ -175,6 +179,9 @@ const filtrosDesdeUrl = (params: URLSearchParams): FiltrosSenales => {
 
 const COLUMNAS_LISTA =
   'id_senal,codigo_lsm,nombre,id_tipo,ubicacion,luminica,id_estado,created_at,fecha_retirada,causa_retirada';
+
+// Embed inner: PostgREST deja una fila por señal y filtra las que no tienen RACON.
+const COLUMNAS_RACON = ',racon!inner(id_racon)';
 
 // Las vistas Ciegas y Lumínicas fijan el filtro lumínica; la vista Bajas muestra solo bajas.
 // En las demas vistas las bajas se excluyen, salvo con bajas=1 en la URL.
@@ -208,6 +215,8 @@ const toFiltros = (filtros: FiltrosSenales, vista: Vista): Filter[] => {
     { column: 'elevacion', op: 'eq', value: filtros.elevacion },
     { column: 'profundidad', op: 'eq', value: filtros.profundidad },
     { column: 'luminica', op: 'eq', value: luminica },
+    // Con el filtro radioelectrica, el embed racon!inner de COLUMNAS_RACON deja solo señales con RACON activo.
+    ...(filtros.radioelectrica === '1' ? [{ column: 'racon.deleted_at', op: 'is' as const, value: null }] : []),
     ...dateRangeFilters('created_at', filtros.desde, filtros.hasta),
   ];
 };
@@ -218,6 +227,8 @@ const ListSenales = () => {
   const { isAdmin } = useAuth();
   const vistaParam = searchParams.get('vista');
   const vista: Vista = esVista(vistaParam) ? vistaParam : 'activas';
+  // El select depende de la URL porque useServerList no expone sus filtros antes de llamarse.
+  const soloRadioelectricas = searchParams.get('radioelectrica') === '1';
 
   // Los filtros se toman de la URL al abrir la pagina; despues cada cambio se refleja en ella.
   const [filtrosIniciales] = useState(() => filtrosDesdeUrl(searchParams));
@@ -237,7 +248,7 @@ const ListSenales = () => {
     reload,
   } = useServerList<Senal, FiltrosSenales>({
     path: '/senales',
-    select: COLUMNAS_LISTA,
+    select: soloRadioelectricas ? COLUMNAS_LISTA + COLUMNAS_RACON : COLUMNAS_LISTA,
     pageSize: 20,
     defaultOrder: { column: 'created_at', dir: 'desc' },
     initialFilters: filtrosIniciales,
@@ -398,9 +409,6 @@ return (
             <Button variant="neutral" onClick={reload} className="w-full sm:w-auto">
               <RefreshCw className="h-4 w-4 mr-2" />
               Actualizar
-            </Button>
-            <Button variant="neutral" onClick={() => navigate('/radioelectricas')} className="w-full sm:w-auto">
-              Radioeléctricas
             </Button>
             <Button variant="brand" onClick={handleNew} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
@@ -585,6 +593,16 @@ return (
               </Select>
             </FilterField>
           )}
+
+          <FilterField label="Radioeléctrica" className="w-full md:w-auto">
+            <div className="flex h-8 items-center">
+              <Checkbox
+                aria-label="Radioeléctrica"
+                checked={filters.radioelectrica === '1'}
+                onCheckedChange={(valor) => setFilter('radioelectrica', valor === true ? '1' : '')}
+              />
+            </div>
+          </FilterField>
 
           <FilterField label="Creación desde" className="w-full md:w-40">
             <DatePickerField

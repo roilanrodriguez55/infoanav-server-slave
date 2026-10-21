@@ -25,7 +25,6 @@ import TabLmf from '@/components/senal/TabLmf';
 import { VinculoEquipo } from '@/components/senal/VinculoEquipo';
 import TabMantenimientos from '@/components/senal/TabMantenimientos';
 import TabPronostico from '@/components/senal/TabPronostico';
-import TabRacon from '@/components/senal/TabRacon';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/config/axiosConfig';
 import { senalesService, type CatalogoItem, type CatalogosResponse } from '@/services/api/senalesApi';
@@ -449,9 +448,6 @@ export default function SenalDetalle() {
           <TabsTrigger value="mantenimientos" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:text-gray-300">
             Mantenimientos
           </TabsTrigger>
-          <TabsTrigger value="radioelectrico" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:text-gray-300">
-            Radioeléctrico
-          </TabsTrigger>
           <TabsTrigger value="lmf" disabled={!esBoya} className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[disabled]:opacity-50 dark:text-gray-300">
             Leva, Mantenimiento y Fondeo (LMF)
           </TabsTrigger>
@@ -630,10 +626,6 @@ export default function SenalDetalle() {
 
         <TabsContent value="mantenimientos" className="mt-4">
           <TabMantenimientos idSenal={senal.id_senal} />
-        </TabsContent>
-
-        <TabsContent value="radioelectrico" className="mt-4">
-          <TabRacon idSenal={senal.id_senal} />
         </TabsContent>
 
         <TabsContent value="lmf" className="mt-4">

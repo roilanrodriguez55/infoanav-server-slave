@@ -21,7 +21,6 @@ export function FilterBar({ children, onReset, activeCount = 0 }: FilterBarProps
       {children}
       <Button
         variant="outline"
-        size="sm"
         disabled={activeCount === 0}
         onClick={onReset}
         className="dark:border-gray-600 dark:text-gray-300"

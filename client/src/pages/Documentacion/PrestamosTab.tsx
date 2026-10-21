@@ -192,7 +192,7 @@ export default function PrestamosTab() {
                       </TableCell>
                       <TableCell className="text-right">
                         {abierto && (
-                          <Button size="sm" variant="brand" onClick={() => setDevolviendo(prestamo)}>
+                          <Button variant="brand" onClick={() => setDevolviendo(prestamo)}>
                             <Undo2 className="mr-2 h-4 w-4" />
                             Devolver
                           </Button>

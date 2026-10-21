@@ -11,7 +11,7 @@ interface SenalFormTabsProps {
 
 export const SenalFormTabs = ({ activeTab, onTabChange, luminica, esBoya, children }: SenalFormTabsProps) => (
   <Tabs value={activeTab} onValueChange={onTabChange} className="mb-6">
-    <TabsList className="grid grid-cols-5 bg-blue-100 dark:bg-gray-700">
+    <TabsList className="grid grid-cols-6 bg-blue-100 dark:bg-gray-700">
       <TabsTrigger
         value="generales"
         className="data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-600 dark:text-gray-300"
@@ -44,6 +44,12 @@ export const SenalFormTabs = ({ activeTab, onTabChange, luminica, esBoya, childr
         className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[disabled]:opacity-50 dark:data-[state=active]:bg-blue-600 dark:text-gray-300"
       >
         Sistema de Fondeo
+      </TabsTrigger>
+      <TabsTrigger
+        value="radioelectrica"
+        className="data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-600 dark:text-gray-300"
+      >
+        Radioeléctrica
       </TabsTrigger>
     </TabsList>
 

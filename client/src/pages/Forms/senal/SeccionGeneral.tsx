@@ -1,3 +1,4 @@
+import { DatePickerField } from '@/components/common/DatePickerField';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -103,13 +104,13 @@ export const SeccionGeneral = ({
       {/* Fecha instalación */}
       <div className="space-y-2">
         <Label htmlFor="fecha_instalacion" className="text-blue-900 dark:text-gray-200 font-medium">Fecha de Instalación</Label>
-        <Input
+        <DatePickerField
           id="fecha_instalacion"
-          name="fecha_instalacion"
-          type="datetime-local"
+          withTime
           value={formData.fecha_instalacion}
-          onChange={onInputChange}
-          className={cn("border-blue-200 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white", esVacio(formData.fecha_instalacion) && CAMPO_PENDIENTE)}
+          onChange={(valor) => onSelectChange('fecha_instalacion', valor)}
+          className="w-full"
+          inputClassName={cn("border-blue-200 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white", esVacio(formData.fecha_instalacion) && CAMPO_PENDIENTE)}
         />
       </div>
 

@@ -11,6 +11,7 @@ import {
   type HechoTexto,
 } from '@/services/api/hechosApi';
 import { aTextoLocal } from '@/lib/planMantenimiento';
+import { DatePickerField } from '@/components/common/DatePickerField';
 import { CAMPO_PENDIENTE, cn, esVacio, etiquetaSenal } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -131,6 +132,14 @@ export default function HechoForm({ idSenal, hecho, onTerminado, onCancelar }: H
           value={valores[clave]}
           onChange={(e) => cambiar(clave, e.target.value)}
           className={cn('dark:border-gray-600 dark:bg-gray-800 dark:text-white', esVacio(valores[clave]) && CAMPO_PENDIENTE)}
+        />
+      ) : tipo === 'date' ? (
+        <DatePickerField
+          id={clave}
+          value={valores[clave]}
+          onChange={(valor) => cambiar(clave, valor)}
+          className="w-full"
+          inputClassName={cn('dark:border-gray-600 dark:bg-gray-800 dark:text-white', esVacio(valores[clave]) && CAMPO_PENDIENTE)}
         />
       ) : (
         <Input
@@ -286,12 +295,12 @@ export default function HechoForm({ idSenal, hecho, onTerminado, onCancelar }: H
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="fecha_conclusion" className="text-sm font-medium">Fecha de conclusión</Label>
-              <Input
+              <DatePickerField
                 id="fecha_conclusion"
-                type="date"
                 value={conclusion.fecha_conclusion}
-                onChange={(e) => setConclusion((previo) => ({ ...previo, fecha_conclusion: e.target.value }))}
-                className={cn('dark:border-gray-600 dark:bg-gray-800 dark:text-white', esVacio(conclusion.fecha_conclusion) && CAMPO_PENDIENTE)}
+                onChange={(valor) => setConclusion((previo) => ({ ...previo, fecha_conclusion: valor }))}
+                className="w-full"
+                inputClassName={cn('dark:border-gray-600 dark:bg-gray-800 dark:text-white', esVacio(conclusion.fecha_conclusion) && CAMPO_PENDIENTE)}
               />
             </div>
             <div className="space-y-2">

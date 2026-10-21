@@ -165,7 +165,7 @@ export default function TabMantenimientos({ idSenal }: TabMantenimientosProps) {
                         <Badge className={CLASE_ESTADO_PLAN[estado]}>{ETIQUETA_ESTADO_PLAN[estado]}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" variant="outline" onClick={() => cumplir(plan.id_plan_mantenimiento)}>
+                        <Button variant="outline" onClick={() => cumplir(plan.id_plan_mantenimiento)}>
                           <Check />
                           Cumplir
                         </Button>

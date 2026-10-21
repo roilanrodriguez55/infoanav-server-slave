@@ -15,10 +15,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { DatePickerField } from '@/components/common/DatePickerField';
 import HistorialCambios from '@/components/common/HistorialCambios';
 import { aIntervaloPostgres, aValorDatetimeLocal, diferenciaMs } from '@/lib/intervalos';
 import { aTimestampLocal } from '@/lib/planMantenimiento';
@@ -434,11 +434,12 @@ export default function FallaDetalle() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="fecha-restablecer">Fecha de restablecimiento</Label>
-              <Input
+              <DatePickerField
                 id="fecha-restablecer"
-                type="datetime-local"
+                withTime
                 value={fechaRestablecer}
-                onChange={(e) => setFechaRestablecer(e.target.value)}
+                onChange={setFechaRestablecer}
+                className="w-full"
               />
             </div>
 

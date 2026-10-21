@@ -160,7 +160,7 @@ export default function HechosPage() {
             <CommandSelect
               hideLabel
               label="Señal"
-              className="h-8 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               placeholder="Todas"
               searchPlaceholder="Buscar por código o nombre..."
               items={opcionesSenal}

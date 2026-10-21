@@ -6,6 +6,7 @@ import { useServerList } from '@/hooks/useServerList';
 import { dateRangeFilters, type Filter } from '@/lib/postgrest';
 
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -244,14 +245,6 @@ const ListFallas = () => {
         subtitle="Administre las fallas registradas en el sistema"
         actions={
           <>
-            <Button
-              variant="outline"
-              onClick={() => setFilter('estado', 'abiertas')}
-              className="w-full sm:w-auto border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
-            >
-              <AlertCircle className="h-4 w-4 mr-2" />
-              Fuera de servicio actualmente
-            </Button>
             <Button variant="neutral" onClick={reload} className="w-full sm:w-auto">
               <RefreshCw className="h-4 w-4 mr-2" />
               Actualizar
@@ -348,6 +341,16 @@ const ListFallas = () => {
                 <SelectItem value="restablecidas">Restablecidas</SelectItem>
               </SelectContent>
             </Select>
+          </FilterField>
+
+          <FilterField label="Fuera de servicio actualmente" className="w-full md:w-auto">
+            <div className="flex h-8 items-center">
+              <Checkbox
+                aria-label="Fuera de servicio actualmente"
+                checked={filters.estado === 'abiertas'}
+                onCheckedChange={(valor) => setFilter('estado', valor === true ? 'abiertas' : '')}
+              />
+            </div>
           </FilterField>
 
           <FilterField label="Fecha desde" className="w-full md:w-40">

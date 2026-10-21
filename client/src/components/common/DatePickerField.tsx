@@ -10,16 +10,21 @@ import { cn } from '@/lib/utils'
 interface DatePickerFieldProps {
   value: string
   onChange: (value: string) => void
+  withTime?: boolean
   placeholder?: string
   disabled?: boolean
   className?: string
+  inputClassName?: string
   'aria-label'?: string
   id?: string
 }
 
-// Convierte 'aaaa-mm-dd' en fecha local (sin pasar por UTC)
+const HORAS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
+const MINUTOS = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'))
+
+// Convierte 'aaaa-mm-dd' o 'aaaa-mm-ddTHH:mm' en fecha local (sin pasar por UTC)
 function isoToDate(iso: string): Date | undefined {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:T\d{2}:\d{2})?$/.exec(iso)
   if (!match) return undefined
   const year = Number(match[1])
   const month = Number(match[2]) - 1
@@ -29,38 +34,65 @@ function isoToDate(iso: string): Date | undefined {
   return same ? date : undefined
 }
 
-function isoToTexto(iso: string): string {
+// Devuelve 'HH:mm' si el valor 'aaaa-mm-ddTHH:mm' lo trae
+function isoToHora(iso: string): string | undefined {
+  return /T(\d{2}:\d{2})$/.exec(iso)?.[1]
+}
+
+function fechaAIso(fecha: Date, hora: string | undefined): string {
+  const dia = format(fecha, 'yyyy-MM-dd')
+  return hora ? `${dia}T${hora}` : dia
+}
+
+function fechaATexto(fecha: Date, hora: string | undefined): string {
+  const dia = format(fecha, 'dd/MM/yyyy')
+  return hora ? `${dia} ${hora}` : dia
+}
+
+function isoToTexto(iso: string, conHora: boolean): string {
   const date = isoToDate(iso)
-  return date ? format(date, 'dd/MM/yyyy') : ''
+  if (!date) return ''
+  return fechaATexto(date, conHora ? isoToHora(iso) : undefined)
 }
 
-// Solo digitos, con '/' al entrar el tercer digito
-function aplicarMascara(raw: string): string {
-  const digitos = raw.replace(/\D/g, '').slice(0, 8)
-  if (digitos.length <= 2) return digitos
-  if (digitos.length <= 4) return `${digitos.slice(0, 2)}/${digitos.slice(2)}`
-  return `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4)}`
+// Solo digitos, con '/' al entrar el tercer digito y ' HH:mm' si hay hora
+function aplicarMascara(raw: string, conHora: boolean): string {
+  const digitos = raw.replace(/\D/g, '').slice(0, conHora ? 12 : 8)
+  const fecha = digitos.slice(0, 8)
+  let texto = fecha
+  if (fecha.length > 2) texto = `${fecha.slice(0, 2)}/${fecha.slice(2, 4)}`
+  if (fecha.length > 4) texto += `/${fecha.slice(4)}`
+  if (!conHora || digitos.length <= 8) return texto
+  const hora = digitos.slice(8)
+  if (hora.length <= 2) return `${texto} ${hora}`
+  return `${texto} ${hora.slice(0, 2)}:${hora.slice(2)}`
 }
 
-// Devuelve la fecha si el texto dd/mm/aaaa es real y el año es >= 1900
-function textoAFecha(texto: string): Date | undefined {
-  const fecha = parse(texto, 'dd/MM/yyyy', new Date())
+// Devuelve la fecha si el texto es real y el año es >= 1900
+function textoAFecha(texto: string, conHora: boolean): Date | undefined {
+  const formato = conHora ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy'
+  const fecha = parse(texto, formato, new Date())
   if (!isValid(fecha)) return undefined
-  if (format(fecha, 'dd/MM/yyyy') !== texto) return undefined
+  if (format(fecha, formato) !== texto) return undefined
   if (fecha.getFullYear() < 1900) return undefined
   return fecha
 }
 
+const selectClass =
+  'h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30'
+
 export function DatePickerField({
   value,
   onChange,
-  placeholder = 'dd/mm/aaaa',
+  withTime = false,
+  placeholder = withTime ? 'dd/mm/aaaa HH:mm' : 'dd/mm/aaaa',
   disabled,
   className,
+  inputClassName,
   'aria-label': ariaLabel,
   id,
 }: DatePickerFieldProps) {
-  const [texto, setTexto] = useState(() => isoToTexto(value))
+  const [texto, setTexto] = useState(() => isoToTexto(value, withTime))
   const [invalida, setInvalida] = useState(false)
   const [abierto, setAbierto] = useState(false)
   const [valorPrevio, setValorPrevio] = useState(value)
@@ -76,14 +108,17 @@ export function DatePickerField({
   // Sincroniza el texto cuando el valor cambia desde fuera (p. ej. Limpiar)
   if (value !== valorPrevio) {
     setValorPrevio(value)
-    setTexto(isoToTexto(value))
+    setTexto(isoToTexto(value, withTime))
     setInvalida(false)
   }
 
   const seleccionada = isoToDate(value)
+  // Hora aplicada al elegir un dia; 00:00 si el valor aun no trae hora
+  const horaValor = withTime ? (isoToHora(value) ?? '00:00') : undefined
+  const [horaSel, minutoSel] = horaValor ? horaValor.split(':') : ['', '']
 
   function handleTextoChange(e: ChangeEvent<HTMLInputElement>) {
-    const masked = aplicarMascara(e.target.value)
+    const masked = aplicarMascara(e.target.value, withTime)
     setTexto(masked)
 
     if (masked === '') {
@@ -91,25 +126,25 @@ export function DatePickerField({
       onChange('')
       return
     }
-    if (masked.length < 10) {
+    if (masked.length < (withTime ? 16 : 10)) {
       setInvalida(false)
       return
     }
 
-    const fecha = textoAFecha(masked)
+    const fecha = textoAFecha(masked, withTime)
     if (fecha) {
       setInvalida(false)
-      onChange(format(fecha, 'yyyy-MM-dd'))
+      onChange(fechaAIso(fecha, withTime ? format(fecha, 'HH:mm') : undefined))
     } else {
       setInvalida(true)
     }
   }
 
-  function aplicarFecha(fecha: Date | undefined) {
+  function aplicarFecha(fecha: Date | undefined, hora: string | undefined = horaValor) {
     if (fecha) {
-      setTexto(format(fecha, 'dd/MM/yyyy'))
+      setTexto(fechaATexto(fecha, hora))
       setInvalida(false)
-      onChange(format(fecha, 'yyyy-MM-dd'))
+      onChange(fechaAIso(fecha, hora))
     } else {
       setTexto('')
       setInvalida(false)
@@ -120,6 +155,15 @@ export function DatePickerField({
     ignorarAperturaRef.current = true
     inputRef.current?.focus()
     ignorarAperturaRef.current = false
+  }
+
+  function cambiarHora(parte: 'hora' | 'minuto', nuevo: string) {
+    const fecha = isoToDate(value)
+    if (!fecha) return
+    const hora = parte === 'hora' ? `${nuevo}:${minutoSel}` : `${horaSel}:${nuevo}`
+    setTexto(fechaATexto(fecha, hora))
+    setInvalida(false)
+    onChange(fechaAIso(fecha, hora))
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -141,8 +185,8 @@ export function DatePickerField({
   function handleBlur(e: FocusEvent<HTMLInputElement>) {
     const destino = e.relatedTarget
     if (destino instanceof Node && (wrapperRef.current?.contains(destino) || contentRef.current?.contains(destino))) return
-    if (texto !== '' && !textoAFecha(texto)) {
-      setTexto(isoToTexto(value))
+    if (texto !== '' && !textoAFecha(texto, withTime)) {
+      setTexto(isoToTexto(value, withTime))
       setInvalida(false)
     }
   }
@@ -184,7 +228,7 @@ export function DatePickerField({
             disabled={disabled}
             aria-label={ariaLabel}
             aria-invalid={invalida || undefined}
-            className="pr-9"
+            className={cn('pr-9', inputClassName)}
             onChange={handleTextoChange}
             onFocus={() => {
               if (!ignorarAperturaRef.current && !disabled) setAbierto(true)
@@ -229,9 +273,47 @@ export function DatePickerField({
           }}
         />
         <div className="flex items-center justify-between gap-2 border-t border-border pt-2.5">
-          <Button variant="neutral" size="sm" onClick={() => aplicarFecha(new Date())}>
+          <Button
+            variant="neutral"
+            size="sm"
+            onClick={() => {
+              const ahora = new Date()
+              aplicarFecha(ahora, withTime ? format(ahora, 'HH:mm') : undefined)
+            }}
+          >
             Hoy
           </Button>
+          {withTime && (
+            <div className="flex items-center gap-1">
+              <select
+                aria-label="Hora"
+                className={selectClass}
+                value={horaSel}
+                disabled={disabled === true || !seleccionada}
+                onChange={(e) => cambiarHora('hora', e.target.value)}
+              >
+                {HORAS.map((h) => (
+                  <option key={h} value={h}>
+                    {h}
+                  </option>
+                ))}
+              </select>
+              <span className="text-sm text-muted-foreground">:</span>
+              <select
+                aria-label="Minuto"
+                className={selectClass}
+                value={minutoSel}
+                disabled={disabled === true || !seleccionada}
+                onChange={(e) => cambiarHora('minuto', e.target.value)}
+              >
+                {MINUTOS.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <Button variant="neutral" size="sm" onClick={() => aplicarFecha(undefined)}>
             Limpiar
           </Button>

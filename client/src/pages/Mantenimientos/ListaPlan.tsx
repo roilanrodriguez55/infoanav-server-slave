@@ -259,7 +259,7 @@ export function ListaPlan({ senales, tipos, version, onEditar, onEliminar }: Lis
                       <TableCell>
                         <div className="flex items-center justify-center gap-2">
                           {estado !== 'cumplido' && (
-                            <Button size="sm" variant="outline" onClick={() => cumplir(plan)}>
+                            <Button variant="outline" onClick={() => cumplir(plan)}>
                               <Check />
                               Cumplir
                             </Button>

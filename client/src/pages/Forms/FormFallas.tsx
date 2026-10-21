@@ -5,6 +5,7 @@ import { es } from 'date-fns/locale';
 import { fallasService, type FallaData } from '@/services/api/fallasApi';
 import { senalesService } from '@/services/api/senalesApi';
 import { CommandSelect } from '@/components/ui/CommandSelect';
+import { DatePickerField } from '@/components/common/DatePickerField';
 import { CAMPO_PENDIENTE, cn, esVacio, etiquetaSenal } from '@/lib/utils';
 import {
   aIntervaloPostgres,
@@ -528,13 +529,13 @@ const FormFallas: React.FC = () => {
                       <Label htmlFor="fecha_falla" className="flex items-center text-gray-700 dark:text-gray-300 font-medium">
                         Fecha de Falla
                       </Label>
-                      <Input
+                      <DatePickerField
                         id="fecha_falla"
-                        type="datetime-local"
-                        name="fecha_falla"
+                        withTime
                         value={formData.fecha_falla}
-                        onChange={handleInputChange}
-                        className={cn('w-full', claseCampo('fecha_falla'))}
+                        onChange={(valor) => handleSelectChange('fecha_falla', valor)}
+                        className="w-full"
+                        inputClassName={claseCampo('fecha_falla')}
                       />
                     </div>
 
@@ -578,13 +579,13 @@ const FormFallas: React.FC = () => {
                       <Label htmlFor="fecha_restablecer" className="text-gray-700 dark:text-gray-300 font-medium">
                         Fecha de Restablecimiento
                       </Label>
-                      <Input
+                      <DatePickerField
                         id="fecha_restablecer"
-                        type="datetime-local"
-                        name="fecha_restablecer"
+                        withTime
                         value={formData.fecha_restablecer}
-                        onChange={handleInputChange}
-                        className={cn('w-full', claseCampo('fecha_restablecer'))}
+                        onChange={(valor) => handleSelectChange('fecha_restablecer', valor)}
+                        className="w-full"
+                        inputClassName={claseCampo('fecha_restablecer')}
                       />
                       {errors.fecha_restablecer && (
                         <p className="text-sm text-red-600 dark:text-red-400 flex items-center mt-1">
@@ -599,13 +600,13 @@ const FormFallas: React.FC = () => {
                       <Label htmlFor="fecha_pronost_restablecer" className="text-gray-700 dark:text-gray-300 font-medium">
                         Fecha Pronóstico Restablecimiento
                       </Label>
-                      <Input
+                      <DatePickerField
                         id="fecha_pronost_restablecer"
-                        type="datetime-local"
-                        name="fecha_pronost_restablecer"
+                        withTime
                         value={formData.fecha_pronost_restablecer}
-                        onChange={handleInputChange}
-                        className={cn('w-full', claseCampo('fecha_pronost_restablecer'))}
+                        onChange={(valor) => handleSelectChange('fecha_pronost_restablecer', valor)}
+                        className="w-full"
+                        inputClassName={claseCampo('fecha_pronost_restablecer')}
                       />
                     </div>
 

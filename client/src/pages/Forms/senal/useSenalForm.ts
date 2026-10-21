@@ -4,6 +4,7 @@ import { senalesService } from '@/services/api/senalesApi';
 import { esVacio } from '@/lib/utils';
 import { aValorDatetimeLocal } from '@/lib/intervalos';
 import { aTimestampLocal } from '@/lib/planMantenimiento';
+import { RACON_VACIO, raconACampos, raconATexto, raconService, type RaconTexto } from '@/services/api/raconApi';
 import {
   FORM_DATA_VACIO,
   type CatalogoItem,
@@ -31,6 +32,12 @@ export const useSenalForm = ({ id, tipos, setLoading, fondeo }: UseSenalFormPara
     { id_tipo_equipamiento: '', nombre: '', cantidad: 1, num_inventario: '' }
   ]);
   const [dadaDeBaja, setDadaDeBaja] = useState(false);
+  const [idCreado, setIdCreado] = useState<string | undefined>(undefined);
+  const [raconIdExistente, setRaconIdExistente] = useState<string | null>(null);
+  const [errorRacon, setErrorRacon] = useState<string | null>(null);
+  // En edicion, la señal y el RACON deben cargarse antes de permitir guardar
+  const [senalCargada, setSenalCargada] = useState(!isEditing);
+  const [raconCargado, setRaconCargado] = useState(true);
 
   const { noSerieFlotador, cadenas, pesosMuertos, bridas, grectos, cargar: cargarFondeo, reiniciar: reiniciarFondeo } = fondeo;
 
@@ -72,8 +79,16 @@ export const useSenalForm = ({ id, tipos, setLoading, fondeo }: UseSenalFormPara
 
         if (response.success && response.data && Array.isArray(response.data) && response.data.length > 0) {
           const data = response.data[0];
+          // Un fallo del RACON no impide cargar la señal; bloquea solo el guardado del RACON
+          const racon = await raconService.getActivoPorSenal(id).catch((errorCarga: unknown) => {
+            console.error('Error cargando RACON:', errorCarga);
+            alert('No se pudo cargar el RACON de la señal. No se guardará el RACON para evitar duplicados.');
+            return undefined;
+          });
+          setRaconCargado(racon !== undefined);
 
           setDadaDeBaja(!!data.fecha_retirada);
+          setRaconIdExistente(racon?.id_racon ?? null);
 
           setFormData({
             codigo_lsm: data.codigo_lsm ?? '',
@@ -119,8 +134,12 @@ export const useSenalForm = ({ id, tipos, setLoading, fondeo }: UseSenalFormPara
             consumodestellador: data.consumodestellador?.toString() ?? '',
             id_equipamiento: data.id_equipamiento ?? '',
 
-            sistema_fondeo: data.sistema_fondeo ?? ''
+            sistema_fondeo: data.sistema_fondeo ?? '',
+
+            esRadioelectrica: !!racon,
+            racon: racon ? raconATexto(racon) : { ...RACON_VACIO }
           });
+          setSenalCargada(true);
 
           if (data.sistema_fondeo) {
             try {
@@ -130,6 +149,8 @@ export const useSenalForm = ({ id, tipos, setLoading, fondeo }: UseSenalFormPara
               console.warn('Error parseando sistema_fondeo:', e);
             }
           }
+        } else {
+          alert('Error al cargar los datos de la señal');
         }
       } catch (error) {
         console.error('Error cargando señal:', error);
@@ -157,6 +178,13 @@ export const useSenalForm = ({ id, tipos, setLoading, fondeo }: UseSenalFormPara
     setFormData(prev => ({
       ...prev,
       [name]: checked
+    }));
+  };
+
+  const handleRaconChange = (clave: keyof RaconTexto, valor: string) => {
+    setFormData(prev => ({
+      ...prev,
+      racon: { ...prev.racon, [clave]: valor }
     }));
   };
 
@@ -193,11 +221,38 @@ export const useSenalForm = ({ id, tipos, setLoading, fondeo }: UseSenalFormPara
   };
 
   const validateForm = (): boolean => {
+    if (isEditing && !senalCargada) {
+      alert('La señal no se cargó correctamente. Recargue la página antes de guardar.');
+      return false;
+    }
     if (esVacio(formData.codigo_lsm)) {
       alert('El código LSM es requerido');
       return false;
     }
     return true;
+  };
+
+  // Devuelve el mensaje de error del servidor, o null si el RACON quedo sincronizado.
+  const sincronizarRacon = async (idSenal: string): Promise<string | null> => {
+    // Sin el RACON cargado no se sabe si existe, asi que crear uno podria duplicarlo
+    if (!raconCargado) {
+      return 'no se pudo cargar el RACON existente, recargue la página';
+    }
+
+    if (formData.esRadioelectrica) {
+      const campos = raconACampos(idSenal, formData.racon);
+      const respuesta = raconIdExistente
+        ? await raconService.update(raconIdExistente, campos)
+        : await raconService.create(campos);
+      return respuesta.success ? null : respuesta.message;
+    }
+
+    if (raconIdExistente) {
+      const respuesta = await raconService.delete(raconIdExistente);
+      return respuesta.success ? null : respuesta.message;
+    }
+
+    return null;
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -208,7 +263,11 @@ export const useSenalForm = ({ id, tipos, setLoading, fondeo }: UseSenalFormPara
     }
 
     setErrorCodigoLsm(null);
+    setErrorRacon(null);
     setSaving(true);
+
+    // Tras crear la señal, un reintento por error del RACON actualiza la señal ya creada.
+    const idEditando = id ?? idCreado;
 
     try {
       const dataToSend: Record<string, string | number | boolean | null> = {
@@ -258,31 +317,41 @@ export const useSenalForm = ({ id, tipos, setLoading, fondeo }: UseSenalFormPara
         sistema_fondeo: formData.sistema_fondeo || null
       };
 
-      if (isEditing) {
+      if (idEditando) {
         dataToSend.updated_at = new Date().toISOString();
       } else {
         dataToSend.created_at = new Date().toISOString();
       }
 
       let response;
-      if (isEditing) {
-        response = await senalesService.updateSenal(id, dataToSend);
+      if (idEditando) {
+        response = await senalesService.updateSenal(idEditando, dataToSend);
       } else {
         response = await senalesService.createSenal(dataToSend);
       }
 
       if (response.success) {
-        alert(`✅ Señal ${isEditing ? 'actualizada' : 'guardada'} correctamente`);
+        const idSenal = idEditando ?? (response.data as { id_senal: string }[])[0].id_senal;
 
-        if (!isEditing && equipamiento.length > 0 && equipamiento[0].id_tipo_equipamiento) {
-          const senalId = (response.data as { id_senal: string }[])[0].id_senal;
-          for (const eq of equipamiento) {
-            if (eq.id_tipo_equipamiento) {
-              await senalesService.addEquipamiento(senalId, eq);
+        if (!idEditando) {
+          setIdCreado(idSenal);
+
+          if (equipamiento.length > 0 && equipamiento[0].id_tipo_equipamiento) {
+            for (const eq of equipamiento) {
+              if (eq.id_tipo_equipamiento) {
+                await senalesService.addEquipamiento(idSenal, eq);
+              }
             }
           }
         }
 
+        const errorSincronizacion = await sincronizarRacon(idSenal);
+        if (errorSincronizacion) {
+          setErrorRacon(errorSincronizacion);
+          return;
+        }
+
+        alert(`✅ Señal ${idEditando ? 'actualizada' : 'guardada'} correctamente`);
         void navigate('/gestion-senales');
       } else if (response.codigoDuplicado) {
         setErrorCodigoLsm(`Ya existe una señal con el código LSM «${formData.codigo_lsm}»`);
@@ -312,6 +381,8 @@ export const useSenalForm = ({ id, tipos, setLoading, fondeo }: UseSenalFormPara
     formData,
     saving,
     errorCodigoLsm,
+    errorRacon,
+    senalCargada,
     dadaDeBaja,
     esBoya,
     esFaro,
@@ -319,6 +390,7 @@ export const useSenalForm = ({ id, tipos, setLoading, fondeo }: UseSenalFormPara
     handleInputChange,
     handleCheckboxChange,
     handleSelectChange,
+    handleRaconChange,
     agregarEquipamiento,
     eliminarEquipamiento,
     actualizarEquipamiento,

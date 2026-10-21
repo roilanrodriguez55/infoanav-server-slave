@@ -282,7 +282,6 @@ const UsuariosPage = () => {
                           <div className="flex items-center justify-center gap-2">
                             <Button
                               variant="ghost"
-                              size="sm"
                               onClick={() => setDialogo({ key: Date.now(), usuario })}
                               className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-gray-700"
                             >
@@ -291,7 +290,6 @@ const UsuariosPage = () => {
                             </Button>
                             <Button
                               variant="ghost"
-                              size="sm"
                               onClick={() => setDialogo({ key: Date.now(), usuario })}
                               className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-gray-700"
                             >
@@ -300,7 +298,6 @@ const UsuariosPage = () => {
                             </Button>
                             <Button
                               variant="ghost"
-                              size="sm"
                               disabled={esPropio || dadoDeBaja}
                               onClick={() => setADarDeBaja(usuario)}
                               className="text-red-600 hover:text-red-800 hover:bg-red-50 dark:text-red-400 dark:hover:bg-gray-700"

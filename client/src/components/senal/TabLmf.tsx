@@ -16,6 +16,7 @@ import {
   type LmfRegistro,
   type LmfTexto,
 } from '@/services/api/lmfApi';
+import { DatePickerField } from '@/components/common/DatePickerField';
 import { DetailPanel } from '@/components/common/DetailPanel';
 import { Pagination } from '@/components/common/Pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -183,8 +184,28 @@ function LmfForm({ idSenal, lmf, inicial, aviso, onTerminado, onCancelar }: LmfF
       )}
 
       <Grupo titulo="Operación">
-        {campo('fecha_leva', 'Fecha de leva', 'datetime-local')}
-        {campo('fecha_fondeo', 'Fecha de fondeo', 'datetime-local')}
+        <div className="space-y-2">
+          <Label htmlFor="fecha_leva" className="text-sm font-medium">Fecha de leva</Label>
+          <DatePickerField
+            id="fecha_leva"
+            withTime
+            value={valores.fecha_leva}
+            onChange={(valor) => cambiar('fecha_leva', valor)}
+            className="w-full"
+            inputClassName={cn(CLASE_CAMPO, esVacio(valores.fecha_leva) && CAMPO_PENDIENTE)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="fecha_fondeo" className="text-sm font-medium">Fecha de fondeo</Label>
+          <DatePickerField
+            id="fecha_fondeo"
+            withTime
+            value={valores.fecha_fondeo}
+            onChange={(valor) => cambiar('fecha_fondeo', valor)}
+            className="w-full"
+            inputClassName={cn(CLASE_CAMPO, esVacio(valores.fecha_fondeo) && CAMPO_PENDIENTE)}
+          />
+        </div>
         <div key="id_buque_ejecutor" className="space-y-2">
           <CommandSelect
             value={valores.id_buque_ejecutor}

@@ -12,6 +12,7 @@ import type { Filter } from '@/lib/postgrest';
 import { aValorDatetimeLocal, diferenciaMs, formatearDuracion } from '@/lib/intervalos';
 import { aTextoLocal, aTimestampLocal, fechaHoraLegible } from '@/lib/planMantenimiento';
 import { etiquetaSenal } from '@/lib/utils';
+import { DatePickerField } from '@/components/common/DatePickerField';
 import { DetailPanel } from '@/components/common/DetailPanel';
 import { EmptyState } from '@/components/common/EmptyState';
 import { FilterBar, FilterField } from '@/components/common/FilterBar';
@@ -339,12 +340,12 @@ export default function PlantasTab() {
             </DialogHeader>
             <div className="space-y-2">
               <Label htmlFor="fecha_falla" className="text-sm font-medium">Inicio F/S</Label>
-              <Input
+              <DatePickerField
                 id="fecha_falla"
-                type="datetime-local"
+                withTime
                 value={fechaFalla}
-                onChange={(e) => setFechaFalla(e.target.value)}
-                className="dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                onChange={setFechaFalla}
+                className="w-full"
               />
             </div>
             <div className="space-y-2">

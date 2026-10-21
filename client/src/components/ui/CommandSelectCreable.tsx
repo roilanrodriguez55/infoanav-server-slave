@@ -100,7 +100,7 @@ export function CommandSelectCreable({
             role="combobox"
             aria-expanded={open}
             className={cn(
-              "w-full justify-between h-10 font-normal",
+              "w-full justify-between font-normal",
               !value && "text-muted-foreground",
               pendiente && CAMPO_PENDIENTE,
               className

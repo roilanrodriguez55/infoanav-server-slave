@@ -140,7 +140,10 @@ const AppSidebar: React.FC = () => {
         return (
           location.pathname === "/" || location.pathname === "/dashboard"
         );
-      return location.pathname === path;
+      return (
+        location.pathname === path ||
+        location.pathname.startsWith(path + "/")
+      );
     },
     [location.pathname]
   );

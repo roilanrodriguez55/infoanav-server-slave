@@ -24,7 +24,7 @@ Pantallas de este modulo:
 ### Que ve en pantalla
 
 - Titulo **Senales Maritimas** y el texto "Gestion de senales maritimas del sistema".
-- Botones de la parte superior: **Actualizar**, **Radioelectricas** (lleva al modulo de RACON) y **Nueva Senal**.
+- Botones de la parte superior: **Actualizar** y **Nueva Senal**.
 - Cuatro vistas rapidas: **Activas**, **Ciegas**, **Luminicas** y **Bajas**. La vista activa aparece resaltada.
 - Filtros.
 - Tabla con las columnas Codigo LSM, Nombre, Tipo, Ubicacion, Luminica, Estado, Fecha Creacion y Acciones.
@@ -126,7 +126,6 @@ Se abre con **Ver detalle de senal**. Muestra los datos de la senal en pestanas 
 - **Sistema de Fondeo**: solo activa si la senal es boya.
 - **Fallas**: fallas de la senal. Desde esta pestana se registra una falla nueva con el enlace **Registrar falla**, que abre el formulario con la senal ya elegida.
 - **Mantenimientos**: mantenimientos de la senal.
-- **Radioelectrico**: RACON instalados en la senal (ver el archivo 11).
 - **LMF**: operaciones de leva, mantenimiento y fondeo. Solo activa si la senal es boya.
 - **Hechos**: hechos extraordinarios de la senal (ver el archivo 10).
 - **Historial**: cambios registrados sobre la senal.

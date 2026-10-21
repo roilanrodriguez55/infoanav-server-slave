@@ -153,11 +153,18 @@ const mensajeError = (error: unknown): string => {
 };
 
 const catalogo = async (tabla: string, columna: string): Promise<CatalogoItem[]> => {
-  const response = await api.get<Record<string, string>[]>(`/${tabla}?select=${columna},nombre&order=nombre.asc`);
+  const response = await api.get<Record<string, string>[]>(`/${tabla}?deleted_at=is.null&select=${columna},nombre&order=nombre.asc`);
   return response.data.map((fila) => ({ id: fila[columna], nombre: fila.nombre }));
 };
 
 export const raconService = {
+  getActivoPorSenal: async (idSenal: string): Promise<RaconRegistro | null> => {
+    const response = await api.get<RaconRegistro[]>(
+      `${RACON_PATH}?id_senal=eq.${idSenal}&deleted_at=is.null&select=${RACON_SELECT}&order=created_at.asc&limit=1`
+    );
+    return response.data[0] ?? null;
+  },
+
   getCatalogos: async (): Promise<{ empresas: CatalogoItem[]; estaciones: CatalogoItem[] }> => {
     const [empresas, estaciones] = await Promise.all([
       catalogo('empresas', 'id_empresa'),
